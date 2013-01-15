@@ -1,0 +1,20 @@
+
+body {
+	margin: 0px;
+}
+
+.server {
+	width: 800px;
+	height: 600px;
+	overflow: hidden;
+
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	-moz-transform: translate(-50%, -50%);
+	border: 1px solid black;
+}
+
+.window {
+	position: absolute;
+}
