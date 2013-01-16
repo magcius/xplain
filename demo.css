@@ -1,8 +1,4 @@
 
-body {
-	margin: 0px;
-}
-
 .server {
 	width: 800px;
 	height: 600px;
@@ -17,4 +13,8 @@ body {
 
 .window {
 	position: absolute;
+}
+
+.region-demo canvas {
+	border: 1px solid #777;
 }
