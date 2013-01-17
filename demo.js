@@ -344,5 +344,4 @@
 		var freq = i * 0.25 + 0.5;
 		animWindow(w, freq);
 	});
-	console.log(w);
 })();
