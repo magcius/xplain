@@ -22,3 +22,9 @@
 .region-demo canvas {
 	border: 1px solid #777;
 }
+
+.crtc canvas {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+}

@@ -8,18 +8,18 @@
 			this._backgroundColor = '#ddd';
 			this._delayedDraw = new Task(this._draw.bind(this), delay);
 		},
-		_drawBackground: function (wrap) {
-			wrap((function(ctx) {
+		_drawBackground: function (wrapper) {
+			wrapper.drawWithContext((function(ctx) {
 				ctx.fillStyle = this._backgroundColor;
 				ctx.fillRect(0, 0, this.width, this.height);
 			}).bind(this));
 		},
-		expose: function(wrap) {
-			this._drawBackground(wrap);
-			this._delayedDraw(wrap);
+		expose: function(wrapper) {
+			this._drawBackground(wrapper);
+			this._delayedDraw(wrapper);
 		},
-		_draw: function(wrap) {
-			wrap((function(ctx) {
+		_draw: function(wrapper) {
+			wrapper.drawWithContext((function(ctx) {
 				ctx.fillStyle = this.color;
 				ctx.fillRect(0, 0, this.width, this.height);
 				ctx.fillStyle = '#000';
@@ -27,6 +27,7 @@
 				ctx.font = '36px sans-serif';
 				ctx.fillText(this.title, this.width / 2, this.height / 2);
 			}).bind(this));
+			wrapper.clearDamage();
 			return false;
 		}
 	});

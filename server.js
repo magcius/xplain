@@ -1,13 +1,35 @@
 (function(exports) {
 
+	var DEBUG = false;
+
 	function pathFromRegion(ctx, region) {
 		region.iter_rectangles(function(rect) {
 			ctx.rect(rect.x, rect.y, rect.width, rect.height);
 		});
 	}
 
+	var ContextWrapper = new Class({
+		initialize: function(serverWindow, ctx) {
+			this._serverWindow = serverWindow;
+			this._ctx = ctx;
+		},
+
+		drawWithContext: function(func) {
+			var ctx = this._ctx;
+			ctx.beginPath();
+			ctx.save();
+			this._serverWindow.prepareContext(ctx);
+			func(ctx);
+			ctx.restore();
+		},
+
+		clearDamage: function() {
+			this._serverWindow.clearDamage();
+		},
+	});
+
 	var ServerWindow = new Class({
-		initialize: function(window, server) {
+		initialize: function(window, server, ctx) {
 			this.clientWindow = window;
 			this._server = server;
 			this.inputWindow = document.createElement("div");
@@ -19,6 +41,8 @@
 			// The region of the screen that the window occupies, in screen coordinates.
 			this.shapeRegion = new Region();
 			this.reconfigure(0, 0, 300, 300); // XXX defaults
+
+			this._ctxWrapper = new ContextWrapper(this, ctx);
 		},
 		finalize: function() {
 			this.shapeRegion.finalize();
@@ -27,27 +51,26 @@
 			this.damagedRegion.finalize();
 			this.damagedRegion = null;
 		},
-		_wrapContext: function(ctx) {
-			return (function wrap(func) {
-				ctx.beginPath();
-				ctx.save();
-				this._prepareContext(ctx);
-				func(ctx);
-				ctx.restore();
-			}).bind(this);
-		},
-		_prepareContext: function(ctx) {
+
+		prepareContext: function(ctx) {
 			ctx.translate(this.x, this.y);
 
-			pathFromRegion(ctx, this.damagedRegion);
+			var region = this.damagedRegion;
+			pathFromRegion(ctx, region);
 			ctx.clip();
 		},
-		draw: function(clippedRegion, ctx) {
+		clearDamage: function() {
+			// Don't bother trashing our region here as
+			// we'll clear it below.
+			this.damagedRegion.translate(this.x, this.y);
+			this._server.subtractDamage(this.damagedRegion);
 			this.damagedRegion.clear();
-			this.damagedRegion.copy(clippedRegion);
-			this.damagedRegion.translate(-this.x, -this.y);
-			this.clientWindow.expose(this._wrapContext(ctx), this.damagedRegion);
 		},
+		damage: function(region, ctx) {
+			this.damagedRegion.union(this.damagedRegion, region);
+			this.clientWindow.expose(this._ctxWrapper);
+		},
+
 		reconfigure: function(x, y, width, height) {
 			this.x = x;
 			this.y = y;
@@ -94,6 +117,46 @@
 			this._ctx.fillStyle = this._backgroundColor;
 			this._ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
 			this._ctx.restore();
+
+			this._debugCanvas = document.createElement("canvas");
+			this._debugCanvas.width = this._canvas.width;
+			this._debugCanvas.height = this._canvas.height;
+			this._container.appendChild(this._debugCanvas);
+
+			this._debugCtx = this._debugCanvas.getContext("2d");
+
+			this._debugEnabled = DEBUG;
+		},
+
+		toggleDebug: function() {
+			this._debug = !this._debug;
+		},
+
+		_debugDrawClear: function() {
+			if (!this._debug)
+				return;
+
+			this._debugCtx.clearRect(0, 0, this._debugCtx.canvas.width, this._debugCtx.canvas.height);
+		},
+
+		_debugDrawRegion: function(region, style) {
+			if (!this._debug)
+				return;
+
+			this._debugCtx.beginPath();
+			this._debugCtx.save();
+			pathFromRegion(this._debugCtx, region);
+			this._debugCtx.strokeStyle = style;
+			this._debugCtx.stroke();
+			this._debugCtx.restore();
+		},
+
+		_subtractAboveWindowsFromRegion: function(serverWindow, region) {
+			var idx = this._toplevelWindows.indexOf(serverWindow);
+			var windowsOnTop = this._toplevelWindows.slice(0, idx);
+			windowsOnTop.forEach(function(aboveWindow) {
+				region.subtract(region, aboveWindow.shapeRegion);
+			});
 		},
 
 		// For a given window, return the region that would be
@@ -101,37 +164,56 @@
 		// the window's shape region clipped to the areas that are
 		// visible.
 		_calculateEffectiveRegionForWindow: function(serverWindow) {
-			var idx = this._toplevelWindows.indexOf(serverWindow);
-			var windowsOnTop = this._toplevelWindows.slice(0, idx);
 			var region = new Region();
 			region.copy(serverWindow.shapeRegion);
-			windowsOnTop.forEach(function(aboveWindow) {
-				region.subtract(region, aboveWindow.shapeRegion);
-			});
+			this._subtractAboveWindowsFromRegion(serverWindow, region);
+			return region;
+		},
+
+		calculateDamagedRegionForWindow: function(serverWindow) {
+			var region = new Region();
+			region.copy(serverWindow.shapeRegion);
+			region.intersect(region, this._damagedRegion);
+			this._subtractAboveWindowsFromRegion(serverWindow, region);
 			return region;
 		},
 
 		_redraw: function() {
 			var intersection = new Region();
+
+			// This is a copy of the damage region for calculating
+			// the effective damage at every step. We don't want
+			// to subtract damage until the client draws and clears
+			// the damage.
+			var calculatedDamageRegion = new Region();
+			calculatedDamageRegion.copy(this._damagedRegion);
+
 			this._toplevelWindows.forEach(function(serverWindow) {
 				intersection.clear();
-				intersection.intersect(this._damagedRegion, serverWindow.shapeRegion);
+				intersection.intersect(calculatedDamageRegion, serverWindow.shapeRegion);
+
 				if (intersection.not_empty()) {
-					this._damagedRegion.subtract(this._damagedRegion, intersection);
-					serverWindow.draw(intersection, this._ctx);
+					calculatedDamageRegion.subtract(calculatedDamageRegion, intersection);
+
+					// Translate into window space.
+					intersection.translate(-serverWindow.x, -serverWindow.y);
+					serverWindow.damage(intersection);
 				}
 			}, this);
 
-			if (this._damagedRegion.not_empty()) {
+			intersection.finalize();
+
+			if (calculatedDamageRegion.not_empty()) {
 				var ctx = this._ctx;
 				ctx.beginPath();
 				ctx.save();
-				pathFromRegion(ctx, this._damagedRegion);
+				pathFromRegion(ctx, calculatedDamageRegion);
 				ctx.fillStyle = this._backgroundColor;
 				ctx.fill();
-				this._damagedRegion.clear();
 				ctx.restore();
 			}
+
+			calculatedDamageRegion.finalize();
 
 			return false;
 		},
@@ -139,8 +221,14 @@
 			this._damagedRegion.union(this._damagedRegion, region);
 			this._queueRedraw();
 		},
+		subtractDamage: function(region) {
+			this._damagedRegion.subtract(this._damagedRegion, region);
+			// This is expected to be called after the client has painted,
+			// so don't queue a repaint.
+		},
+
 		addWindow: function(clientWindow) {
-			var serverWindow = new ServerWindow(clientWindow, this);
+			var serverWindow = new ServerWindow(clientWindow, this, this._ctx);
 			clientWindow._serverWindow = serverWindow;
 			this._toplevelWindows.unshift(serverWindow);
 			this._container.appendChild(serverWindow.inputWindow);
@@ -164,6 +252,8 @@
 		},
 		configureRequest: function(clientWindow, x, y, width, height) {
 			var serverWindow = clientWindow._serverWindow;
+
+			this._debugDrawClear();
 
 			// This is a bit fancy. We need to accomplish a few things:
 			//
@@ -200,11 +290,15 @@
 			damagedRegion.subtract(oldRegion, newRegion);
 			this._damagedRegion.union(this._damagedRegion, damagedRegion);
 
+			this._debugDrawRegion(damagedRegion, 'yellow');
+
 			// Pixels also need to be exposed on the window itself where the
 			// new region is, and the old one isn't.
 			damagedRegion.clear();
 			damagedRegion.subtract(newRegion, oldRegion);
 			this._damagedRegion.union(this._damagedRegion, damagedRegion);
+
+			this._debugDrawRegion(damagedRegion, 'blue');
 
 			// If X/Y change, we copy the old area, so we need to translate into
 			// the coordinate space of the new window's position to know what needs
@@ -213,6 +307,8 @@
 			damagedRegion.clear();
 			damagedRegion.subtract(newRegion, oldRegion);
 			this._damagedRegion.union(this._damagedRegion, damagedRegion);
+
+			this._debugDrawRegion(damagedRegion, 'green');
 
 			// Copy the old image contents over, masked to the region.
 			var ctx = this._ctx;
