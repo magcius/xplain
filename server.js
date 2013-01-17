@@ -206,6 +206,14 @@
 			damagedRegion.subtract(newRegion, oldRegion);
 			this._damagedRegion.union(this._damagedRegion, damagedRegion);
 
+			// If X/Y change, we copy the old area, so we need to translate into
+			// the coordinate space of the new window's position to know what needs
+			// to be redrawn after the copy.
+			oldRegion.translate(serverWindow.x - oldX, serverWindow.y - oldY);
+			damagedRegion.clear();
+			damagedRegion.subtract(newRegion, oldRegion);
+			this._damagedRegion.union(this._damagedRegion, damagedRegion);
+
 			// Copy the old image contents over, masked to the region.
 			var ctx = this._ctx;
 			ctx.beginPath();
