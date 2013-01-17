@@ -37,15 +37,15 @@
 			}).bind(this);
 		},
 		_prepareContext: function(ctx) {
-			var region = this.damagedRegion;
-			pathFromRegion(ctx, region);
-			ctx.clip();
-
 			ctx.translate(this.x, this.y);
+
+			pathFromRegion(ctx, this.damagedRegion);
+			ctx.clip();
 		},
 		draw: function(clippedRegion, ctx) {
 			this.damagedRegion.clear();
 			this.damagedRegion.copy(clippedRegion);
+			this.damagedRegion.translate(-this.x, -this.y);
 			this.clientWindow.expose(this._wrapContext(ctx), this.damagedRegion);
 		},
 		reconfigure: function(x, y, width, height) {
