@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset=utf8>
+	<title>Mask Test</title>
+	<style>
+	canvas { border: 1px solid #000; }
+	</style>
+</head>
+<body class="region-demo">
+	<h2>Mask Test</h2>
+	<canvas id="a" width=200 height=200></canvas>
+	<script>
+	(function() {
+
+		var ctx_a = document.getElementById("a").getContext("2d");
+		ctx_a.fillStyle = 'red';
+		ctx_a.fillRect(20, 20, 100, 100);
+
+		function moveImage(ctx, fromX, fromY, toX, toY, size) {
+			ctx.beginPath();
+			ctx.save();
+			ctx.rect(toX, toY, size, size);
+			ctx.clip();
+			ctx.drawImage(ctx.canvas, fromX, fromY, size, size, toX, toY, size, size);
+			ctx.restore();
+			ctx.clearRect(fromX, fromY, toX - fromX, size);
+			ctx.clearRect(fromX, fromY, size, toY - fromY);
+		}
+
+		var pos = 20;
+		setInterval(function() {
+			var oldPos = pos;
+			var newPos = ++pos;
+			moveImage(ctx_a, oldPos, oldPos, newPos, newPos, 100, 100)
+		}, 50);
+
+	})();
+	</script>
+</body>
+</html>
