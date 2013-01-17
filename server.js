@@ -201,7 +201,7 @@
 			this._damagedRegion.union(this._damagedRegion, damagedRegion);
 
 			// Pixels also need to be exposed on the window itself where the
-			// new region is, and the old one isn't (resizes)
+			// new region is, and the old one isn't.
 			damagedRegion.clear();
 			damagedRegion.subtract(newRegion, oldRegion);
 			this._damagedRegion.union(this._damagedRegion, damagedRegion);
