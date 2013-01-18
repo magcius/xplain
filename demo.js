@@ -5,17 +5,9 @@
 		initialize: function(color, title, delay) {
 			this.color = color;
 			this.title = title;
-			this._backgroundColor = '#ddd';
 			this._delayedDraw = new Task(this._draw.bind(this), delay);
 		},
-		_drawBackground: function (wrapper) {
-			wrapper.drawWithContext((function(ctx) {
-				ctx.fillStyle = this._backgroundColor;
-				ctx.fillRect(0, 0, this.width, this.height);
-			}).bind(this));
-		},
 		expose: function(wrapper) {
-			this._drawBackground(wrapper);
 			this._delayedDraw(wrapper);
 		},
 		_draw: function(wrapper) {

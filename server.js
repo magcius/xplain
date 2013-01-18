@@ -42,6 +42,8 @@
 			this.shapeRegion = new Region();
 			this.reconfigure(0, 0, 300, 300); // XXX defaults
 
+			this._backgroundColor = '#ddd';
+
 			this._ctxWrapper = new ContextWrapper(this, ctx);
 		},
 		finalize: function() {
@@ -51,7 +53,6 @@
 			this.damagedRegion.finalize();
 			this.damagedRegion = null;
 		},
-
 		prepareContext: function(ctx) {
 			ctx.translate(this.x, this.y);
 
@@ -66,8 +67,14 @@
 			this._server.subtractDamage(this.damagedRegion);
 			this.damagedRegion.clear();
 		},
+		_drawBackground: function(ctx) {
+			ctx.fillStyle = this._backgroundColor;
+			ctx.fillRect(0, 0, this.width, this.height);
+		},
 		damage: function(region, ctx) {
 			this.damagedRegion.union(this.damagedRegion, region);
+
+			this._ctxWrapper.drawWithContext(this._drawBackground.bind(this));
 			this.clientWindow.expose(this._ctxWrapper);
 		},
 
@@ -122,6 +129,9 @@
 			this._debugCanvas.width = this._canvas.width;
 			this._debugCanvas.height = this._canvas.height;
 			this._container.appendChild(this._debugCanvas);
+
+			this.width = this._canvas.width;
+			this.height = this._canvas.height;
 
 			this._debugCtx = this._debugCanvas.getContext("2d");
 
