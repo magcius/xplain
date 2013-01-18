@@ -157,6 +157,13 @@
 			this._debugCtx.clearRect(0, 0, this._debugCtx.canvas.width, this._debugCtx.canvas.height);
 		},
 
+		queueFullRedraw: function() {
+			var fullRegion = new Region();
+			fullRegion.init_rect(0, 0, this.width, this.height);
+			this.damageRegion(fullRegion);
+			fullRegion.finalize();
+		},
+
 		_debugDrawRegion: function(region, style) {
 			if (!this._debugEnabled)
 				return;

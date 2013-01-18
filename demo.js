@@ -92,6 +92,8 @@
 		var letter = String.fromCharCode(evt.keyCode);
 		if (letter === 'D')
 			server.toggleDebug();
+		if (letter === 'R')
+			server.queueFullRedraw();
 	});
 
 })(window);
