@@ -139,25 +139,25 @@
 		},
 
 		toggleDebug: function() {
-			this._debug = !this._debug;
+			this._debugEnabled = !this._debugEnabled;
+			if (!this._debugEnabled)
+				this._debugDrawClear();
 		},
 
 		_debugDrawClear: function() {
-			if (!this._debug)
-				return;
-
 			this._debugCtx.clearRect(0, 0, this._debugCtx.canvas.width, this._debugCtx.canvas.height);
 		},
 
 		_debugDrawRegion: function(region, style) {
-			if (!this._debug)
+			if (!this._debugEnabled)
 				return;
 
 			this._debugCtx.beginPath();
 			this._debugCtx.save();
 			pathFromRegion(this._debugCtx, region);
-			this._debugCtx.strokeStyle = style;
-			this._debugCtx.stroke();
+			this._debugCtx.fillStyle = style;
+			this._debugCtx.globalAlpha = 0.4;
+			this._debugCtx.fill();
 			this._debugCtx.restore();
 		},
 
@@ -197,6 +197,11 @@
 			// the damage.
 			var calculatedDamageRegion = new Region();
 			calculatedDamageRegion.copy(this._damagedRegion);
+
+			if (this._debugEnabled)
+				this._debugDrawClear();
+
+			this._debugDrawRegion(calculatedDamageRegion, 'red');
 
 			this._toplevelWindows.forEach(function(serverWindow) {
 				intersection.clear();
@@ -263,8 +268,6 @@
 		configureRequest: function(clientWindow, x, y, width, height) {
 			var serverWindow = clientWindow._serverWindow;
 
-			this._debugDrawClear();
-
 			// This is a bit fancy. We need to accomplish a few things:
 			//
 			//   * If the window was resized, we need to ensure we mark
@@ -328,7 +331,6 @@
 			ctx.clip();
 			ctx.drawImage(ctx.canvas, oldX, oldY, oldW, oldH, serverWindow.x, serverWindow.y, oldW, oldH);
 			ctx.restore();
-
 			this._queueRedraw();
 
 			oldRegion.finalize();
