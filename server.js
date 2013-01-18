@@ -8,6 +8,14 @@
 		});
 	}
 
+	function positionElement(elem, x, y, w, h) {
+		elem.style.position = "absolute";
+		elem.style.left = x + "px";
+		elem.style.top = y + "px";
+		elem.style.width = w + "px";
+		elem.style.height = h + "px";
+	}
+
 	var ContextWrapper = new Class({
 		initialize: function(serverWindow, ctx) {
 			this._serverWindow = serverWindow;
@@ -29,11 +37,14 @@
 	});
 
 	var ServerWindow = new Class({
-		initialize: function(window, server, ctx) {
-			this.clientWindow = window;
+		initialize: function(clientWindow, server, ctx) {
+			this.clientWindow = clientWindow;
 			this._server = server;
-			this.inputWindow = document.createElement("div");
-			this.inputWindow.style.position = "absolute";
+
+			if (clientWindow.hasInput) {
+				this.inputWindow = document.createElement("div");
+				this.inputWindow.classList.add("inputWindow");
+			}
 
 			// The region of the window that needs to be redrawn, in window coordinates.
 			this.damagedRegion = new Region();
@@ -84,15 +95,13 @@
 			this.width = width;
 			this.height = height;
 
-			this.inputWindow.style.left = this.x + "px";
-			this.inputWindow.style.top = this.y + "px";
-			this.inputWindow.style.width = this.width + "px";
-			this.inputWindow.style.height = this.height + "px";
-
 			this.shapeRegion.clear();
-			this.shapeRegion.init_rect(this.x, this.y, this.width, this.height);
+			this.shapeRegion.init_rect(x, y, width, height);
 
-			this.clientWindow.configureNotify(this.x, this.y, this.width, this.height);
+			if (this.inputWindow) 
+				positionElement(this.inputWindow, x, y, width, height);
+
+			this.clientWindow.configureNotify(x, y, width, height);
 		}
 	});
 
@@ -142,8 +151,8 @@
 			this._debugEnabled = !this._debugEnabled;
 			if (!this._debugEnabled)
 				this._debugDrawClear();
+			this._container.classList.toggle("debug");
 		},
-
 		_debugDrawClear: function() {
 			this._debugCtx.clearRect(0, 0, this._debugCtx.canvas.width, this._debugCtx.canvas.height);
 		},
@@ -246,7 +255,10 @@
 			var serverWindow = new ServerWindow(clientWindow, this, this._ctx);
 			clientWindow._serverWindow = serverWindow;
 			this._toplevelWindows.unshift(serverWindow);
-			this._container.appendChild(serverWindow.inputWindow);
+
+			if (serverWindow.inputWindow) {
+				this._container.appendChild(serverWindow.inputWindow);
+			}
 
 			// Since this window is on top, we know the entire shape region
 			// is damaged.
@@ -340,6 +352,9 @@
 	});
 
 	var Window = new Class({
+		initialize: function() {
+			this.hasInput = true;
+		},
 		connect: function(server) {
 			this._server = server;
 			this._server.addWindow(this);

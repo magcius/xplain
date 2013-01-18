@@ -1,9 +1,12 @@
-
 .server {
 	width: 800px;
 	height: 600px;
 	overflow: hidden;
 
+	border: 1px solid black;
+}
+
+.center {
 	position: absolute;
 	left: 50%;
 	top: 50%;
@@ -12,7 +15,6 @@
 	-ms-transform: translate(-50%, -50%);
 	-o-transform: translate(-50%, -50%);
 	transform: translate(-50%, -50%);
-	border: 1px solid black;
 }
 
 .window {
@@ -21,6 +23,11 @@
 
 .region-demo canvas {
 	border: 1px solid #777;
+}
+
+.crtc.debug .inputWindow {
+	background-color: rgba(255, 0, 255, 0.2);
+	border: 2px solid black;
 }
 
 .crtc canvas {
