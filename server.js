@@ -36,10 +36,12 @@
 		},
 	});
 
+	var globalWindowIdCounter = 0;
 	var ServerWindow = new Class({
 		initialize: function(clientWindow, server, ctx) {
 			this.clientWindow = clientWindow;
 			this._server = server;
+			this.windowId = ++globalWindowIdCounter;
 
 			if (clientWindow.hasInput) {
 				this.inputWindow = document.createElement("div");
@@ -51,8 +53,6 @@
 
 			// The region of the screen that the window occupies, in screen coordinates.
 			this.shapeRegion = new Region();
-			this.reconfigure(0, 0, 300, 300); // XXX defaults
-
 			this._backgroundColor = '#ddd';
 
 			this._ctxWrapper = new ContextWrapper(this, ctx);
@@ -86,7 +86,9 @@
 			this.damagedRegion.union(this.damagedRegion, region);
 
 			this._ctxWrapper.drawWithContext(this._drawBackground.bind(this));
-			this.clientWindow.expose(this._ctxWrapper);
+			this._server.sendEvent({ type: "Expose",
+									 window: this.clientWindow,
+									 ctx: this._ctxWrapper });
 		},
 
 		reconfigure: function(x, y, width, height) {
@@ -101,8 +103,42 @@
 			if (this.inputWindow) 
 				positionElement(this.inputWindow, x, y, width, height);
 
-			this.clientWindow.configureNotify(x, y, width, height);
+			this._server.sendEvent({ type: "ConfigureNotify",
+									 window: this.clientWindow,
+									 x: x, y: y, width: width, height: height });
 		}
+	});
+
+	var ServerClient = new Class({
+		initialize: function(client, server) {
+			this._server = server;
+			this._client = client;
+
+			// window id => list of event types
+			this._eventWindows = {};
+		},
+
+		_isInterestedInEvent: function(event) {
+			var windowId = event._windowId;
+			var listeningFor = this._eventWindows[windowId];
+			return listeningFor && listeningFor.indexOf(event.type) >= 0;
+		},
+
+		sendEvent: function(event) {
+			this._client.handleEvent(event);
+		},
+		potentiallySendEvent: function(event) {
+			if (this._isInterestedInEvent(event))
+				return this.sendEvent(event);
+		},
+
+		selectInput: function(windowId, eventTypes) {
+			var listeningFor = this._eventWindows[windowId];
+			if (!listeningFor)
+				listeningFor = this._eventWindows[windowId] = [];
+
+			listeningFor.push.apply(listeningFor, eventTypes);
+		},
 	});
 
 	var Server = new Class({
@@ -119,6 +155,8 @@
 
 			this._ctx = this._canvas.getContext('2d');
 			this._container.appendChild(this._canvas);
+
+			this._clients = [];
 
 			// All toplevel windows, sorted with the top-most window *first*.
 			this._toplevelWindows = [];
@@ -260,6 +298,24 @@
 			// so don't queue a repaint.
 		},
 
+		addClient: function(client) {
+			var serverClient = new ServerClient(client, this);
+			client._serverClient = serverClient;
+			this._clients.push(serverClient);
+		},
+		selectInput: function(client, clientWindow, eventTypes) {
+			var serverClient = client._serverClient;
+			var serverWindow = clientWindow._serverWindow;
+			serverClient.selectInput(serverWindow.windowId, eventTypes);
+		},
+		sendEvent: function(event) {
+			var serverWindow = event.window._serverWindow;
+			event._windowId = serverWindow.windowId;
+			this._clients.forEach(function(client) {
+				client.potentiallySendEvent(event);
+			});
+		},
+
 		addWindow: function(clientWindow) {
 			var serverWindow = new ServerWindow(clientWindow, this, this._ctx);
 			clientWindow._serverWindow = serverWindow;
@@ -366,7 +422,22 @@
 		},
 		connect: function(server) {
 			this._server = server;
+
+			// XXX -- clients and windows are the same right now
+			this._server.addClient(this);
+
 			this._server.addWindow(this);
+
+			// XXX -- select by default
+			this._server.selectInput(this, this, ["Expose", "ConfigureNotify"]);
+		},
+		handleEvent: function(event) {
+			switch (event.type) {
+				case "ConfigureNotify":
+					return this.configureNotify(event.x, event.y, event.width, event.height);
+				case "Expose":
+					return this.expose(event.ctx);
+			}
 		},
 		configureNotify: function(x, y, width, height) {
 			this.x = x;
