@@ -55,6 +55,8 @@
 			this.shapeRegion = new Region();
 
 			this._ctxWrapper = new ContextWrapper(this, ctx);
+
+			this._properties = {};
 		},
 		finalize: function() {
 			this.shapeRegion.finalize();
@@ -105,7 +107,14 @@
 			this._server.sendEvent({ type: "ConfigureNotify",
 									 windowId: this.windowId,
 									 x: x, y: y, width: width, height: height });
-		}
+		},
+
+		changeProperty: function(name, value) {
+			this._properties[name] = value;
+			this._server.sendEvent({ type: "PropertyChanged",
+									 windowId: this.windowId,
+									 name: name, value: value });
+		},
 	});
 
 	var ServerClient = new Class({
@@ -413,7 +422,12 @@
 			oldRegion.finalize();
 			newRegion.finalize();
 			damagedRegion.finalize();
-		}
+		},
+
+		changeProperty: function(windowId, name, value) {
+			var serverWindow = this._windowsById[windowId];
+			serverWindow.changeProperty(name, value);
+		},
 	});
 
 	exports.Server = Server;
