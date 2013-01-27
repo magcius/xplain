@@ -77,6 +77,7 @@
 	var SimpleColorWindow = new Class({
 		Extends: Window,
 		initialize: function(color) {
+			this.parent();
 			this.backgroundColor = color;
 		},
 		expose: function(wrapper) {
