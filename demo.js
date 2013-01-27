@@ -80,8 +80,8 @@
 
 	var SimpleColorWindow = new Class({
 		Extends: Window,
-		initialize: function() {
-			this.backgroundColor = 'red';
+		initialize: function(color) {
+			this.backgroundColor = color;
 		},
 		expose: function(wrapper) {
 			// Don't draw anything -- the backgroundColor will take
@@ -116,6 +116,7 @@
 		task();
 	}
 
+	var colors = ['red', 'orange', 'yellow', 'lightgreen', 'cyan'];
 	for (var i = 0; i < 5; i++) {
 		var cascade = 40;
 		var windowNumber = i + 1;
@@ -126,7 +127,7 @@
 		var freq = i * 0.25 + 0.5;
 		animWindow(w, freq, 40);
 
-		var sub = new SimpleColorWindow();
+		var sub = new SimpleColorWindow(colors[i]);
 		sub.connect(server);
 		sub.configure(50, 20, 100, 50);
 		sub.reparent(w);
