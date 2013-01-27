@@ -27,6 +27,14 @@
 	border: 2px solid black;
 }
 
+.debugCanvas {
+	display: none;
+}
+
+.crtc.debug .debugCanvas {
+	display: block;
+}
+
 .crtc canvas {
 	position: absolute;
 	top: 0px;

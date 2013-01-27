@@ -136,6 +136,7 @@
 			this._ctx.restore();
 
 			this._debugCanvas = document.createElement("canvas");
+			this._debugCanvas.classList.add("debugCanvas");
 			this._debugCanvas.width = this._canvas.width;
 			this._debugCanvas.height = this._canvas.height;
 			this._container.appendChild(this._debugCanvas);
