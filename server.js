@@ -297,7 +297,7 @@
 			// so don't queue a repaint.
 		},
 
-		addClient: function(client) {
+		clientConnected: function(client) {
 			var serverClient = new ServerClient(client, this);
 			client._serverClient = serverClient;
 			this._clients.push(serverClient);
@@ -421,7 +421,7 @@
 			this._server = server;
 
 			// XXX -- clients and windows are the same right now
-			this._server.addClient(this);
+			this._server.clientConnected(this);
 
 			this._server.addWindow(this);
 
