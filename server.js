@@ -159,9 +159,12 @@
 			this._container.classList.add("crtc");
 			this.elem = this._container;
 
+			this.width = width;
+			this.height = height;
+
 			this._canvas = document.createElement("canvas");
-			this._canvas.width = width;
-			this._canvas.height = height;
+			this._canvas.width = this.width;
+			this._canvas.height = this.height;
 
 			this._ctx = this._canvas.getContext('2d');
 			this._container.appendChild(this._canvas);
@@ -188,15 +191,11 @@
 
 			this._debugCanvas = document.createElement("canvas");
 			this._debugCanvas.classList.add("debugCanvas");
-			this._debugCanvas.width = this._canvas.width;
-			this._debugCanvas.height = this._canvas.height;
+			this._debugCanvas.width = this.width;
+			this._debugCanvas.height = this.height;
 			this._container.appendChild(this._debugCanvas);
 
-			this.width = this._canvas.width;
-			this.height = this._canvas.height;
-
 			this._debugCtx = this._debugCanvas.getContext("2d");
-
 			this._debugEnabled = DEBUG;
 		},
 
