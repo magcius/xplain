@@ -14,9 +14,7 @@
 		},
 		expose: function(wrapper) {
 			wrapper.drawWithContext(function(ctx) {
-				var pattern = ctx.createPattern(this._image, 'repeat');
-				ctx.fillStyle = pattern;
-				ctx.fillRect(0, 0, this.width, this.height);
+				ctx.drawImage(this._image, 0, 0, this.width, this.height);
 			}.bind(this));
 			wrapper.clearDamage();
 		},
