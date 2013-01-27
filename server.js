@@ -211,6 +211,7 @@
 			this._damagedRegion = new Region();
 
 			this._rootWindow = this._createRootWindow();
+			this._container.appendChild(this._rootWindow.inputWindow);
 
 			this._debugCanvas = document.createElement("canvas");
 			this._debugCanvas.classList.add("debugCanvas");
@@ -223,7 +224,7 @@
 		},
 
 		_createRootWindow: function() {
-			var rootWindow = this._createWindowInternal({ backgroundColor: this._backgroundColor });
+			var rootWindow = this._createWindowInternal({ hasInput: true, backgroundColor: this._backgroundColor });
 			rootWindow.parentServerWindow = null;
 			this.configureRequest(rootWindow.windowId, 0, 0, this.width, this.height);
 			return rootWindow;
@@ -390,7 +391,7 @@
 
 			// XXX -- handle input windows inside output-only windows
 			if (parentServerWindow.inputWindow && serverWindow.inputWindow)
-				parentServerWindow.inputWindow.appendChild(server.inputWindow);
+				parentServerWindow.inputWindow.appendChild(serverWindow.inputWindow);
 		},
 
 		createWindow: function(properties) {
