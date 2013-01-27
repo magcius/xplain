@@ -155,10 +155,11 @@
 	var Server = new Class({
 		initialize: function(width, height) {
 			this._container = document.createElement("div");
-			sizeElement(this._container, width, height);
 			this._container.classList.add("crtc");
+			sizeElement(this._container, width, height);
 			this.elem = this._container;
 
+			this._backgroundColor = 'rgb(51, 110, 165)';
 			this.width = width;
 			this.height = height;
 
@@ -180,14 +181,7 @@
 
 			// The region of the screen that needs to be updated.
 			this._damagedRegion = new Region();
-
-			this._backgroundColor = 'rgb(51, 110, 165)';
-
-			this._ctx.beginPath();
-			this._ctx.save();
-			this._ctx.fillStyle = this._backgroundColor;
-			this._ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
-			this._ctx.restore();
+			this._damagedRegion.union_rect(this._damagedRegion, 0, 0, this.width, this.height);
 
 			this._debugCanvas = document.createElement("canvas");
 			this._debugCanvas.classList.add("debugCanvas");
@@ -198,6 +192,7 @@
 			this._debugCtx = this._debugCanvas.getContext("2d");
 			this._debugEnabled = DEBUG;
 		},
+
 
 		toggleDebug: function() {
 			this._debugEnabled = !this._debugEnabled;
