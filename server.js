@@ -295,6 +295,11 @@
 		},
 
 		_redraw: function() {
+			// The damaged region is global, not per-window. This function
+			// walks all windows, computing the intersection of the global
+			// damage and the window region, and translates it into window-
+			// local coordinates.
+
 			var intersection = new Region();
 
 			// This is a copy of the damage region for calculating
@@ -309,13 +314,12 @@
 
 			this._debugDrawRegion(calculatedDamageRegion, 'red');
 
-			var currentTranslationX = 0, currentTranslationY = 0;
-
 			function iterateWindow(serverWindow) {
-				currentTranslationX += serverWindow.x;
-				currentTranslationY += serverWindow.y;
-
+				// When we iterate over children, transform the damage region into the
+				// child's parent space, which is the coordinate space of the shape region.
+				calculatedDamageRegion.translate(-serverWindow.x, -serverWindow.y);
 				serverWindow.children.forEach(iterateWindow);
+				calculatedDamageRegion.translate(serverWindow.x, serverWindow.y);
 
 				intersection.clear();
 				intersection.intersect(calculatedDamageRegion, serverWindow.shapeRegion);
@@ -323,13 +327,12 @@
 				if (intersection.not_empty()) {
 					calculatedDamageRegion.subtract(calculatedDamageRegion, intersection);
 
-					// Translate into window space.
-					intersection.translate(-currentTranslationX, -currentTranslationY);
+					// The damage region is in window space, so we need to translate
+					// from parent space to window space. Don't bother translating
+					// back as the intersection will just be cleared next iteration.
+					intersection.translate(-serverWindow.x, -serverWindow.y);
 					serverWindow.damage(intersection);
 				}
-
-				currentTranslationX -= serverWindow.x;
-				currentTranslationY -= serverWindow.y;
 			}
 
 			iterateWindow(this._rootWindow);
