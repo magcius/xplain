@@ -38,12 +38,11 @@
 
 	var globalWindowIdCounter = 0;
 	var ServerWindow = new Class({
-		initialize: function(clientWindow, server, ctx) {
-			this.clientWindow = clientWindow;
+		initialize: function(windowProperties, server, ctx) {
 			this._server = server;
 			this.windowId = ++globalWindowIdCounter;
 
-			if (clientWindow.hasInput) {
+			if (windowProperties.hasInput) {
 				this.inputWindow = document.createElement("div");
 				this.inputWindow.classList.add("inputWindow");
 			}
@@ -156,6 +155,8 @@
 			this._container.appendChild(this._canvas);
 
 			this._clients = [];
+
+			this._windowsById = {};
 
 			// All toplevel windows, sorted with the top-most window *first*.
 			this._toplevelWindows = [];
@@ -302,10 +303,9 @@
 			client._serverClient = serverClient;
 			this._clients.push(serverClient);
 		},
-		selectInput: function(client, clientWindow, eventTypes) {
+		selectInput: function(client, windowId, eventTypes) {
 			var serverClient = client._serverClient;
-			var serverWindow = clientWindow._serverWindow;
-			serverClient.selectInput(serverWindow.windowId, eventTypes);
+			serverClient.selectInput(windowId, eventTypes);
 		},
 		sendEvent: function(event) {
 			this._clients.forEach(function(client) {
@@ -313,9 +313,10 @@
 			});
 		},
 
-		addWindow: function(clientWindow) {
-			var serverWindow = new ServerWindow(clientWindow, this, this._ctx);
-			clientWindow._serverWindow = serverWindow;
+		createWindow: function(properties) {
+			var serverWindow = new ServerWindow(properties, this, this._ctx);
+			var windowId = serverWindow.windowId;
+			this._windowsById[serverWindow.windowId] = serverWindow;
 			this._toplevelWindows.unshift(serverWindow);
 
 			if (serverWindow.inputWindow) {
@@ -325,9 +326,11 @@
 			// Since this window is on top, we know the entire shape region
 			// is damaged.
 			this.damageRegion(serverWindow.shapeRegion);
+
+			return serverWindow.windowId;
 		},
-		removeWindow: function(clientWindow) {
-			var serverWindow = clientWindow._serverWindow;
+		destroyWindow: function(windowId) {
+			var serverWindow = this._windowsById[windowId];
 
 			this._toplevelWindows.erase(serverWindow);
 			this._container.removeChild(serverWindow.inputWindow);
@@ -336,11 +339,10 @@
 			this.damageRegion(region);
 			region.finalize();
 
-			clientWindow._serverWindow = null;
 			serverWindow.finalize();
 		},
-		configureRequest: function(clientWindow, x, y, width, height) {
-			var serverWindow = clientWindow._serverWindow;
+		configureRequest: function(windowId, x, y, width, height) {
+			var serverWindow = this._windowsById[windowId];
 
 			// This is a bit fancy. We need to accomplish a few things:
 			//
@@ -423,10 +425,10 @@
 			// XXX -- clients and windows are the same right now
 			this._server.clientConnected(this);
 
-			this._server.addWindow(this);
+			this._windowId = this._server.createWindow({ hasInput: this.hasInput });
 
 			// XXX -- select by default
-			this._server.selectInput(this, this, ["Expose", "ConfigureNotify"]);
+			this._server.selectInput(this, this._windowId, ["Expose", "ConfigureNotify"]);
 		},
 		handleEvent: function(event) {
 			switch (event.type) {
@@ -449,7 +451,7 @@
 			y = y === undefined ? this.y : y;
 			width = width === undefined ? this.width : width;
 			height = height === undefined ? this.height : height;
-			this._server.configureRequest(this, x | 0, y | 0, width | 0, height | 0);
+			this._server.configureRequest(this._windowId, x | 0, y | 0, width | 0, height | 0);
 		}
 	});
 
