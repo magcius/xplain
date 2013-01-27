@@ -37,16 +37,16 @@
 	});
 
 	var ServerWindow = new Class({
-		initialize: function(windowProperties, windowId, server, ctx) {
+		initialize: function(windowAttributes, windowId, server, ctx) {
 			this._server = server;
 			this.windowId = windowId;
 
-			if (windowProperties.hasInput) {
+			if (windowAttributes.hasInput) {
 				this.inputWindow = document.createElement("div");
 				this.inputWindow.classList.add("inputWindow");
 			}
 
-			this._backgroundColor = windowProperties.backgroundColor || '#ddd';
+			this._backgroundColor = windowAttributes.backgroundColor || '#ddd';
 
 			// The region of the window that needs to be redrawn, in window coordinates.
 			this.damagedRegion = new Region();
