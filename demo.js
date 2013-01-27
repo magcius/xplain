@@ -6,13 +6,8 @@
 		},
 		connect: function(server) {
 			this._server = server;
-
-			// XXX -- clients and windows are the same right now
 			this._server.clientConnected(this);
-
 			this._windowId = this._server.createWindow({ hasInput: this.hasInput });
-
-			// XXX -- select by default
 			this._server.selectInput(this, this._windowId, ["Expose", "ConfigureNotify"]);
 		},
 		handleEvent: function(event) {
