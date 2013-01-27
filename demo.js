@@ -28,10 +28,9 @@
 			this.parent();
 			this.color = color;
 			this.title = title;
-			this._delayedDraw = new Task(this._draw.bind(this), delay);
-		},
-		expose: function(wrapper) {
-			this._delayedDraw(wrapper);
+
+			// Delay every expose by a bit.
+			this.expose = new Task(this._draw.bind(this), delay);
 		},
 		_draw: function(wrapper) {
 			wrapper.drawWithContext((function(ctx) {
