@@ -1,8 +1,5 @@
 .server {
-	width: 800px;
-	height: 600px;
 	overflow: hidden;
-
 	border: 1px solid black;
 }
 

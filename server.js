@@ -106,15 +106,16 @@
 	});
 
 	var Server = new Class({
-		initialize: function() {
+		initialize: function(width, height) {
 			this._container = document.createElement("div");
+			this._container.style.width = width + 'px';
+			this._container.style.height = height + 'px';
 			this._container.classList.add("crtc");
 			this.elem = this._container;
 
 			this._canvas = document.createElement("canvas");
-			// xxx proper dimensions
-			this._canvas.width = 800;
-			this._canvas.height = 600;
+			this._canvas.width = width;
+			this._canvas.height = height;
 
 			this._ctx = this._canvas.getContext('2d');
 			this._container.appendChild(this._canvas);

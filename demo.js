@@ -47,7 +47,7 @@
 		}
 	});
 
-	var server = new Server();
+	var server = new Server(1024, 768);
 	document.querySelector(".server").appendChild(server.elem);
 
 	var w = new BackgroundWindow();
