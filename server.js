@@ -61,6 +61,9 @@
 			this._ctxWrapper = new ContextWrapper(this, ctx);
 
 			this._properties = {};
+
+			// All child windows, sorted with the top-most window *first*.
+			this.children = [];
 		},
 		finalize: function() {
 			this.shapeRegion.finalize();
@@ -175,13 +178,12 @@
 			this._nextWindowId = 0;
 			this._windowsById = {};
 
-			// All toplevel windows, sorted with the top-most window *first*.
-			this._toplevelWindows = [];
 			this._queueRedraw = new Task(this._redraw.bind(this));
 
 			// The region of the screen that needs to be updated.
 			this._damagedRegion = new Region();
-			this._damagedRegion.union_rect(this._damagedRegion, 0, 0, this.width, this.height);
+
+			this._rootWindow = this._createRootWindow();
 
 			this._debugCanvas = document.createElement("canvas");
 			this._debugCanvas.classList.add("debugCanvas");
@@ -193,6 +195,12 @@
 			this._debugEnabled = DEBUG;
 		},
 
+		_createRootWindow: function() {
+			var rootWindow = this._createWindowInternal({ backgroundColor: this._backgroundColor });
+			rootWindow.parentServerWindow = null;
+			this.configureRequest(rootWindow.windowId, 0, 0, this.width, this.height);
+			return rootWindow;
+		},
 
 		toggleDebug: function() {
 			this._debugEnabled = !this._debugEnabled;
@@ -224,10 +232,18 @@
 			this._debugCtx.restore();
 		},
 
+		_iterWindowsAboveWindow: function(serverWindow, callback) {
+			while (serverWindow != null && serverWindow.parentServerWindow != null) {
+				var parent = serverWindow.parentServerWindow;
+				var idx = parent.children.indexOf(serverWindow);
+				var windowsOnTop = parent.children.slice(0, idx);
+				windowsOnTop.forEach(callback);
+				serverWindow = parent;
+			}
+		},
+
 		_subtractAboveWindowsFromRegion: function(serverWindow, region) {
-			var idx = this._toplevelWindows.indexOf(serverWindow);
-			var windowsOnTop = this._toplevelWindows.slice(0, idx);
-			windowsOnTop.forEach(function(aboveWindow) {
+			this._iterWindowsAboveWindow(serverWindow, function(aboveWindow) {
 				region.subtract(region, aboveWindow.shapeRegion);
 			});
 		},
@@ -266,7 +282,7 @@
 
 			this._debugDrawRegion(calculatedDamageRegion, 'red');
 
-			this._toplevelWindows.forEach(function(serverWindow) {
+			function iterateWindow(serverWindow) {
 				intersection.clear();
 				intersection.intersect(calculatedDamageRegion, serverWindow.shapeRegion);
 
@@ -277,7 +293,9 @@
 					intersection.translate(-serverWindow.x, -serverWindow.y);
 					serverWindow.damage(intersection);
 				}
-			}, this);
+			}
+
+			this._rootWindow.children.forEach(iterateWindow);
 
 			intersection.finalize();
 
@@ -320,27 +338,45 @@
 			});
 		},
 
-		createWindow: function(properties) {
+		// Used by _createRootWindow and createWindow.
+		_createWindowInternal: function(properties) {
 			var windowId = ++this._nextWindowId;
 			var serverWindow = new ServerWindow(properties, windowId, this, this._ctx);
 			this._windowsById[windowId] = serverWindow;
-			this._toplevelWindows.unshift(serverWindow);
-
-			if (serverWindow.inputWindow) {
-				this._container.appendChild(serverWindow.inputWindow);
-			}
 
 			// Since this window is on top, we know the entire shape region
 			// is damaged.
 			this.damageRegion(serverWindow.shapeRegion);
 
-			return windowId;
+			return serverWindow;
 		},
+
+		_unparentWindow: function(serverWindow) {
+			var parentServerWindow = serverWindow.parentServerWindow;
+			if (parentServerWindow.inputWindow && serverWindow.inputWindow)
+				parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
+			parentServerWindow.children.erase(serverWindow);
+		},
+
+		_parentWindow: function(serverWindow, parentServerWindow) {
+			serverWindow.parentServerWindow = parentServerWindow;
+			parentServerWindow.children.unshift(serverWindow);
+
+			// XXX -- handle input windows inside output-only windows
+			if (parentServerWindow.inputWindow && serverWindow.inputWindow)
+				parentServerWindow.inputWindow.appendChild(server.inputWindow);
+		},
+
+		createWindow: function(properties) {
+			var serverWindow = this._createWindowInternal(properties);
+			this._parentWindow(serverWindow, this._rootWindow);
+			return serverWindow.windowId;
+		},
+
 		destroyWindow: function(windowId) {
 			var serverWindow = this._windowsById[windowId];
 
-			this._toplevelWindows.erase(serverWindow);
-			this._container.removeChild(serverWindow.inputWindow);
+			this._unparentWindow(serverWindow);
 
 			var region = this._calculateEffectiveRegionForWindow(serverWindow);
 			this.damageRegion(region);
