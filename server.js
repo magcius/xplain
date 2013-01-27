@@ -415,47 +415,6 @@
 		}
 	});
 
-	var Window = new Class({
-		initialize: function() {
-			this.hasInput = true;
-		},
-		connect: function(server) {
-			this._server = server;
-
-			// XXX -- clients and windows are the same right now
-			this._server.clientConnected(this);
-
-			this._windowId = this._server.createWindow({ hasInput: this.hasInput });
-
-			// XXX -- select by default
-			this._server.selectInput(this, this._windowId, ["Expose", "ConfigureNotify"]);
-		},
-		handleEvent: function(event) {
-			switch (event.type) {
-				case "ConfigureNotify":
-					return this.configureNotify(event.x, event.y, event.width, event.height);
-				case "Expose":
-					return this.expose(event.ctx);
-			}
-		},
-		configureNotify: function(x, y, width, height) {
-			this.x = x;
-			this.y = y;
-			this.width = width;
-			this.height = height;
-		},
-		expose: function() {
-		},
-		configure: function(x, y, width, height) {
-			x = x === undefined ? this.x : x;
-			y = y === undefined ? this.y : y;
-			width = width === undefined ? this.width : width;
-			height = height === undefined ? this.height : height;
-			this._server.configureRequest(this._windowId, x | 0, y | 0, width | 0, height | 0);
-		}
-	});
-
 	exports.Server = Server;
-	exports.Window = Window;
 
 })(window);
