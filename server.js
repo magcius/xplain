@@ -8,12 +8,16 @@
 		});
 	}
 
+	function sizeElement(elem, w, h) {
+		elem.style.width = w + "px";
+		elem.style.height = h + "px";
+	}
+
 	function positionElement(elem, x, y, w, h) {
 		elem.style.position = "absolute";
 		elem.style.left = x + "px";
 		elem.style.top = y + "px";
-		elem.style.width = w + "px";
-		elem.style.height = h + "px";
+		sizeElement(elem, w, h);
 	}
 
 	var ContextWrapper = new Class({
@@ -151,8 +155,7 @@
 	var Server = new Class({
 		initialize: function(width, height) {
 			this._container = document.createElement("div");
-			this._container.style.width = width + 'px';
-			this._container.style.height = height + 'px';
+			sizeElement(this._container, width, height);
 			this._container.classList.add("crtc");
 			this.elem = this._container;
 
