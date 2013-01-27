@@ -87,7 +87,7 @@
 
 			this._ctxWrapper.drawWithContext(this._drawBackground.bind(this));
 			this._server.sendEvent({ type: "Expose",
-									 window: this.clientWindow,
+									 windowId: this.windowId,
 									 ctx: this._ctxWrapper });
 		},
 
@@ -104,7 +104,7 @@
 				positionElement(this.inputWindow, x, y, width, height);
 
 			this._server.sendEvent({ type: "ConfigureNotify",
-									 window: this.clientWindow,
+									 windowId: this.windowId,
 									 x: x, y: y, width: width, height: height });
 		}
 	});
@@ -119,8 +119,7 @@
 		},
 
 		_isInterestedInEvent: function(event) {
-			var windowId = event._windowId;
-			var listeningFor = this._eventWindows[windowId];
+			var listeningFor = this._eventWindows[event.windowId];
 			return listeningFor && listeningFor.indexOf(event.type) >= 0;
 		},
 
@@ -309,8 +308,6 @@
 			serverClient.selectInput(serverWindow.windowId, eventTypes);
 		},
 		sendEvent: function(event) {
-			var serverWindow = event.window._serverWindow;
-			event._windowId = serverWindow.windowId;
 			this._clients.forEach(function(client) {
 				client.potentiallySendEvent(event);
 			});
