@@ -82,7 +82,12 @@
 		Extends: Window,
 		initialize: function() {
 			this.backgroundColor = 'red';
-		}
+		},
+		expose: function(wrapper) {
+			// Don't draw anything -- the backgroundColor will take
+			// care of it for us.
+			wrapper.clearDamage();
+		},
 	});
 
 	var server = new Server(1024, 768);
