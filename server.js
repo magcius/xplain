@@ -283,6 +283,8 @@
 			this._debugDrawRegion(calculatedDamageRegion, 'red');
 
 			function iterateWindow(serverWindow) {
+				serverWindow.children.forEach(iterateWindow);
+
 				intersection.clear();
 				intersection.intersect(calculatedDamageRegion, serverWindow.shapeRegion);
 
@@ -295,7 +297,7 @@
 				}
 			}
 
-			this._rootWindow.children.forEach(iterateWindow);
+			iterateWindow(this._rootWindow);
 
 			intersection.finalize();
 			calculatedDamageRegion.finalize();
