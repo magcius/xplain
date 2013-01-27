@@ -36,11 +36,10 @@
 		},
 	});
 
-	var globalWindowIdCounter = 0;
 	var ServerWindow = new Class({
-		initialize: function(windowProperties, server, ctx) {
+		initialize: function(windowProperties, windowId, server, ctx) {
 			this._server = server;
-			this.windowId = ++globalWindowIdCounter;
+			this.windowId = windowId;
 
 			if (windowProperties.hasInput) {
 				this.inputWindow = document.createElement("div");
@@ -156,6 +155,7 @@
 
 			this._clients = [];
 
+			this._nextWindowId = 0;
 			this._windowsById = {};
 
 			// All toplevel windows, sorted with the top-most window *first*.
@@ -314,9 +314,9 @@
 		},
 
 		createWindow: function(properties) {
-			var serverWindow = new ServerWindow(properties, this, this._ctx);
-			var windowId = serverWindow.windowId;
-			this._windowsById[serverWindow.windowId] = serverWindow;
+			var windowId = ++this._nextWindowId;
+			var serverWindow = new ServerWindow(properties, windowId, this, this._ctx);
+			this._windowsById[windowId] = serverWindow;
 			this._toplevelWindows.unshift(serverWindow);
 
 			if (serverWindow.inputWindow) {
@@ -327,7 +327,7 @@
 			// is damaged.
 			this.damageRegion(serverWindow.shapeRegion);
 
-			return serverWindow.windowId;
+			return windowId;
 		},
 		destroyWindow: function(windowId) {
 			var serverWindow = this._windowsById[windowId];
