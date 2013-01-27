@@ -128,9 +128,9 @@
 
 		var sub = new SimpleColorWindow();
 		sub.connect(server);
-		sub.configure(20, 20, 50, 20);
+		sub.configure(50, 20, 100, 50);
 		sub.reparent(w);
-		animWindow(sub, freq * 2, 10);
+		animWindow(sub, freq * 2, 40);
 	}
 
 	window.addEventListener("keydown", function(evt) {
