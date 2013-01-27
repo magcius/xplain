@@ -96,15 +96,12 @@
 	var w = new BackgroundWindow();
 	w.connect(server);
 
-	function animWindow(window, freq) {
+	function animWindow(window, freq, amplitude) {
 		var delay = 50;
 		var stepsPerSec = 1000 / delay;
 
 		var time = 0;
 		var origX = window.x;
-
-		var amplitude = 40;
-		freq = freq || 0.5;
 
 		var step = freq * (Math.PI * 2 / stepsPerSec);
 
@@ -127,12 +124,13 @@
 		w.connect(server);
 		w.configure(windowNumber * cascade, windowNumber * cascade, 735, 461);
 		var freq = i * 0.25 + 0.5;
-		animWindow(w, freq);
+		animWindow(w, freq, 40);
 
 		var sub = new SimpleColorWindow();
 		sub.connect(server);
 		sub.configure(20, 20, 50, 20);
 		sub.reparent(w);
+		animWindow(sub, freq * 2, 10);
 	}
 
 	window.addEventListener("keydown", function(evt) {
