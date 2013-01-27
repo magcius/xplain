@@ -46,12 +46,13 @@
 				this.inputWindow.classList.add("inputWindow");
 			}
 
+			this._backgroundColor = windowProperties.backgroundColor || '#ddd';
+
 			// The region of the window that needs to be redrawn, in window coordinates.
 			this.damagedRegion = new Region();
 
 			// The region of the screen that the window occupies, in screen coordinates.
 			this.shapeRegion = new Region();
-			this._backgroundColor = '#ddd';
 
 			this._ctxWrapper = new ContextWrapper(this, ctx);
 		},
