@@ -333,10 +333,6 @@
 			var serverWindow = new ServerWindow(properties, windowId, this, this._ctx);
 			this._windowsById[windowId] = serverWindow;
 
-			// Since this window is on top, we know the entire shape region
-			// is damaged.
-			this.damageRegion(serverWindow.shapeRegion);
-
 			return serverWindow;
 		},
 
