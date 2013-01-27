@@ -3,11 +3,12 @@
 	var Window = new Class({
 		initialize: function() {
 			this.hasInput = true;
+			this.backgroundColor = null;
 		},
 		connect: function(server) {
 			this._server = server;
 			this._server.clientConnected(this);
-			this._windowId = this._server.createWindow({ hasInput: this.hasInput });
+			this._windowId = this._server.createWindow({ hasInput: this.hasInput, backgroundColor: this.backgroundColor });
 			this._server.selectInput(this, this._windowId, ["Expose", "ConfigureNotify"]);
 		},
 		handleEvent: function(event) {
@@ -23,6 +24,9 @@
 			this.y = y;
 			this.width = width;
 			this.height = height;
+		},
+		reparent: function(newParent) {
+			this._server.reparentWindow(this._windowId, newParent._windowId);
 		},
 		expose: function() {
 		},
@@ -74,6 +78,13 @@
 		},
 	});
 
+	var SimpleColorWindow = new Class({
+		Extends: Window,
+		initialize: function() {
+			this.backgroundColor = 'red';
+		}
+	});
+
 	var server = new Server(1024, 768);
 	document.querySelector(".server").appendChild(server.elem);
 
@@ -112,6 +123,11 @@
 		w.configure(windowNumber * cascade, windowNumber * cascade, 735, 461);
 		var freq = i * 0.25 + 0.5;
 		animWindow(w, freq);
+
+		var sub = new SimpleColorWindow();
+		sub.connect(server);
+		sub.configure(20, 20, 50, 20);
+		sub.reparent(w);
 	}
 
 	window.addEventListener("keydown", function(evt) {

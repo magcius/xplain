@@ -55,7 +55,7 @@
 			// The region of the window that needs to be redrawn, in window coordinates.
 			this.damagedRegion = new Region();
 
-			// The region of the screen that the window occupies, in screen coordinates.
+			// The region of the screen that the window occupies, in parent coordinates.
 			this.shapeRegion = new Region();
 
 			this._ctxWrapper = new ContextWrapper(this, ctx);
@@ -72,8 +72,34 @@
 			this.damagedRegion.finalize();
 			this.damagedRegion = null;
 		},
+		_iterParents: function(includeSelf, callback) {
+			var serverWindow = this;
+			if (!includeSelf)
+				serverWindow = serverWindow.parentServerWindow;
+
+			while (serverWindow != null) {
+				callback(serverWindow);
+				serverWindow = serverWindow.parentServerWindow;
+			}
+		},
+		calculateAbsoluteOffset: function(includeSelf) {
+			var x = 0, y = 0;
+			this._iterParents(includeSelf, function(serverWindow) {
+				x += serverWindow.x;
+				y += serverWindow.y;
+			});
+			return { x: x, y: y };
+		},
+		calculateTransformedShapeRegion: function() {
+			var region = new Region();
+			var txform = this.calculateAbsoluteOffset(false);
+			region.copy(this.shapeRegion);
+			region.translate(txform.x, txform.y);
+			return region;
+		},
 		prepareContext: function(ctx) {
-			ctx.translate(this.x, this.y);
+			var txform = this.calculateAbsoluteOffset(true);
+			ctx.translate(txform.x, txform.y);
 
 			var region = this.damagedRegion;
 			pathFromRegion(ctx, region);
@@ -82,7 +108,8 @@
 		clearDamage: function() {
 			// Don't bother trashing our region here as
 			// we'll clear it below.
-			this.damagedRegion.translate(this.x, this.y);
+			var txform = this.calculateAbsoluteOffset(true);
+			this.damagedRegion.translate(txform.x, txform.y);
 			this._server.subtractDamage(this.damagedRegion);
 			this.damagedRegion.clear();
 		},
@@ -244,7 +271,9 @@
 
 		_subtractAboveWindowsFromRegion: function(serverWindow, region) {
 			this._iterWindowsAboveWindow(serverWindow, function(aboveWindow) {
-				region.subtract(region, aboveWindow.shapeRegion);
+				var transformedShapeRegion = aboveWindow.calculateTransformedShapeRegion();
+				region.subtract(region, transformedShapeRegion);
+				transformedShapeRegion.finalize();
 			});
 		},
 
@@ -253,15 +282,13 @@
 		// the window's shape region clipped to the areas that are
 		// visible.
 		_calculateEffectiveRegionForWindow: function(serverWindow) {
-			var region = new Region();
-			region.copy(serverWindow.shapeRegion);
+			var region = serverWindow.calculateTransformedShapeRegion();
 			this._subtractAboveWindowsFromRegion(serverWindow, region);
 			return region;
 		},
 
 		calculateDamagedRegionForWindow: function(serverWindow) {
-			var region = new Region();
-			region.copy(serverWindow.shapeRegion);
+			var region = serverWindow.calculateTransformedShapeRegion();
 			region.intersect(region, this._damagedRegion);
 			this._subtractAboveWindowsFromRegion(serverWindow, region);
 			return region;
@@ -282,7 +309,12 @@
 
 			this._debugDrawRegion(calculatedDamageRegion, 'red');
 
+			var currentTranslationX = 0, currentTranslationY = 0;
+
 			function iterateWindow(serverWindow) {
+				currentTranslationX += serverWindow.x;
+				currentTranslationY += serverWindow.y;
+
 				serverWindow.children.forEach(iterateWindow);
 
 				intersection.clear();
@@ -292,9 +324,12 @@
 					calculatedDamageRegion.subtract(calculatedDamageRegion, intersection);
 
 					// Translate into window space.
-					intersection.translate(-serverWindow.x, -serverWindow.y);
+					intersection.translate(-currentTranslationX, -currentTranslationY);
 					serverWindow.damage(intersection);
 				}
+
+				currentTranslationX -= serverWindow.x;
+				currentTranslationY -= serverWindow.y;
 			}
 
 			iterateWindow(this._rootWindow);
@@ -342,7 +377,8 @@
 			var parentServerWindow = serverWindow.parentServerWindow;
 			if (parentServerWindow.inputWindow && serverWindow.inputWindow)
 				parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
-			parentServerWindow.children.erase(serverWindow);
+			if (parentServerWindow)
+				parentServerWindow.children.erase(serverWindow);
 		},
 
 		_parentWindow: function(serverWindow, parentServerWindow) {
@@ -371,6 +407,14 @@
 
 			serverWindow.finalize();
 		},
+
+		reparentWindow: function(windowId, newParentId) {
+			var serverWindow = this._windowsById[windowId];
+			var newServerParentWindow = this._windowsById[newParentId];
+			this._unparentWindow(serverWindow);
+			this._parentWindow(serverWindow, newServerParentWindow);
+		},
+
 		configureRequest: function(windowId, x, y, width, height) {
 			var serverWindow = this._windowsById[windowId];
 
@@ -394,13 +438,16 @@
 			//     newly exposed region.
 
 			var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-			var oldX = serverWindow.x, oldY = serverWindow.y;
+			var oldTxform = serverWindow.calculateAbsoluteOffset(true);
+			var oldX = oldTxform.x, oldY = oldTxform.y;
 			var oldW = serverWindow.width, oldH = serverWindow.height;
 
 			// Reconfigure the window -- this will modify the shape region.
 			serverWindow.reconfigure(x, y, width, height);
 
 			var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+			var newTxform = serverWindow.calculateAbsoluteOffset(true);
+			var newX = newTxform.x, newY = newTxform.y;
 
 			var damagedRegion = new Region();
 
@@ -422,7 +469,7 @@
 			// If X/Y change, we copy the old area, so we need to translate into
 			// the coordinate space of the new window's position to know what needs
 			// to be redrawn after the copy.
-			oldRegion.translate(serverWindow.x - oldX, serverWindow.y - oldY);
+			oldRegion.translate(newX - oldX, newY - oldY);
 			damagedRegion.clear();
 			damagedRegion.subtract(newRegion, oldRegion);
 			this._damagedRegion.union(this._damagedRegion, damagedRegion);
@@ -435,7 +482,7 @@
 			ctx.save();
 			pathFromRegion(ctx, newRegion);
 			ctx.clip();
-			ctx.drawImage(ctx.canvas, oldX, oldY, oldW, oldH, serverWindow.x, serverWindow.y, oldW, oldH);
+			ctx.drawImage(ctx.canvas, oldX, oldY, oldW, oldH, newX, newY, oldW, oldH);
 			ctx.restore();
 			this._queueRedraw();
 
