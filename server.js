@@ -298,17 +298,6 @@
 			this._rootWindow.children.forEach(iterateWindow);
 
 			intersection.finalize();
-
-			if (calculatedDamageRegion.not_empty()) {
-				var ctx = this._ctx;
-				ctx.beginPath();
-				ctx.save();
-				pathFromRegion(ctx, calculatedDamageRegion);
-				ctx.fillStyle = this._backgroundColor;
-				ctx.fill();
-				ctx.restore();
-			}
-
 			calculatedDamageRegion.finalize();
 
 			return false;
