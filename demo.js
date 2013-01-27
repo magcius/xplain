@@ -61,20 +61,16 @@
 
 	var FakeWindow = new Class({
 		Extends: Window,
-		initialize: function(imageSrc, delay) {
+		initialize: function(imageSrc) {
 			this.parent();
 			this._image = new Image();
 			this._image.src = imageSrc;
-
-			// Delay every expose by a bit.
-			this.expose = new Task(this._draw.bind(this), delay);
 		},
-		_draw: function(wrapper) {
+		expose: function(wrapper) {
 			wrapper.drawWithContext(function(ctx) {
 				ctx.drawImage(this._image, 0, 0, this.width, this.height);
 			}.bind(this));
 			wrapper.clearDamage();
-			return false;
 		},
 	});
 
@@ -120,8 +116,7 @@
 	for (var i = 0; i < 5; i++) {
 		var cascade = 40;
 		var windowNumber = i + 1;
-		var delay = 40 - windowNumber * 10;
-		var w = new FakeWindow("TerminalScreenshot.png", delay);
+		var w = new FakeWindow("TerminalScreenshot.png");
 		w.connect(server);
 		w.configure(windowNumber * cascade, windowNumber * cascade, 735, 461);
 		var freq = i * 0.25 + 0.5;
