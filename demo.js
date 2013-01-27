@@ -22,28 +22,23 @@
 		},
 	});
 
-	var ColorWindow = new Class({
+	var FakeWindow = new Class({
 		Extends: Window,
-		initialize: function(color, title, delay) {
+		initialize: function(imageSrc, delay) {
 			this.parent();
-			this.color = color;
-			this.title = title;
+			this._image = new Image();
+			this._image.src = imageSrc;
 
 			// Delay every expose by a bit.
 			this.expose = new Task(this._draw.bind(this), delay);
 		},
 		_draw: function(wrapper) {
-			wrapper.drawWithContext((function(ctx) {
-				ctx.fillStyle = this.color;
-				ctx.fillRect(0, 0, this.width, this.height);
-				ctx.fillStyle = '#000';
-				ctx.textAlign = 'center';
-				ctx.font = '36px sans-serif';
-				ctx.fillText(this.title, this.width / 2, this.height / 2);
-			}).bind(this));
+			wrapper.drawWithContext(function(ctx) {
+				ctx.drawImage(this._image, 0, 0, this.width, this.height);
+			}.bind(this));
 			wrapper.clearDamage();
 			return false;
-		}
+		},
 	});
 
 	var server = new Server(1024, 768);
@@ -75,14 +70,13 @@
 		task();
 	}
 
-	var colors = ['red', 'orange', 'yellow', 'green', 'cyan'];
 	for (var i = 0; i < 5; i++) {
 		var cascade = 40;
 		var windowNumber = i + 1;
 		var delay = 40 - windowNumber * 10;
-		var w = new ColorWindow(colors[i], "Window {i}".substitute({ i: windowNumber }), delay);
+		var w = new FakeWindow("TerminalScreenshot.png", delay);
 		w.connect(server);
-		w.configure(windowNumber * cascade, windowNumber * cascade, 400, 300);
+		w.configure(windowNumber * cascade, windowNumber * cascade, 735, 461);
 		var freq = i * 0.25 + 0.5;
 		animWindow(w, freq);
 	}
