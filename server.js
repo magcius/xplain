@@ -222,6 +222,8 @@
         'createWindow',
         'destroyWindow',
         'reparentWindow',
+        'raiseWindow',
+        'lowerWindow',
         'configureRequest',
         'changeAttributes',
         'changeProperty',
@@ -536,6 +538,30 @@
             var newServerParentWindow = this._windowsById[newParentId];
             this._unparentWindow(serverWindow);
             this._parentWindow(serverWindow, newServerParentWindow);
+        },
+
+        raiseWindow: function(windowId) {
+            var serverWindow = this._windowsById[windowId];
+            var parentServerWindow = serverWindow.parentServerWindow;
+            parentServerWindow.children.erase(serverWindow);
+            parentServerWindow.children.unshift(serverWindow);
+            parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
+            parentServerWindow.inputWindow.appendChild(serverWindow.inputWindow);
+            this._damageWindow(serverWindow);
+        },
+
+        lowerWindow: function(windowId) {
+            var serverWindow = this._windowsById[windowId];
+
+            // Damage the region that will be exposed when the
+            // window is lowered to the bottom.
+            this._damageWindow(serverWindow);
+
+            var parentServerWindow = serverWindow.parentServerWindow;
+            parentServerWindow.children.erase(serverWindow);
+            parentServerWindow.children.push(serverWindow);
+            parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
+            parentServerWindow.inputWindow.insertBefore(serverWindow.inputWindow, parentServerWindow.inputWindow.firstChild);
         },
 
         configureRequest: function(windowId, x, y, width, height) {
