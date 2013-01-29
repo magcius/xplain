@@ -94,26 +94,6 @@
     var w = new BackgroundWindow();
     w.connect(server);
 
-    function animWindow(window, freq, amplitude) {
-        var delay = 50;
-        var stepsPerSec = 1000 / delay;
-
-        var time = 0;
-        var origX = window.x;
-
-        var step = freq * (Math.PI * 2 / stepsPerSec);
-
-        function animate() {
-            var offs = Math.sin(time) * amplitude;
-            var x = origX + offs;
-            window.configure(x, undefined, undefined, undefined);
-            time += step;
-            return true;
-        }
-        var task = new Task(animate, delay);
-        task();
-    }
-
     var colors = ['red', 'orange', 'yellow', 'lightgreen', 'cyan'];
     for (var i = 0; i < 5; i++) {
         var cascade = 40;
@@ -122,13 +102,11 @@
         w.connect(server);
         w.configure(windowNumber * cascade, windowNumber * cascade, 735, 461);
         var freq = i * 0.25 + 0.5;
-        animWindow(w, freq, 40);
 
         var sub = new SimpleColorWindow(colors[i]);
         sub.connect(server);
         sub.configure(50, 20, 100, 50);
         sub.reparent(w);
-        animWindow(sub, freq * 2, 40);
     }
 
     window.addEventListener("keydown", function(evt) {
