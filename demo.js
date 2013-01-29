@@ -168,7 +168,7 @@
         var isRaised = false;
         var button = new SimpleButton('#ff0000', '#ff6666');
         button.connect(server);
-        button.configure(50, 20, 100, 50);
+        button.configure(10, 10, 20, 20);
         button.reparent(w);
 
         button.clickCallback = function(event) {
