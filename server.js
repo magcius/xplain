@@ -135,7 +135,7 @@
             this.shapeRegion.clear();
             this.shapeRegion.init_rect(x, y, width, height);
 
-            if (this.inputWindow) 
+            if (this.inputWindow)
                 positionElement(this.inputWindow, x, y, width, height);
 
             this._server.sendEvent({ type: "ConfigureNotify",

@@ -53,7 +53,7 @@
         },
         expose: function(wrapper) {
             wrapper.drawWithContext(function(ctx) {
-                ctx.drawImage(this._image, 0, 0, this.width, this.height);      
+                ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
             wrapper.clearDamage();
         },
