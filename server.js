@@ -473,8 +473,7 @@
             //      behavior should happen for cases the window is
             //      partially obscured.
 
-            // 1., 2. are documented where the corresponding code is done.
-            // 3. is not done yet, and is a source of redraw issues.
+            // 1., 2., and 3. are documented where the corresponding code is done.
             // 4. is done by making sure we call _calculateEffectiveRegionForWindow,
             //    which excludes the region where windows visually obscure the window.
 
@@ -491,6 +490,15 @@
             var newX = newTxform.x, newY = newTxform.y;
 
             var damagedRegion = new Region();
+
+            // 3. (We need to do this first, as the other steps manipulate
+            //     oldRegion and the global damaged region in ways that would
+            //     cause us to damage more than necessary.)
+            //    Pixels that were marked as damaged on the old window need
+            //    to be translated to pixels on the global damaged region.
+            damagedRegion.intersect(this._damagedRegion, oldRegion);
+            damagedRegion.translate(newX - oldX, newY - oldY);
+            this._damagedRegion.union(this._damagedRegion, damagedRegion);
 
             // 1. Pixels need to be exposed under the window in places where the
             //    old region is, but the new region isn't.
