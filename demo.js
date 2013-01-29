@@ -138,6 +138,27 @@
                   ['#ffff00', '#ffffcc'],
                   ['#33ff33', '#99ff99'],
                   ['#00ffff', '#99ffff']];
+
+    function animWindow(window, freq, amplitude) {
+        var delay = 50;
+        var stepsPerSec = 1000 / delay;
+
+        var time = 0;
+        var origX = window.x;
+
+        var step = freq * (Math.PI * 2 / stepsPerSec);
+
+        function animate() {
+            var offs = Math.sin(time) * amplitude;
+            var x = origX + offs;
+            window.configure(x, undefined, undefined, undefined);
+            time += step;
+            return true;
+        }
+        var task = new Task(animate, delay);
+        task();
+    }
+
     for (var i = 0; i < 5; i++) {
         var cascade = 40;
         var windowNumber = i + 1;
@@ -145,6 +166,7 @@
         w.connect(server);
         w.configure(windowNumber * cascade, windowNumber * cascade, 735, 461);
         var freq = i * 0.25 + 0.5;
+        animWindow(w, freq, 40);
 
         var colorSet = colors[i];
 
@@ -164,6 +186,8 @@
                     this._origWindow.lower();
             }
         };
+
+        animWindow(button, freq * 2, 40);
     }
 
     window.addEventListener("keydown", function(evt) {
