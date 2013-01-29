@@ -85,6 +85,7 @@
         connect: function(server) {
             this.parent(server);
             this._server.selectInput(this, this._windowId, ["Enter", "Leave"]);
+            this._server.defineCursor(this._windowId, "pointer");
             this._setHover(false);
         },
         _setHover: function(hover) {
