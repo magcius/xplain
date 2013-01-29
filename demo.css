@@ -24,6 +24,7 @@
 
 .debugCanvas {
 	display: none;
+        pointer-events: none;
 }
 
 .crtc.debug .debugCanvas {
