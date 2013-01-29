@@ -282,7 +282,6 @@
             this._rootWindow = this._createRootWindow();
             this._container.appendChild(this._rootWindow.inputWindow);
 
-            this._setupDebug();
             this.setDebugEnabled(DEBUG);
         },
 
@@ -297,6 +296,15 @@
         setDebugEnabled: function(value) {
             this._debugEnabled = value;
 
+            if (this._debugEnabled && !this._debugCanvas) {
+                this._debugCanvas = document.createElement("canvas");
+                this._debugCanvas.classList.add("debugCanvas");
+                this._debugCanvas.width = this.width;
+                this._debugCanvas.height = this.height;
+                this._debugCtx = this._debugCanvas.getContext("2d");
+                this._container.appendChild(this._debugCanvas);
+            }
+
             if (this._debugEnabled) {
                 this._container.classList.add("debug");
             } else {
@@ -306,14 +314,6 @@
         },
         toggleDebug: function() {
             this.setDebugEnabled(!this._debugEnabled);
-        },
-        _setupDebug: function() {
-            this._debugCanvas = document.createElement("canvas");
-            this._debugCanvas.classList.add("debugCanvas");
-            this._debugCanvas.width = this.width;
-            this._debugCanvas.height = this.height;
-            this._debugCtx = this._debugCanvas.getContext("2d");
-            this._container.appendChild(this._debugCanvas);
         },
         _debugDrawRegion: function(region, style) {
             if (!this._debugEnabled)
@@ -328,6 +328,9 @@
             this._debugCtx.restore();
         },
         _debugDrawClear: function() {
+            if (!this._debugEnabled)
+                return;
+
             this._debugCtx.clearRect(0, 0, this._debugCtx.canvas.width, this._debugCtx.canvas.height);
         },
 
