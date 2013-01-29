@@ -87,8 +87,9 @@
         },
     });
 
-    var server = new Server(1024, 768);
-    document.querySelector(".server").appendChild(server.elem);
+    var _server = new Server(1024, 768);
+    var server = _server.publicServer;
+    document.querySelector(".server").appendChild(_server.elem);
 
     var w = new BackgroundWindow();
     w.connect(server);
@@ -133,9 +134,9 @@
     window.addEventListener("keydown", function(evt) {
         var letter = String.fromCharCode(evt.keyCode);
         if (letter === 'D')
-            server.toggleDebug();
+            _server.toggleDebug();
         if (letter === 'R')
-            server.queueFullRedraw();
+            _server.queueFullRedraw();
     });
 
 })(window);

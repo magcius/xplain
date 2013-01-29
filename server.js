@@ -182,16 +182,44 @@
         },
     });
 
+    var PublicServer = new Class({
+        initialize: function(server) {
+            this._server = server;
+
+            this.width = this._server.width;
+            this.height = this._server.height;
+        }
+    });
+
+    var publicMethods = [
+        'clientConnected',
+        'selectInput',
+        'createWindow',
+        'destroyWindow',
+        'reparentWindow',
+        'configureRequest',
+        'changeProperty',
+    ];
+
+    publicMethods.forEach(function(methodName) {
+        PublicServer.prototype[methodName] = function() {
+            return this._server[methodName].apply(this._server, arguments);
+        };
+    });
+
     var Server = new Class({
         initialize: function(width, height) {
+            this.width = width;
+            this.height = height;
+
+            this.publicServer = new PublicServer(this);
+
             this._container = document.createElement("div");
             this._container.classList.add("crtc");
             sizeElement(this._container, width, height);
             this.elem = this._container;
 
             this._backgroundColor = 'rgb(51, 110, 165)';
-            this.width = width;
-            this.height = height;
 
             this._canvas = document.createElement("canvas");
             this._canvas.width = this.width;
