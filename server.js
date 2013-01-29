@@ -455,23 +455,28 @@
 
             // This is a bit fancy. We need to accomplish a few things:
             //
-            //   * If the window was resized, we need to ensure we mark
-            //     the newly exposed region on the window itself as
-            //     damaged.
+            //   1. If the window was resized, we need to ensure we mark
+            //      the newly exposed region on the window itself as
+            //      damaged.
             //
-            //   * If the window was moved, we need to ensure we mark
-            //     the newly exposed region under the old position of
-            //     the window as damaged.
+            //   2. If the window was moved, we need to ensure we mark
+            //      the newly exposed region under the old position of
+            //      the window as damaged.
             //
-            //   * If the area on top of the window was damaged before
-            //     the reconfigure, we need to ensure we move that
-            //     damaged region to the new coordinates.
+            //   3. If the area on top of the window was damaged before
+            //      the reconfigure, we need to ensure we move that
+            //      damaged region to the new coordinates.
             //
-            //   * Make sure we prevent exposing as much as possible.
-            //     If a window, completely obscured, moves somewhere,
-            //     we shouldn't expose any pixels. Similar sensible
-            //     behavior should happen for cases the window is
-            //     partially obscured.
+            //   4. Make sure we prevent exposing as much as possible.
+            //      If a window, completely obscured, moves somewhere,
+            //      we shouldn't expose any pixels. Similar sensible
+            //      behavior should happen for cases the window is
+            //      partially obscured.
+
+            // 1., 2. are documented where the corresponding code is done.
+            // 3. is not done yet, and is a source of redraw issues.
+            // 4. is done by making sure we call _calculateEffectiveRegionForWindow,
+            //    which excludes the region where windows visually obscure the window.
 
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             var oldTxform = serverWindow.calculateAbsoluteOffset(true);
@@ -487,8 +492,8 @@
 
             var damagedRegion = new Region();
 
-            // Pixels need to be exposed under the window in places where the
-            // old region is, but the new region isn't.
+            // 1. Pixels need to be exposed under the window in places where the
+            //    old region is, but the new region isn't.
             damagedRegion.subtract(oldRegion, newRegion);
             this._damagedRegion.union(this._damagedRegion, damagedRegion);
             this._debugDrawRegion(damagedRegion, 'yellow');
@@ -500,8 +505,8 @@
             // to be redrawn after the copy.
             oldRegion.translate(newX - oldX, newY - oldY);
 
-            // Pixels need to be exposed on the window in places where the
-            // new region is, but the old region isn't.
+            // 2. Pixels need to be exposed on the window in places where the
+            //    new region is, but the old region isn't.
             damagedRegion.subtract(newRegion, oldRegion);
             this._damagedRegion.union(this._damagedRegion, damagedRegion);
             this._debugDrawRegion(damagedRegion, 'green');
