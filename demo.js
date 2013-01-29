@@ -84,7 +84,7 @@
         },
         connect: function(server) {
             this.parent(server);
-            this._server.selectInput(this, this._windowId, ["Enter", "Leave"]);
+            this._server.selectInput(this, this._windowId, ["Enter", "Leave", "ButtonRelease"]);
             this._server.defineCursor(this._windowId, "pointer");
             this._setHover(false);
         },
@@ -106,6 +106,9 @@
                 return this._setHover(true);
                 case "Leave":
                 return this._setHover(false);
+                case "ButtonRelease":
+                if (this.clickCallback)
+                    this.clickCallback(event);
                 default:
                 return this.parent(event);
             }
@@ -143,6 +146,11 @@
         button.connect(server);
         button.configure(50, 20, 100, 50);
         button.reparent(w);
+
+        button.clickCallback = function(event) {
+            if (event.button === 1)
+                console.log("Button clicked!");
+        };
     }
 
     window.addEventListener("keydown", function(evt) {
