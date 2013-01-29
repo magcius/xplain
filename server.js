@@ -380,7 +380,15 @@
             // This is expected to be called after the client has painted,
             // so don't queue a repaint.
         },
+        sendEvent: function(event) {
+            this._clients.forEach(function(client) {
+                client.potentiallySendEvent(event);
+            });
+        },
 
+        //
+        // Public API for clients.
+        //
         clientConnected: function(client) {
             var serverClient = new ServerClient(client, this);
             client._serverClient = serverClient;
@@ -389,11 +397,6 @@
         selectInput: function(client, windowId, eventTypes) {
             var serverClient = client._serverClient;
             serverClient.selectInput(windowId, eventTypes);
-        },
-        sendEvent: function(event) {
-            this._clients.forEach(function(client) {
-                client.potentiallySendEvent(event);
-            });
         },
 
         // Used by _createRootWindow and createWindow.
