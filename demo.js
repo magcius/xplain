@@ -80,6 +80,20 @@
             this.parent();
             this.backgroundColor = color;
         },
+        connect: function(server) {
+            this.parent(server);
+            this._server.selectInput(this, this._windowId, ["Enter", "Leave"]);
+        },
+        handleEvent: function(event) {
+            switch(event.type) {
+                case "Enter":
+                case "Leave":
+                console.log("got {type}!".substitute({ type: event.type }));
+                break;
+                default:
+                return this.parent(event);
+            }
+        },
         expose: function(wrapper) {
             // Don't draw anything -- the backgroundColor will take
             // care of it for us.
