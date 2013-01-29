@@ -490,17 +490,19 @@
             // old region is, but the new region isn't.
             damagedRegion.subtract(oldRegion, newRegion);
             this._damagedRegion.union(this._damagedRegion, damagedRegion);
-
             this._debugDrawRegion(damagedRegion, 'yellow');
+
+            damagedRegion.clear();
 
             // If X/Y change, we copy the old area, so we need to translate into
             // the coordinate space of the new window's position to know what needs
             // to be redrawn after the copy.
             oldRegion.translate(newX - oldX, newY - oldY);
-            damagedRegion.clear();
+
+            // Pixels need to be exposed on the window in places where the
+            // new region is, but the old region isn't.
             damagedRegion.subtract(newRegion, oldRegion);
             this._damagedRegion.union(this._damagedRegion, damagedRegion);
-
             this._debugDrawRegion(damagedRegion, 'green');
 
             // Copy the old image contents over, masked to the region.
