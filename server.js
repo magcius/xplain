@@ -531,6 +531,7 @@
             var serverWindow = this._windowsById[windowId];
             this._unparentWindow(serverWindow);
             serverWindow.finalize();
+            this._windowsById[windowId] = null;
         },
 
         reparentWindow: function(windowId, newParentId) {
