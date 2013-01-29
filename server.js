@@ -282,14 +282,7 @@
             this._rootWindow = this._createRootWindow();
             this._container.appendChild(this._rootWindow.inputWindow);
 
-            this._debugCanvas = document.createElement("canvas");
-            this._debugCanvas.classList.add("debugCanvas");
-            this._debugCanvas.width = this.width;
-            this._debugCanvas.height = this.height;
-            this._container.appendChild(this._debugCanvas);
-
-            this._debugCtx = this._debugCanvas.getContext("2d");
-            this._debugEnabled = DEBUG;
+            this._setupDebug();
         },
 
         _createRootWindow: function() {
@@ -300,23 +293,21 @@
             return rootWindow;
         },
 
+        _setupDebug: function() {
+            this._debugEnabled = DEBUG;
+            this._debugCanvas = document.createElement("canvas");
+            this._debugCanvas.classList.add("debugCanvas");
+            this._debugCanvas.width = this.width;
+            this._debugCanvas.height = this.height;
+            this._debugCtx = this._debugCanvas.getContext("2d");
+            this._container.appendChild(this._debugCanvas);
+        },
         toggleDebug: function() {
             this._debugEnabled = !this._debugEnabled;
             if (!this._debugEnabled)
                 this._debugDrawClear();
             this._container.classList.toggle("debug");
         },
-        _debugDrawClear: function() {
-            this._debugCtx.clearRect(0, 0, this._debugCtx.canvas.width, this._debugCtx.canvas.height);
-        },
-
-        queueFullRedraw: function() {
-            var fullRegion = new Region();
-            fullRegion.init_rect(0, 0, this.width, this.height);
-            this.damageRegion(fullRegion);
-            fullRegion.finalize();
-        },
-
         _debugDrawRegion: function(region, style) {
             if (!this._debugEnabled)
                 return;
@@ -328,6 +319,16 @@
             this._debugCtx.globalAlpha = 0.4;
             this._debugCtx.fill();
             this._debugCtx.restore();
+        },
+        _debugDrawClear: function() {
+            this._debugCtx.clearRect(0, 0, this._debugCtx.canvas.width, this._debugCtx.canvas.height);
+        },
+
+        queueFullRedraw: function() {
+            var fullRegion = new Region();
+            fullRegion.init_rect(0, 0, this.width, this.height);
+            this.damageRegion(fullRegion);
+            fullRegion.finalize();
         },
 
         _iterWindowsAboveWindow: function(serverWindow, callback) {
