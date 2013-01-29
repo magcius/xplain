@@ -206,6 +206,11 @@
         'reparentWindow',
         'configureRequest',
         'changeProperty',
+
+        // JS extension -- simplifies the case of drawing
+        // by letting someone use an existing expose handler.
+        // This is the model used by GDK internally.
+        'invalidateWindow',
     ];
 
     publicMethods.forEach(function(methodName) {
@@ -606,6 +611,11 @@
         changeProperty: function(windowId, name, value) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.changeProperty(name, value);
+        },
+
+        invalidateWindow: function(windowId) {
+            var serverWindow = this._windowsById[windowId];
+            this._damageWindow(serverWindow);
         },
     });
 
