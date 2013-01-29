@@ -365,13 +365,6 @@
             return region;
         },
 
-        calculateDamagedRegionForWindow: function(serverWindow) {
-            var region = serverWindow.calculateTransformedShapeRegion();
-            region.intersect(region, this._damagedRegion);
-            this._subtractAboveWindowsFromRegion(serverWindow, region);
-            return region;
-        },
-
         _redraw: function() {
             // The damaged region is global, not per-window. This function
             // walks all windows, computing the intersection of the global
