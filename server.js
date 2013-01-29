@@ -475,17 +475,17 @@
         _configureWindow: function(serverWindow, x, y, width, height) {
             // This is a bit fancy. We need to accomplish a few things:
             //
-            //   1. If the window was resized, we need to ensure we mark
+            //   1. If the area on top of the window was damaged before
+            //      the reconfigure, we need to ensure we move that
+            //      damaged region to the new coordinates.
+            //
+            //   2. If the window was resized, we need to ensure we mark
             //      the newly exposed region on the window itself as
             //      damaged.
             //
-            //   2. If the window was moved, we need to ensure we mark
+            //   3. If the window was moved, we need to ensure we mark
             //      the newly exposed region under the old position of
             //      the window as damaged.
-            //
-            //   3. If the area on top of the window was damaged before
-            //      the reconfigure, we need to ensure we move that
-            //      damaged region to the new coordinates.
             //
             //   4. Make sure we prevent exposing as much as possible.
             //      If a window, completely obscured, moves somewhere,
@@ -511,7 +511,7 @@
 
             var damagedRegion = new Region();
 
-            // 3. (We need to do this first, as the other steps manipulate
+            // 1. (We need to do this first, as the other steps manipulate
             //     oldRegion and the global damaged region in ways that would
             //     cause us to damage more than necessary.)
             //    Pixels that were marked as damaged on the old window need
@@ -520,7 +520,7 @@
             damagedRegion.translate(newX - oldX, newY - oldY);
             this._damagedRegion.union(this._damagedRegion, damagedRegion);
 
-            // 1. Pixels need to be exposed under the window in places where the
+            // 2. Pixels need to be exposed under the window in places where the
             //    old region is, but the new region isn't.
             damagedRegion.subtract(oldRegion, newRegion);
             this._damagedRegion.union(this._damagedRegion, damagedRegion);
@@ -533,7 +533,7 @@
             // to be redrawn after the copy.
             oldRegion.translate(newX - oldX, newY - oldY);
 
-            // 2. Pixels need to be exposed on the window in places where the
+            // 3. Pixels need to be exposed on the window in places where the
             //    new region is, but the old region isn't.
             damagedRegion.subtract(newRegion, oldRegion);
             this._damagedRegion.union(this._damagedRegion, damagedRegion);
