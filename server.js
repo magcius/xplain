@@ -472,6 +472,88 @@
             this.sendEvent(ourEvent);
         },
 
+        _configureWindow: function(serverWindow, x, y, width, height) {
+            // This is a bit fancy. We need to accomplish a few things:
+            //
+            //   1. If the window was resized, we need to ensure we mark
+            //      the newly exposed region on the window itself as
+            //      damaged.
+            //
+            //   2. If the window was moved, we need to ensure we mark
+            //      the newly exposed region under the old position of
+            //      the window as damaged.
+            //
+            //   3. If the area on top of the window was damaged before
+            //      the reconfigure, we need to ensure we move that
+            //      damaged region to the new coordinates.
+            //
+            //   4. Make sure we prevent exposing as much as possible.
+            //      If a window, completely obscured, moves somewhere,
+            //      we shouldn't expose any pixels. Similar sensible
+            //      behavior should happen for cases the window is
+            //      partially obscured.
+
+            // 1., 2., and 3. are documented where the corresponding code is done.
+            // 4. is done by making sure we call _calculateEffectiveRegionForWindow,
+            //    which excludes the region where windows visually obscure the window.
+
+            var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+            var oldTxform = serverWindow.calculateAbsoluteOffset(true);
+            var oldX = oldTxform.x, oldY = oldTxform.y;
+            var oldW = serverWindow.width, oldH = serverWindow.height;
+
+            // Reconfigure the window -- this will modify the shape region.
+            serverWindow.reconfigure(x, y, width, height);
+
+            var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+            var newTxform = serverWindow.calculateAbsoluteOffset(true);
+            var newX = newTxform.x, newY = newTxform.y;
+
+            var damagedRegion = new Region();
+
+            // 3. (We need to do this first, as the other steps manipulate
+            //     oldRegion and the global damaged region in ways that would
+            //     cause us to damage more than necessary.)
+            //    Pixels that were marked as damaged on the old window need
+            //    to be translated to pixels on the global damaged region.
+            damagedRegion.intersect(this._damagedRegion, oldRegion);
+            damagedRegion.translate(newX - oldX, newY - oldY);
+            this._damagedRegion.union(this._damagedRegion, damagedRegion);
+
+            // 1. Pixels need to be exposed under the window in places where the
+            //    old region is, but the new region isn't.
+            damagedRegion.subtract(oldRegion, newRegion);
+            this._damagedRegion.union(this._damagedRegion, damagedRegion);
+            this._debugDrawRegion(damagedRegion, 'yellow');
+
+            damagedRegion.clear();
+
+            // If X/Y change, we copy the old area, so we need to translate into
+            // the coordinate space of the new window's position to know what needs
+            // to be redrawn after the copy.
+            oldRegion.translate(newX - oldX, newY - oldY);
+
+            // 2. Pixels need to be exposed on the window in places where the
+            //    new region is, but the old region isn't.
+            damagedRegion.subtract(newRegion, oldRegion);
+            this._damagedRegion.union(this._damagedRegion, damagedRegion);
+            this._debugDrawRegion(damagedRegion, 'green');
+
+            // Copy the old image contents over, masked to the region.
+            var ctx = this._ctx;
+            ctx.beginPath();
+            ctx.save();
+            pathFromRegion(ctx, newRegion);
+            ctx.clip();
+            ctx.drawImage(ctx.canvas, oldX, oldY, oldW, oldH, newX, newY, oldW, oldH);
+            ctx.restore();
+            this._queueRedraw();
+
+            oldRegion.finalize();
+            newRegion.finalize();
+            damagedRegion.finalize();
+        },
+
         //
         // Public API for clients.
         //
@@ -560,86 +642,7 @@
 
         configureRequest: function(windowId, x, y, width, height) {
             var serverWindow = this._windowsById[windowId];
-
-            // This is a bit fancy. We need to accomplish a few things:
-            //
-            //   1. If the window was resized, we need to ensure we mark
-            //      the newly exposed region on the window itself as
-            //      damaged.
-            //
-            //   2. If the window was moved, we need to ensure we mark
-            //      the newly exposed region under the old position of
-            //      the window as damaged.
-            //
-            //   3. If the area on top of the window was damaged before
-            //      the reconfigure, we need to ensure we move that
-            //      damaged region to the new coordinates.
-            //
-            //   4. Make sure we prevent exposing as much as possible.
-            //      If a window, completely obscured, moves somewhere,
-            //      we shouldn't expose any pixels. Similar sensible
-            //      behavior should happen for cases the window is
-            //      partially obscured.
-
-            // 1., 2., and 3. are documented where the corresponding code is done.
-            // 4. is done by making sure we call _calculateEffectiveRegionForWindow,
-            //    which excludes the region where windows visually obscure the window.
-
-            var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            var oldTxform = serverWindow.calculateAbsoluteOffset(true);
-            var oldX = oldTxform.x, oldY = oldTxform.y;
-            var oldW = serverWindow.width, oldH = serverWindow.height;
-
-            // Reconfigure the window -- this will modify the shape region.
-            serverWindow.reconfigure(x, y, width, height);
-
-            var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            var newTxform = serverWindow.calculateAbsoluteOffset(true);
-            var newX = newTxform.x, newY = newTxform.y;
-
-            var damagedRegion = new Region();
-
-            // 3. (We need to do this first, as the other steps manipulate
-            //     oldRegion and the global damaged region in ways that would
-            //     cause us to damage more than necessary.)
-            //    Pixels that were marked as damaged on the old window need
-            //    to be translated to pixels on the global damaged region.
-            damagedRegion.intersect(this._damagedRegion, oldRegion);
-            damagedRegion.translate(newX - oldX, newY - oldY);
-            this._damagedRegion.union(this._damagedRegion, damagedRegion);
-
-            // 1. Pixels need to be exposed under the window in places where the
-            //    old region is, but the new region isn't.
-            damagedRegion.subtract(oldRegion, newRegion);
-            this._damagedRegion.union(this._damagedRegion, damagedRegion);
-            this._debugDrawRegion(damagedRegion, 'yellow');
-
-            damagedRegion.clear();
-
-            // If X/Y change, we copy the old area, so we need to translate into
-            // the coordinate space of the new window's position to know what needs
-            // to be redrawn after the copy.
-            oldRegion.translate(newX - oldX, newY - oldY);
-
-            // 2. Pixels need to be exposed on the window in places where the
-            //    new region is, but the old region isn't.
-            damagedRegion.subtract(newRegion, oldRegion);
-            this._damagedRegion.union(this._damagedRegion, damagedRegion);
-            this._debugDrawRegion(damagedRegion, 'green');
-
-            // Copy the old image contents over, masked to the region.
-            var ctx = this._ctx;
-            ctx.beginPath();
-            ctx.save();
-            pathFromRegion(ctx, newRegion);
-            ctx.clip();
-            ctx.drawImage(ctx.canvas, oldX, oldY, oldW, oldH, newX, newY, oldW, oldH);
-            ctx.restore();
-            this._queueRedraw();
-
-            oldRegion.finalize();
-            newRegion.finalize();
-            damagedRegion.finalize();
+            this._configureWindow(serverWindow, x, y, width, height);
         },
 
         changeAttributes: function(windowId, attributes) {
