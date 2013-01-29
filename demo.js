@@ -133,12 +133,6 @@
     var w = new BackgroundWindow();
     w.connect(server);
 
-    var colors = [['#ff0000', '#ff6666'],
-                  ['#ffaa00', '#ffcc00'],
-                  ['#ffff00', '#ffffcc'],
-                  ['#33ff33', '#99ff99'],
-                  ['#00ffff', '#99ffff']];
-
     function animWindow(window, freq, amplitude) {
         var delay = 50;
         var stepsPerSec = 1000 / delay;
@@ -159,36 +153,40 @@
         task();
     }
 
-    for (var i = 0; i < 5; i++) {
-        var cascade = 40;
-        var windowNumber = i + 1;
+    var cascade = 40;
+    var windowNumber = 1;
+
+    function newWindow() {
+        ++windowNumber;
+
         var w = new FakeWindow("TerminalScreenshot.png");
         w.connect(server);
         w.configure(windowNumber * cascade, windowNumber * cascade, 735, 461);
         var freq = i * 0.25 + 0.5;
         animWindow(w, freq, 40);
 
-        var colorSet = colors[i];
-
-        var button = new SimpleButton(colorSet[0], colorSet[1]);
+        var isRaised = false;
+        var button = new SimpleButton('#ff0000', '#ff6666');
         button.connect(server);
         button.configure(50, 20, 100, 50);
         button.reparent(w);
-        button._origWindow = w;
 
         button.clickCallback = function(event) {
             if (event.button === 1) {
-                this._isRaised = !this._isRaised;
+                isRaised = !isRaised;
 
-                if (this._isRaised)
-                    this._origWindow.raise();
+                if (isRaised)
+                    w.raise();
                 else
-                    this._origWindow.lower();
+                    w.lower();
             }
         };
 
         animWindow(button, freq * 2, 40);
     }
+
+    for (var i = 0; i < 5; i++)
+        newWindow();
 
     window.addEventListener("keydown", function(evt) {
         var letter = String.fromCharCode(evt.keyCode);
