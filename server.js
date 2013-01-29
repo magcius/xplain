@@ -274,7 +274,11 @@
 
         _setupDOM: function() {
             this._container = document.createElement("div");
-            this._container.classList.add("crtc");
+
+            // Allow querying with .xserver.js
+            this._container.classList.add("xserver");
+            this._container.classList.add("js");
+
             sizeElement(this._container, this.width, this.height);
 
             this._canvas = document.createElement("canvas");

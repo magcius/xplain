@@ -17,18 +17,3 @@
 .region-demo canvas {
     border: 1px solid #777;
 }
-
-.debugCanvas {
-    display: none;
-    pointer-events: none;
-}
-
-.crtc.debug .debugCanvas {
-    display: block;
-}
-
-.crtc canvas {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-}

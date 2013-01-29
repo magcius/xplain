@@ -1,0 +1,15 @@
+
+.xserver.js .debugCanvas {
+    display: none;
+    pointer-events: none;
+}
+
+.xserver.js.debug .debugCanvas {
+    display: block;
+}
+
+.xserver.js canvas {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
