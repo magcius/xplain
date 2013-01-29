@@ -493,14 +493,6 @@
 
             this._debugDrawRegion(damagedRegion, 'yellow');
 
-            // Pixels also need to be exposed on the window itself where the
-            // new region is, and the old one isn't.
-            damagedRegion.clear();
-            damagedRegion.subtract(newRegion, oldRegion);
-            this._damagedRegion.union(this._damagedRegion, damagedRegion);
-
-            this._debugDrawRegion(damagedRegion, 'blue');
-
             // If X/Y change, we copy the old area, so we need to translate into
             // the coordinate space of the new window's position to know what needs
             // to be redrawn after the copy.
