@@ -60,7 +60,7 @@
             this._backgroundColor = DEFAULT_BACKGROUND_COLOR;
 
             // The region of the window that needs to be redrawn, in window coordinates.
-            this.damagedRegion = new Region();
+            this._damagedRegion = new Region();
 
             // The region of the screen that the window occupies, in parent coordinates.
             this.shapeRegion = new Region();
@@ -76,8 +76,8 @@
             this.shapeRegion.finalize();
             this.shapeRegion = null;
 
-            this.damagedRegion.finalize();
-            this.damagedRegion = null;
+            this._damagedRegion.finalize();
+            this._damagedRegion = null;
         },
         _iterParents: function(includeSelf, callback) {
             var serverWindow = this;
@@ -108,7 +108,7 @@
             var txform = this.calculateAbsoluteOffset(true);
             ctx.translate(txform.x, txform.y);
 
-            var region = this.damagedRegion;
+            var region = this._damagedRegion;
             pathFromRegion(ctx, region);
             ctx.clip();
         },
@@ -116,16 +116,16 @@
             // Don't bother trashing our region here as
             // we'll clear it below.
             var txform = this.calculateAbsoluteOffset(true);
-            this.damagedRegion.translate(txform.x, txform.y);
-            this._server.subtractDamage(this.damagedRegion);
-            this.damagedRegion.clear();
+            this._damagedRegion.translate(txform.x, txform.y);
+            this._server.subtractDamage(this._damagedRegion);
+            this._damagedRegion.clear();
         },
         _drawBackground: function(ctx) {
             ctx.fillStyle = this._backgroundColor;
             ctx.fillRect(0, 0, this.width, this.height);
         },
         damage: function(region, ctx) {
-            this.damagedRegion.union(this.damagedRegion, region);
+            this._damagedRegion.union(this._damagedRegion, region);
 
             this._ctxWrapper.drawWithContext(this._drawBackground.bind(this));
             this._server.sendEvent({ type: "Expose",
