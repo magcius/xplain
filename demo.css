@@ -14,10 +14,6 @@
     transform: translate(-50%, -50%);
 }
 
-.window {
-    position: absolute;
-}
-
 .region-demo canvas {
     border: 1px solid #777;
 }
