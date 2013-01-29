@@ -75,22 +75,36 @@
         },
     });
 
-    var SimpleColorWindow = new Class({
+    var SimpleButton = new Class({
         Extends: Window,
-        initialize: function(color) {
+        initialize: function(standardColor, hoverColor) {
             this.parent();
-            this.backgroundColor = color;
+            this._standardColor = standardColor;
+            this._hoverColor = hoverColor;
         },
         connect: function(server) {
             this.parent(server);
             this._server.selectInput(this, this._windowId, ["Enter", "Leave"]);
+            this._setHover(false);
+        },
+        _setHover: function(hover) {
+            if (this._isHovering == hover)
+                return;
+
+            this._isHovering = hover;
+
+            if (this._server) {
+                var color = hover ? this._hoverColor : this._standardColor;
+                this._server.changeAttributes(this._windowId, { backgroundColor: color });
+                this._server.invalidateWindow(this._windowId);
+            }
         },
         handleEvent: function(event) {
             switch(event.type) {
                 case "Enter":
+                return this._setHover(true);
                 case "Leave":
-                console.log("got {type}!".substitute({ type: event.type }));
-                break;
+                return this._setHover(false);
                 default:
                 return this.parent(event);
             }
@@ -109,7 +123,11 @@
     var w = new BackgroundWindow();
     w.connect(server);
 
-    var colors = ['red', 'orange', 'yellow', 'lightgreen', 'cyan'];
+    var colors = [['#ff0000', '#ff6666'],
+                  ['#ffaa00', '#ffcc00'],
+                  ['#ffff00', '#ffffcc'],
+                  ['#33ff33', '#99ff99'],
+                  ['#00ffff', '#99ffff']];
     for (var i = 0; i < 5; i++) {
         var cascade = 40;
         var windowNumber = i + 1;
@@ -118,7 +136,9 @@
         w.configure(windowNumber * cascade, windowNumber * cascade, 735, 461);
         var freq = i * 0.25 + 0.5;
 
-        var sub = new SimpleColorWindow(colors[i]);
+        var colorSet = colors[i];
+
+        var sub = new SimpleButton(colorSet[0], colorSet[1]);
         sub.connect(server);
         sub.configure(50, 20, 100, 50);
         sub.reparent(w);
