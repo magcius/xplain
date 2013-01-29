@@ -132,7 +132,6 @@
                                      windowId: this.windowId,
                                      ctx: this._ctxWrapper });
         },
-
         reconfigure: function(x, y, width, height) {
             this.x = x;
             this.y = y;
@@ -148,7 +147,6 @@
                                      windowId: this.windowId,
                                      x: x, y: y, width: width, height: height });
         },
-
         changeAttributes: function(attributes) {
             if (attributes.hasInput !== undefined && this._hasInput != attributes.hasInput) {
                 this._hasInput = !!attributes.hasInput;
@@ -163,14 +161,12 @@
                 this._backgroundColor = attributes.backgroundColor || DEFAULT_BACKGROUND_COLOR;
             }
         },
-
         changeProperty: function(name, value) {
             this._properties[name] = value;
             this._server.sendEvent({ type: "PropertyChanged",
                                      windowId: this.windowId,
                                      name: name, value: value });
         },
-
         defineCursor: function(cursor) {
             this.inputWindow.style.cursor = cursor;
         },
@@ -189,7 +185,6 @@
             var listeningFor = this._eventWindows[event.windowId];
             return listeningFor && listeningFor.indexOf(event.type) >= 0;
         },
-
         sendEvent: function(event) {
             this._client.handleEvent(event);
         },
@@ -197,7 +192,6 @@
             if (this._isInterestedInEvent(event))
                 return this.sendEvent(event);
         },
-
         selectInput: function(windowId, eventTypes) {
             var listeningFor = this._eventWindows[windowId];
             if (!listeningFor)
@@ -210,7 +204,6 @@
     var PublicServer = new Class({
         initialize: function(server) {
             this._server = server;
-
             this.width = this._server.width;
             this.height = this._server.height;
         }
@@ -559,23 +552,19 @@
             var windowId = ++this._nextWindowId;
             var serverWindow = new ServerWindow(windowId, this, this._ctx);
             this._windowsById[windowId] = serverWindow;
-
             return serverWindow;
         },
-
         _damageWindow: function(serverWindow) {
             var region = this._calculateEffectiveRegionForWindow(serverWindow);
             this.damageRegion(region);
             region.finalize();
         },
-
         _unparentWindow: function(serverWindow) {
             var parentServerWindow = serverWindow.parentServerWindow;
             parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
             parentServerWindow.children.erase(serverWindow);
             this._damageWindow(serverWindow);
         },
-
         _parentWindow: function(serverWindow, parentServerWindow) {
             serverWindow.parentServerWindow = parentServerWindow;
             parentServerWindow.children.unshift(serverWindow);
@@ -595,27 +584,23 @@
             var serverClient = client._serverClient;
             serverClient.selectInput(windowId, eventTypes);
         },
-
         createWindow: function() {
             var serverWindow = this._createWindowInternal();
             this._parentWindow(serverWindow, this._rootWindow);
             return serverWindow.windowId;
         },
-
         destroyWindow: function(windowId) {
             var serverWindow = this._windowsById[windowId];
             this._unparentWindow(serverWindow);
             serverWindow.finalize();
             this._windowsById[windowId] = null;
         },
-
         reparentWindow: function(windowId, newParentId) {
             var serverWindow = this._windowsById[windowId];
             var newServerParentWindow = this._windowsById[newParentId];
             this._unparentWindow(serverWindow);
             this._parentWindow(serverWindow, newServerParentWindow);
         },
-
         raiseWindow: function(windowId) {
             var serverWindow = this._windowsById[windowId];
             var parentServerWindow = serverWindow.parentServerWindow;
@@ -625,7 +610,6 @@
             parentServerWindow.inputWindow.appendChild(serverWindow.inputWindow);
             this._damageWindow(serverWindow);
         },
-
         lowerWindow: function(windowId) {
             var serverWindow = this._windowsById[windowId];
 
@@ -639,27 +623,22 @@
             parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
             parentServerWindow.inputWindow.insertBefore(serverWindow.inputWindow, parentServerWindow.inputWindow.firstChild);
         },
-
         configureRequest: function(windowId, x, y, width, height) {
             var serverWindow = this._windowsById[windowId];
             this._configureWindow(serverWindow, x, y, width, height);
         },
-
         changeAttributes: function(windowId, attributes) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.changeAttributes(attributes);
         },
-
         changeProperty: function(windowId, name, value) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.changeProperty(name, value);
         },
-
         defineCursor: function(windowId, cursor) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.defineCursor(cursor);
         },
-
         invalidateWindow: function(windowId) {
             var serverWindow = this._windowsById[windowId];
             this._damageWindow(serverWindow);
