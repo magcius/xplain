@@ -22,11 +22,6 @@
 	border: 1px solid #777;
 }
 
-.crtc.debug .inputWindow {
-	background-color: rgba(255, 0, 255, 0.2);
-	border: 2px solid black;
-}
-
 .debugCanvas {
 	display: none;
 }
