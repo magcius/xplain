@@ -554,19 +554,6 @@
             damagedRegion.finalize();
         },
 
-        //
-        // Public API for clients.
-        //
-        clientConnected: function(client) {
-            var serverClient = new ServerClient(client, this);
-            client._serverClient = serverClient;
-            this._clients.push(serverClient);
-        },
-        selectInput: function(client, windowId, eventTypes) {
-            var serverClient = client._serverClient;
-            serverClient.selectInput(windowId, eventTypes);
-        },
-
         // Used by _createRootWindow and createWindow.
         _createWindowInternal: function() {
             var windowId = ++this._nextWindowId;
@@ -594,6 +581,19 @@
             parentServerWindow.children.unshift(serverWindow);
             parentServerWindow.inputWindow.appendChild(serverWindow.inputWindow);
             this._damageWindow(serverWindow);
+        },
+
+        //
+        // Public API for clients.
+        //
+        clientConnected: function(client) {
+            var serverClient = new ServerClient(client, this);
+            client._serverClient = serverClient;
+            this._clients.push(serverClient);
+        },
+        selectInput: function(client, windowId, eventTypes) {
+            var serverClient = client._serverClient;
+            serverClient.selectInput(windowId, eventTypes);
         },
 
         createWindow: function() {
