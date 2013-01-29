@@ -150,7 +150,7 @@
             return true;
         }
         var task = new Task(animate, delay);
-        task();
+        return task;
     }
 
     var cascade = 40;
@@ -162,15 +162,14 @@
         var w = new FakeWindow("TerminalScreenshot.png");
         w.connect(server);
         w.configure(windowNumber * cascade, windowNumber * cascade, 735, 461);
-        var freq = i * 0.25 + 0.5;
-        animWindow(w, freq, 40);
+
+        var button;
 
         var isRaised = false;
-        var button = new SimpleButton('#ff0000', '#ff6666');
+        button = new SimpleButton('#ff0000', '#ff6666');
         button.connect(server);
         button.configure(10, 10, 20, 20);
         button.reparent(w);
-
         button.clickCallback = function(event) {
             if (event.button === 1) {
                 isRaised = !isRaised;
@@ -180,6 +179,19 @@
                 else
                     w.lower();
             }
+        };
+
+        var freq = (windowNumber - 1) * 0.25 + 0.5;
+        var animTask = animWindow(w, freq, 40);
+        button = new SimpleButton('#ffaa00', '#ffcc00');
+        button.connect(server);
+        button.configure(40, 10, 20, 20);
+        button.reparent(w);
+        button.clickCallback = function(event) {
+            if (animTask.alive())
+                animTask.clear();
+            else
+                animTask();
         };
     }
 
