@@ -170,6 +170,10 @@
                                      windowId: this.windowId,
                                      name: name, value: value });
         },
+
+        defineCursor: function(cursor) {
+            this.inputWindow.style.cursor = cursor;
+        },
     });
 
     var ServerClient = new Class({
@@ -221,6 +225,7 @@
         'configureRequest',
         'changeAttributes',
         'changeProperty',
+        'defineCursor',
 
         // JS extension -- simplifies the case of drawing
         // by letting someone use an existing expose handler.
@@ -625,6 +630,11 @@
         changeProperty: function(windowId, name, value) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.changeProperty(name, value);
+        },
+
+        defineCursor: function(windowId, cursor) {
+            var serverWindow = this._windowsById[windowId];
+            serverWindow.defineCursor(cursor);
         },
 
         invalidateWindow: function(windowId) {
