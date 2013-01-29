@@ -468,9 +468,10 @@
             //     damaged region to the new coordinates.
             //
             //   * Make sure we prevent exposing as much as possible.
-            //     If a window somewhere below the stack moves behind
-            //     another window completely, we should only mark the
-            //     newly exposed region.
+            //     If a window, completely obscured, moves somewhere,
+            //     we shouldn't expose any pixels. Similar sensible
+            //     behavior should happen for cases the window is
+            //     partially obscured.
 
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             var oldTxform = serverWindow.calculateAbsoluteOffset(true);
