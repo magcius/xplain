@@ -249,40 +249,40 @@
 
             this.publicServer = new PublicServer(this);
 
-            this._container = document.createElement("div");
-            this._container.classList.add("crtc");
-            sizeElement(this._container, width, height);
+            this._setupDOM();
             this.elem = this._container;
 
+            this._setupInputHandlers();
+
             this._backgroundColor = 'rgb(51, 110, 165)';
-
-            this._canvas = document.createElement("canvas");
-            this._canvas.width = this.width;
-            this._canvas.height = this.height;
-
-            this._ctx = this._canvas.getContext('2d');
-            this._container.appendChild(this._canvas);
-
-            // This captures all input through bubbling
-            var handler = this._handleInput.bind(this);
-            Object.keys(inputEventMap).forEach(function(eventName) {
-                this._container.addEventListener(eventName, handler);
-            }, this);
-
             this._clients = [];
 
             this._nextWindowId = 0;
             this._windowsById = {};
 
-            this._queueRedraw = new Task(this._redraw.bind(this));
-
             // The region of the screen that needs to be updated.
             this._damagedRegion = new Region();
+            this._queueRedraw = new Task(this._redraw.bind(this));
 
+            // This needs to be done after we set up everything else
+            // as it uses the standard redraw and windowing machinery.
             this._rootWindow = this._createRootWindow();
             this._container.appendChild(this._rootWindow.inputWindow);
 
             this.setDebugEnabled(DEBUG);
+        },
+
+        _setupDOM: function() {
+            this._container = document.createElement("div");
+            this._container.classList.add("crtc");
+            sizeElement(this._container, this.width, this.height);
+
+            this._canvas = document.createElement("canvas");
+            this._canvas.width = this.width;
+            this._canvas.height = this.height;
+            this._container.appendChild(this._canvas);
+
+            this._ctx = this._canvas.getContext('2d');
         },
 
         _createRootWindow: function() {
@@ -460,7 +460,13 @@
 
             return event;
         },
-
+        _setupInputHandlers: function() {
+            // This captures all input through bubbling
+            var handler = this._handleInput.bind(this);
+            Object.keys(inputEventMap).forEach(function(eventName) {
+                this._container.addEventListener(eventName, handler);
+            }, this);
+        },
         _handleInput: function(event) {
             // X does not have event bubbling, so stop
             // it now.
