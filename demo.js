@@ -31,6 +31,12 @@
         },
         expose: function() {
         },
+        raise: function() {
+            this._server.raiseWindow(this._windowId);
+        },
+        lower: function() {
+            this._server.lowerWindow(this._windowId);
+        },
         configure: function(x, y, width, height) {
             x = x === undefined ? this.x : x;
             y = y === undefined ? this.y : y;
@@ -146,10 +152,11 @@
         button.connect(server);
         button.configure(50, 20, 100, 50);
         button.reparent(w);
+        button._origWindow = w;
 
         button.clickCallback = function(event) {
             if (event.button === 1)
-                console.log("Button clicked!");
+                this._origWindow.raise();
         };
     }
 
