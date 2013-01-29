@@ -181,8 +181,6 @@
                     w.lower();
             }
         };
-
-        animWindow(button, freq * 2, 40);
     }
 
     for (var i = 0; i < 5; i++)
