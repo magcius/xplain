@@ -431,6 +431,8 @@
             // XXX -- handle input windows inside output-only windows
             if (parentServerWindow.inputWindow && serverWindow.inputWindow)
                 parentServerWindow.inputWindow.appendChild(serverWindow.inputWindow);
+
+            this._damageWindow(serverWindow);
         },
 
         createWindow: function(properties) {
