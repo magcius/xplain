@@ -408,12 +408,20 @@
             return serverWindow;
         },
 
+        _damageWindow: function(serverWindow) {
+            var region = this._calculateEffectiveRegionForWindow(serverWindow);
+            this.damageRegion(region);
+            region.finalize();
+        },
+
         _unparentWindow: function(serverWindow) {
             var parentServerWindow = serverWindow.parentServerWindow;
             if (parentServerWindow.inputWindow && serverWindow.inputWindow)
                 parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
             if (parentServerWindow)
                 parentServerWindow.children.erase(serverWindow);
+
+            this._damageWindow(serverWindow);
         },
 
         _parentWindow: function(serverWindow, parentServerWindow) {
@@ -433,13 +441,7 @@
 
         destroyWindow: function(windowId) {
             var serverWindow = this._windowsById[windowId];
-
             this._unparentWindow(serverWindow);
-
-            var region = this._calculateEffectiveRegionForWindow(serverWindow);
-            this.damageRegion(region);
-            region.finalize();
-
             serverWindow.finalize();
         },
 
