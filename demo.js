@@ -139,10 +139,10 @@
 
         var colorSet = colors[i];
 
-        var sub = new SimpleButton(colorSet[0], colorSet[1]);
-        sub.connect(server);
-        sub.configure(50, 20, 100, 50);
-        sub.reparent(w);
+        var button = new SimpleButton(colorSet[0], colorSet[1]);
+        button.connect(server);
+        button.configure(50, 20, 100, 50);
+        button.reparent(w);
     }
 
     window.addEventListener("keydown", function(evt) {
