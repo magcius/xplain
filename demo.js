@@ -155,8 +155,14 @@
         button._origWindow = w;
 
         button.clickCallback = function(event) {
-            if (event.button === 1)
-                this._origWindow.raise();
+            if (event.button === 1) {
+                this._isRaised = !this._isRaised;
+
+                if (this._isRaised)
+                    this._origWindow.raise();
+                else
+                    this._origWindow.lower();
+            }
         };
     }
 
