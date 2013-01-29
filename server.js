@@ -20,6 +20,12 @@
         sizeElement(elem, w, h);
     }
 
+    function getEventCoordsInDomElementSpace(event, elem) {
+        var box = elem.getBoundingClientRect();
+        return { x: event.clientX - box.left,
+                 y: event.clientY - box.top };
+    }
+
     var ContextWrapper = new Class({
         initialize: function(serverWindow, ctx) {
             this._serverWindow = serverWindow;
@@ -48,6 +54,7 @@
             if (windowAttributes.hasInput) {
                 this.inputWindow = document.createElement("div");
                 this.inputWindow.classList.add("inputWindow");
+                this.inputWindow._serverWindow = this;
             }
 
             this._backgroundColor = windowAttributes.backgroundColor || '#ddd';
@@ -207,6 +214,14 @@
         };
     });
 
+    var inputEventMap = {
+        "mouseover": "Enter",
+        "mouseout": "Leave",
+        "mousedown": "ButtonPress",
+        "mouseup": "ButtonRelease",
+        "mousemove": "Motion"
+    };
+
     var Server = new Class({
         initialize: function(width, height) {
             this.width = width;
@@ -227,6 +242,12 @@
 
             this._ctx = this._canvas.getContext('2d');
             this._container.appendChild(this._canvas);
+
+            // This captures all input through bubbling
+            var handler = this._handleInput.bind(this);
+            Object.keys(inputEventMap).forEach(function(eventName) {
+                this._container.addEventListener(eventName, handler);
+            }, this);
 
             this._clients = [];
 
@@ -384,6 +405,50 @@
             this._clients.forEach(function(client) {
                 client.potentiallySendEvent(event);
             });
+        },
+
+        _constructInputEvent: function(domEvent, serverWindow) {
+            var eventType = inputEventMap[domEvent.type];
+
+            var rootCoords = getEventCoordsInDomElementSpace(domEvent, this._container);
+            var winCoords = getEventCoordsInDomElementSpace(domEvent, serverWindow.inputWindow);
+
+            var event = { type: eventType,
+                          rootWindowId: this._rootWindow.windowId,
+                          windowId: serverWindow.windowId,
+                          rootX: rootCoords.x,
+                          rootY: rootCoords.y,
+                          winX: winCoords.x,
+                          winY: winCoords.y };
+
+            switch (eventType) {
+                case "Enter":
+                case "Leave":
+                case "Motion":
+                // nothing extra, yet
+                break;
+                case "ButtonPress":
+                case "ButtonRelease":
+                event.button = domEvent.which;
+                break;
+            }
+
+            return event;
+        },
+
+        _handleInput: function(event) {
+            // X does not have event bubbling, so stop
+            // it now.
+            event.preventDefault();
+            event.stopPropagation();
+
+            var domInputWindow = event.target;
+            var serverWindow = domInputWindow._serverWindow;
+            if (!serverWindow)
+                return;
+
+            var ourEvent = this._constructInputEvent(event, serverWindow);
+            this.sendEvent(ourEvent);
         },
 
         //
