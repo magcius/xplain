@@ -51,10 +51,12 @@
             this._server = server;
             this.windowId = windowId;
 
-            if (windowAttributes.hasInput) {
-                this.inputWindow = document.createElement("div");
-                this.inputWindow.classList.add("inputWindow");
-                this.inputWindow._serverWindow = this;
+            this.inputWindow = document.createElement("div");
+            this.inputWindow.classList.add("inputWindow");
+            this.inputWindow._serverWindow = this;
+
+            if (!windowAttributes.hasInput) {
+                this.inputWindow.style.pointerEvents = 'none';
             }
 
             this._backgroundColor = windowAttributes.backgroundColor || '#ddd';
@@ -142,8 +144,7 @@
             this.shapeRegion.clear();
             this.shapeRegion.init_rect(x, y, width, height);
 
-            if (this.inputWindow)
-                positionElement(this.inputWindow, x, y, width, height);
+            positionElement(this.inputWindow, x, y, width, height);
 
             this._server.sendEvent({ type: "ConfigureNotify",
                                      windowId: this.windowId,
@@ -278,7 +279,7 @@
         },
 
         _createRootWindow: function() {
-            var rootWindow = this._createWindowInternal({ hasInput: true, backgroundColor: this._backgroundColor });
+            var rootWindow = this._createWindowInternal({ backgroundColor: this._backgroundColor });
             rootWindow.parentServerWindow = null;
             this.configureRequest(rootWindow.windowId, 0, 0, this.width, this.height);
             return rootWindow;
@@ -486,22 +487,15 @@
 
         _unparentWindow: function(serverWindow) {
             var parentServerWindow = serverWindow.parentServerWindow;
-            if (parentServerWindow.inputWindow && serverWindow.inputWindow)
-                parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
-            if (parentServerWindow)
-                parentServerWindow.children.erase(serverWindow);
-
+            parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
+            parentServerWindow.children.erase(serverWindow);
             this._damageWindow(serverWindow);
         },
 
         _parentWindow: function(serverWindow, parentServerWindow) {
             serverWindow.parentServerWindow = parentServerWindow;
             parentServerWindow.children.unshift(serverWindow);
-
-            // XXX -- handle input windows inside output-only windows
-            if (parentServerWindow.inputWindow && serverWindow.inputWindow)
-                parentServerWindow.inputWindow.appendChild(serverWindow.inputWindow);
-
+            parentServerWindow.inputWindow.appendChild(serverWindow.inputWindow);
             this._damageWindow(serverWindow);
         },
 
