@@ -8,7 +8,8 @@
         connect: function(server) {
             this._server = server;
             this._server.clientConnected(this);
-            this._windowId = this._server.createWindow({ hasInput: this.hasInput, backgroundColor: this.backgroundColor });
+            this._windowId = this._server.createWindow();
+            this._server.changeAttributes(this._windowId, { hasInput: this.hasInput, backgroundColor: this.backgroundColor });
             this._server.selectInput(this, this._windowId, ["Expose", "ConfigureNotify"]);
         },
         handleEvent: function(event) {

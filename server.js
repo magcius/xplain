@@ -46,8 +46,10 @@
         },
     });
 
+    var DEFAULT_BACKGROUND_COLOR = '#ddd';
+
     var ServerWindow = new Class({
-        initialize: function(windowAttributes, windowId, server, ctx) {
+        initialize: function(windowId, server, ctx) {
             this._server = server;
             this.windowId = windowId;
 
@@ -55,11 +57,7 @@
             this.inputWindow.classList.add("inputWindow");
             this.inputWindow._serverWindow = this;
 
-            if (!windowAttributes.hasInput) {
-                this.inputWindow.style.pointerEvents = 'none';
-            }
-
-            this._backgroundColor = windowAttributes.backgroundColor || '#ddd';
+            this._backgroundColor = DEFAULT_BACKGROUND_COLOR;
 
             // The region of the window that needs to be redrawn, in window coordinates.
             this.damagedRegion = new Region();
@@ -151,6 +149,21 @@
                                      x: x, y: y, width: width, height: height });
         },
 
+        changeAttributes: function(attributes) {
+            if (attributes.hasInput !== undefined && this._hasInput != attributes.hasInput) {
+                this._hasInput = !!attributes.hasInput;
+
+                if (this._hasInput)
+                    this.inputWindow.style.pointerEvents = '';
+                else
+                    this.inputWindow.style.pointerEvents = 'none';
+            }
+
+            if (attributes.backgroundColor !== undefined && this._backgroundColor != attributes.backgroundColor) {
+                this._backgroundColor = attributes.backgroundColor || DEFAULT_BACKGROUND_COLOR;
+            }
+        },
+
         changeProperty: function(name, value) {
             this._properties[name] = value;
             this._server.sendEvent({ type: "PropertyChanged",
@@ -206,6 +219,7 @@
         'destroyWindow',
         'reparentWindow',
         'configureRequest',
+        'changeAttributes',
         'changeProperty',
 
         // JS extension -- simplifies the case of drawing
@@ -279,7 +293,8 @@
         },
 
         _createRootWindow: function() {
-            var rootWindow = this._createWindowInternal({ backgroundColor: this._backgroundColor });
+            var rootWindow = this._createWindowInternal();
+            rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             rootWindow.parentServerWindow = null;
             this.configureRequest(rootWindow.windowId, 0, 0, this.width, this.height);
             return rootWindow;
@@ -471,9 +486,9 @@
         },
 
         // Used by _createRootWindow and createWindow.
-        _createWindowInternal: function(properties) {
+        _createWindowInternal: function() {
             var windowId = ++this._nextWindowId;
-            var serverWindow = new ServerWindow(properties, windowId, this, this._ctx);
+            var serverWindow = new ServerWindow(windowId, this, this._ctx);
             this._windowsById[windowId] = serverWindow;
 
             return serverWindow;
@@ -499,8 +514,8 @@
             this._damageWindow(serverWindow);
         },
 
-        createWindow: function(properties) {
-            var serverWindow = this._createWindowInternal(properties);
+        createWindow: function() {
+            var serverWindow = this._createWindowInternal();
             this._parentWindow(serverWindow, this._rootWindow);
             return serverWindow.windowId;
         },
@@ -600,6 +615,11 @@
             oldRegion.finalize();
             newRegion.finalize();
             damagedRegion.finalize();
+        },
+
+        changeAttributes: function(windowId, attributes) {
+            var serverWindow = this._windowsById[windowId];
+            serverWindow.changeAttributes(attributes);
         },
 
         changeProperty: function(windowId, name, value) {
