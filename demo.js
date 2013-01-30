@@ -83,14 +83,15 @@
 
     var SimpleButton = new Class({
         Extends: Window,
-        initialize: function(standardColor, hoverColor) {
+        initialize: function(standardColor, hoverColor, extraEvents) {
             this.parent();
             this._standardColor = standardColor;
             this._hoverColor = hoverColor;
+            this._extraEvents = extraEvents || ["ButtonRelease"];
         },
         connect: function(server) {
             this.parent(server);
-            this._server.selectInput(this, this._windowId, ["Enter", "Leave", "ButtonRelease"]);
+            this._server.selectInput(this, this._windowId, ["Enter", "Leave"].concat(this._extraEvents));
             this._server.defineCursor(this._windowId, "pointer");
             this._setHover(false);
         },
@@ -107,17 +108,25 @@
             }
         },
         handleEvent: function(event) {
+            if (this.eventHook(event))
+                return;
+
             switch(event.type) {
                 case "Enter":
                 return this._setHover(true);
                 case "Leave":
                 return this._setHover(false);
-                case "ButtonRelease":
-                if (this.clickCallback)
-                    this.clickCallback(event);
                 default:
                 return this.parent(event);
             }
+        },
+        eventHook: function(event) {
+            // Provide a nice, simple interface for basic buttons.
+            if (event.type === "ButtonRelease" && this.clickCallback) {
+                this.clickCallback(event);
+                return true;
+            }
+            return false;
         },
         expose: function(wrapper) {
             // Don't draw anything -- the backgroundColor will take
@@ -200,6 +209,25 @@
         button.reparent(w);
         button.clickCallback = function(event) {
             newWindow();
+        };
+
+        button = new SimpleButton('#33ff33', '#99ff99', ["ButtonPress", "ButtonRelease", "Motion"]);
+        button.connect(server);
+        button.configure(100, 10, 20, 20);
+        button.reparent(w);
+        button.eventHook = function(event) {
+            switch (event.type) {
+                case "ButtonPress":
+                console.log("Pressing button!");
+                return true;
+                case "ButtonRelease":
+                console.log("Releasing button!");
+                return true;
+                case "Motion":
+                console.log("Motioning button!");
+                return true;
+            }
+            return false;
         };
     }
 
