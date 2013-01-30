@@ -283,6 +283,17 @@
         "mousemove": "Motion"
     };
 
+    function isInputEvent(event) {
+        switch (event.type) {
+            case "Enter":
+            case "Leave":
+            case "ButtonPress":
+            case "ButtonRelease":
+            case "Motion":
+            return true;
+        }
+    }
+
     // Is b a descendent of a?
     function isWindowDescendentOf(a, b) {
         for (b = b.parentServerWindow; b; b = b.parentServerWindow) {
@@ -490,7 +501,7 @@
             // so don't queue a repaint.
         },
         sendEvent: function(event) {
-            if (this._grabClient !== null) {
+            if (isInputEvent(event) && this._grabClient !== null) {
                 this._grabClient.sendEvent(event);
             } else {
                 this._clients.forEach(function(client) {
