@@ -173,7 +173,7 @@
     });
 
     var ServerClient = new Class({
-        initialize: function(client, server) {
+        initialize: function(server, client) {
             this._server = server;
             this._client = client;
 
@@ -597,7 +597,7 @@
         // Public API for clients.
         //
         clientConnected: function(client) {
-            var serverClient = new ServerClient(client, this);
+            var serverClient = new ServerClient(this, client);
             client._serverClient = serverClient;
             this._clients.push(serverClient);
         },
