@@ -277,13 +277,28 @@
         };
     });
 
-    var inputEventMap = {
-        "mouseover": "Enter",
-        "mouseout": "Leave",
+    var simpleInputEventMap = {
         "mousedown": "ButtonPress",
         "mouseup": "ButtonRelease",
         "mousemove": "Motion"
     };
+
+    // Is b a descendent of a?
+    function isWindowDescendentOf(a, b) {
+        for (b = b.parentServerWindow; b; b = b.parentServerWindow) {
+            if (b === a)
+                return true;
+        }
+        return false;
+    }
+
+    function commonAncestor(a, b) {
+        for (b = b.parentServerWindow; b; b = b.parentServerWindow) {
+            if (isWindowDescendentOf(b, a))
+                return b;
+        }
+        return null;
+    }
 
     var Server = new Class({
         initialize: function(width, height) {
@@ -484,59 +499,136 @@
             }
         },
 
-        _constructInputEvent: function(domEvent, serverWindow) {
-            var eventType = inputEventMap[domEvent.type];
-
-            var rootCoords = getEventCoordsInDomElementSpace(domEvent, this._container);
-            var winCoords = getEventCoordsInDomElementSpace(domEvent, serverWindow.inputWindow);
-
-            var event = { type: eventType,
-                          rootWindowId: this._rootWindow.windowId,
-                          windowId: serverWindow.windowId,
-                          rootX: rootCoords.x,
-                          rootY: rootCoords.y,
-                          winX: winCoords.x,
-                          winY: winCoords.y };
-
-            switch (eventType) {
-                case "Enter":
-                case "Leave":
-                case "Motion":
-                // nothing extra, yet
-                break;
-                case "ButtonPress":
-                case "ButtonRelease":
-                event.button = domEvent.which;
-                break;
-            }
-
-            return event;
-        },
         _setupInputHandlers: function() {
             // This captures all input through bubbling
-            var handler = this._handleInput.bind(this);
-            Object.keys(inputEventMap).forEach(function(eventName) {
+            var handler = this._handleInputSimple.bind(this);
+            Object.keys(simpleInputEventMap).forEach(function(eventName) {
                 this._container.addEventListener(eventName, handler);
             }, this);
-        },
-        _handleInput: function(event) {
-            // X does not have event bubbling, so stop
-            // it now.
-            event.preventDefault();
-            event.stopPropagation();
 
-            var domInputWindow = event.target;
+            // As a crossing event will be generated for both mouseover
+            // and mouseout, simply use mouseenter. Leaving the stage
+            // won't quite work, but we can special case that later.
+            this._container.addEventListener("mouseover", this._handleInputEnterLeave.bind(this));
+        },
+        _handleInputBase: function(domEvent) {
+            // X does not have event bubbling, so stop it now.
+            domEvent.preventDefault();
+            domEvent.stopPropagation();
+
+            var domInputWindow = domEvent.target;
             var serverWindow = domInputWindow._serverWindow;
             if (!serverWindow)
-                return;
+                return null;
 
             // If we have a grab, all events go to the grab window.
             // XXX - are windowId and the coordinates on the event the same?
             if (this._grabClient)
                 serverWindow = this._grabClient.grabWindow;
 
-            var ourEvent = this._constructInputEvent(event, serverWindow);
-            this.sendEvent(ourEvent);
+            var rootCoords = getEventCoordsInDomElementSpace(domEvent, this._container);
+            var winCoords = getEventCoordsInDomElementSpace(domEvent, serverWindow.inputWindow);
+
+            var event = { rootWindowId: this._rootWindow.windowId,
+                          windowId: serverWindow.windowId,
+                          rootX: rootCoords.x,
+                          rootY: rootCoords.y,
+                          winX: winCoords.x,
+                          winY: winCoords.y };
+            return event;
+        },
+        _handleInputSimple: function(domEvent) {
+            var event = this._handleInputBase(domEvent);
+            if (!event)
+                return;
+
+            var eventType = simpleInputEventMap[domEvent.type];
+            event.type = eventType;
+
+            switch (eventType) {
+                case "ButtonPress":
+                case "ButtonRelease":
+                event.button = domEvent.which;
+                break;
+            }
+
+            this.sendEvent(event);
+        },
+        _handleInputEnterLeave: function(domEvent) {
+            var eventBase = this._handleInputBase(domEvent);
+            var fromElem, toElem;
+
+            if (domEvent.type === 'mouseover') {
+                fromElem = domEvent.fromElement || domEvent.relatedTarget;
+                toElem = domEvent.target;
+            } else if (domEvent.type === 'mouseout') {
+                fomElem = domEvent.target;
+                toElem = domEvent.toElement || domEvent.relatedTarget;
+            }
+
+            // It's possible for fromElem to be null in the case where
+            // we're going from browser chrome to the container element.
+            // In this case, we don't want to generate an Enter on the
+            // root window, so quit early.
+            if (!fromElem)
+                return;
+
+            var fromWin = fromElem._serverWindow;
+            var toWin = toElem._serverWindow;
+            if (!fromWin || !toWin)
+                return;
+
+            // Adapted from Xorg server, a pre-MPX version of dix/enterleave.c
+            // Under MIT license
+
+            var server = this;
+
+            // TODO: NotifyGrab/NotifyUngrab
+            function EnterLeaveEvent(type, detail, window, child) {
+                var event = Object.create(eventBase);
+                event.type = type;
+                event.windowId = window.windowId;
+                event.subwindowId = child ? child.windowId : null;
+                event.detail = detail;
+                server.sendEvent(event);
+            }
+
+            // Send to all parent windows up to ancestor.
+            function RecurseSendEvent(type, ancestor, child, detail) {
+                if (ancestor == child)
+                    return;
+
+                var parent = child.parentServerWindow;
+                if (ancestor == parent)
+                    return;
+
+                RecurseSendEvent(type, ancestor, parent, detail);
+                EnterLeaveEvent(type, detail, parent, child);
+            }
+
+            function EnterNotifies(ancestor, child, detail) {
+                RecurseSendEvent("Enter", ancestor, child, detail);
+            }
+
+            function LeaveNotifies(child, ancestor, detail) {
+                RecurseSendEvent("Leave", ancestor, child, detail);
+            }
+
+            if (isWindowDescendentOf(fromWin, toWin)) {
+                EnterLeaveEvent("Leave", "NotifyInterior", fromWin, null);
+                EnterNotifies(fromWin, toWin, "NotifyVirtual");
+                EnterLeaveEvent("Enter", "NotifyAncestor", toWin, null);
+            } else if (isWindowDescendentOf(toWin, fromWin)) {
+                EnterLeaveEvent("Leave", "NotifyAncestor", fromWin, null);
+                LeaveNotifies(fromWin, toWin, "NotifyVirtual");
+                EnterLeaveEvent("Enter", "NotifyInferior", toWin, null);
+            } else {
+                var common = commonAncestor(toWin, fromWin);
+                EnterLeaveEvent("Leave", "NotifyNonlinear", fromWin, null);
+                LeaveNotifies(fromWin, common, "NotifyNonlinearVirtual");
+                EnterNotifies(common, toWin, "NotifyNonlinearVirtual");
+                EnterLeaveEvent("Enter", "NotifyNonlinear", toWin, null);
+            }
         },
 
         _configureWindow: function(serverWindow, x, y, width, height) {
