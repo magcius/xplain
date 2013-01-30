@@ -223,17 +223,17 @@
             newWindow();
         };
 
-        button = new SimpleButton('#33ff33', '#99ff99', ["ButtonPress", "ButtonRelease", "Motion"]);
+        button = new SimpleButton('#33ff33', '#99ff99', ["ButtonPress"]);
         button.connect(server);
         button.configure(100, 10, 20, 20);
         button.reparent(w);
         button.eventHook = function(event) {
             switch (event.type) {
                 case "ButtonPress":
-                console.log("Pressing button!");
+                this._server.grabPointer(this, this._windowId, false, ["ButtonRelease", "Motion"], "crosshair");
                 return true;
                 case "ButtonRelease":
-                console.log("Releasing button!");
+                this._server.ungrabPointer(this);
                 return true;
                 case "Motion":
                 console.log("Motioning button!");
