@@ -210,8 +210,14 @@
             // wrapping, which we use isInterestedInEvent for the ownerEvents
             // implementation.
 
-            this.parent(server, serverClient.client);
+            // serverClient can be null, which signifies that the
+            // server itself took an implicit grab.
+            var client = serverClient ? serverClient.client : null;
+
+            this.parent(server, client);
             this.serverClient = serverClient;
+
+            this.isImplicitGrab = serverClient === null;
 
             this.grabWindow = grabWindow;
 
@@ -226,6 +232,10 @@
             this._ownerEvents = ownerEvents;
         },
         isInterestedInEvent: function(event) {
+            // Implicit grab -- we should never get here.
+            if (!this.serverClient)
+                throw new Error("Server grab -- should be unreachable");
+
             // This can happen for Enter/Leave events.
             if (event.windowId !== this.grabWindow.windowId)
                 return false;
@@ -502,7 +512,9 @@
             // so don't queue a repaint.
         },
         sendEvent: function(event) {
-            if (isInputEvent(event) && this._grabClient !== null) {
+            // Send input events to grabs if we have one, except in the case
+            // of implicit grabs -- they should have normal delivery.
+            if (isInputEvent(event) && this._grabClient && !this._grabClient.isImplicitGrab) {
                 this._grabClient.sendEvent(event);
             } else {
                 this._clients.forEach(function(client) {
@@ -512,26 +524,31 @@
         },
 
         _setupInputHandlers: function() {
-            // This captures all input through bubbling
-            var handler = this._handleInputSimple.bind(this);
-            Object.keys(simpleInputEventMap).forEach(function(eventName) {
-                this._container.addEventListener(eventName, handler);
-            }, this);
+            this._container.addEventListener("mousemove", this._handleInputSimple.bind(this));
+
+            // Implicit grabs need special support.
+            this._container.addEventListener("mousedown", this._handleInputButtonPress.bind(this));
+            this._container.addEventListener("mouseup", this._handleInputButtonRelease.bind(this));
 
             // As a crossing event will be generated for both mouseover
             // and mouseout, simply use mouseenter. Leaving the stage
             // won't quite work, but we can special case that later.
             this._container.addEventListener("mouseover", this._handleInputEnterLeave.bind(this));
         },
+        _getServerWindowFromDOMEvent: function(domEvent) {
+            var domInputWindow = domEvent.target;
+            var serverWindow = domInputWindow._serverWindow;
+            if (!serverWindow)
+                return null;
+
+            return serverWindow;
+        },
         _handleInputBase: function(domEvent) {
             // X does not have event bubbling, so stop it now.
             domEvent.preventDefault();
             domEvent.stopPropagation();
 
-            var domInputWindow = domEvent.target;
-            var serverWindow = domInputWindow._serverWindow;
-            if (!serverWindow)
-                return null;
+            var serverWindow = this._getServerWindowFromDOMEvent(domEvent);
 
             // If we have a grab, all events go to the grab window.
             // XXX - are windowId and the coordinates on the event the same?
@@ -565,6 +582,24 @@
             }
 
             this.sendEvent(event);
+        },
+        _handleInputButtonPress: function(domEvent) {
+            this._handleInputSimple(domEvent);
+
+            // If there's no active explicit pointer grab, take an implicit one.
+            // Do this after event delivery for a slight perf gain in case a
+            // client takes their own grab.
+            if (this._grabClient === null) {
+                var serverWindow = this._getServerWindowFromDOMEvent(domEvent);
+                this._grabPointer(null, serverWindow, false, []);
+            }
+        },
+        _handleInputButtonRelease: function(domEvent) {
+            this._handleInputSimple(domEvent);
+
+            // Only release if we have an implicit grab.
+            if (this._grabClient.isImplicitGrab)
+                this._ungrabPointer(null);
         },
         _handleInputEnterLeave: function(domEvent) {
             var eventBase = this._handleInputBase(domEvent);
@@ -725,6 +760,9 @@
             damagedRegion.finalize();
         },
 
+        _grabPointer: function(serverClient, grabWindow, ownerEvents, events) {
+            this._grabClient = new ServerGrabClient(this, serverClient, grabWindow, ownerEvents, events);
+        },
         _ungrabPointer: function() {
             this._grabClient = null;
             this._container.style.cursor = '';
@@ -837,18 +875,27 @@
             // TODO: pointerMode, keyboardMode
             // Investigate HTML5 APIs for confineTo
 
-            if (this._grabClient !== null)
-                throw new Error("AlreadyGrabbed");
+            if (this._grabClient) {
+                // Allow overwriting an implicit server grab.
+                if (this._grabClient.isImplicitGrab)
+                    this._ungrabPointer();
+                else
+                    throw new Error("AlreadyGrabbed");
+            }
 
             var grabWindow = this._windowsById[grabWindowId];
             var serverClient = client._serverClient;
-            this._grabClient = new ServerGrabClient(this, serverClient, grabWindow, ownerEvents, events);
+            this._grabPointer(serverClient, grabWindow, ownerEvents, events);
 
             // XXX - make cursor override other cursors
             this._container.style.cursor = cursor;
         },
 
         ungrabPointer: function(client) {
+            // Clients can't ungrab an implicit grab.
+            if (this._grabClient.isImplicitGrab)
+                return;
+
             if (client != this._grabClient.client)
                 return;
 
