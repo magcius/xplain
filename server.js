@@ -578,10 +578,13 @@
             region.finalize();
         },
         _unparentWindow: function(serverWindow) {
+            // Damage the region that will be exposed when the
+            // window is destroyed.
+            this._damageWindow(serverWindow);
+
             var parentServerWindow = serverWindow.parentServerWindow;
             parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
             parentServerWindow.children.erase(serverWindow);
-            this._damageWindow(serverWindow);
         },
         _parentWindow: function(serverWindow, parentServerWindow) {
             serverWindow.parentServerWindow = parentServerWindow;
