@@ -37,13 +37,16 @@
         lower: function() {
             this._server.lowerWindow(this._windowId);
         },
+        destroy: function() {
+            this._server.destroyWindow(this._windowId);
+        },
         configure: function(x, y, width, height) {
             x = x === undefined ? this.x : x;
             y = y === undefined ? this.y : y;
             width = width === undefined ? this.width : width;
             height = height === undefined ? this.height : height;
             this._server.configureRequest(this._windowId, x | 0, y | 0, width | 0, height | 0);
-        }
+        },
     });
 
     var BackgroundWindow = new Class({
@@ -175,6 +178,15 @@
         var button;
 
         var isRaised = false;
+
+        button = new SimpleButton('#ff0000', '#ff6666');
+        button.connect(server);
+        button.configure(700, 10, 20, 20);
+        button.reparent(w);
+        button.clickCallback = function(event) {
+            w.destroy();
+        };
+
         button = new SimpleButton('#ff0000', '#ff6666');
         button.connect(server);
         button.configure(10, 10, 20, 20);
