@@ -186,11 +186,8 @@
             return listeningFor && listeningFor.indexOf(event.type) >= 0;
         },
         sendEvent: function(event) {
-            this._client.handleEvent(event);
-        },
-        potentiallySendEvent: function(event) {
             if (this._isInterestedInEvent(event))
-                return this.sendEvent(event);
+                this._client.handleEvent(event);
         },
         selectInput: function(windowId, eventTypes) {
             var listeningFor = this._eventWindows[windowId];
@@ -432,7 +429,7 @@
         },
         sendEvent: function(event) {
             this._clients.forEach(function(client) {
-                client.potentiallySendEvent(event);
+                client.sendEvent(event);
             });
         },
 
