@@ -79,6 +79,15 @@
         connect: function(server) {
             this.parent(server);
             this.configure(0, 0, this._image.width, this._image.height);
+            this._server.selectInput(this, this._windowId, ["ButtonPress"]);
+        },
+        handleEvent: function(event) {
+            switch (event.type) {
+                case "ButtonPress":
+                return this.raise();
+                default:
+                return this.parent(event);
+            }
         },
         expose: function(wrapper) {
             wrapper.drawWithContext(function(ctx) {
