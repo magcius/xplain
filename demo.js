@@ -225,6 +225,7 @@
             newWindow();
         };
 
+        var omp, owp; // orig mouse pos, orig window pos
         var isGrabbed = false;
         button = new SimpleButton('#33ff33', '#99ff99', ["ButtonPress"]);
         setupButton(button);
@@ -233,11 +234,17 @@
                 case "ButtonPress":
                 isGrabbed = !isGrabbed;
                 if (isGrabbed) {
-                    this._server.grabPointer(this, this._windowId, true, [], "crosshair");
+                    omp = { x: event.rootX, y: event.rootY };
+                    owp = { x: w.x, y: w.y };
+                    this._server.grabPointer(this, this._windowId, true, ["Motion"], "crosshair");
                 } else {
                     this._server.ungrabPointer(this);
                 }
                 return true;
+                case "Motion":
+                w.configure(owp.x + event.rootX - omp.x,
+                            owp.y + event.rootY - omp.y,
+                            undefined, undefined);
             }
             return false;
         };
