@@ -226,8 +226,9 @@
             this._ownerEvents = ownerEvents;
         },
         isInterestedInEvent: function(event) {
+            // This can happen for Enter/Leave events.
             if (event.windowId !== this.grabWindow.windowId)
-                throw new Error("Got a grabbed event not on the grab window. Should not happen.");
+                return false;
 
             // Since we are guaranteed that the event is on the grab window,
             // we can simply ask the grabbing client if it wants to take this
