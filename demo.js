@@ -208,19 +208,6 @@
             buttonX += 30;
         }
 
-        button = new SimpleButton('#ff0000', '#ff6666');
-        setupButton(button);
-        button.clickCallback = function(event) {
-            if (event.button === 1) {
-                isRaised = !isRaised;
-
-                if (isRaised)
-                    w.raise();
-                else
-                    w.lower();
-            }
-        };
-
         var freq = (windowNumber - 1) * 0.25 + 0.5;
         var animTask = animWindow(w, freq, 40);
         button = new SimpleButton('#ffaa00', '#ffcc00');
