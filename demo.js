@@ -187,10 +187,16 @@
             w.destroy();
         };
 
+        var buttonX = 10;
+        function setupButton(button) {
+            button.connect(server);
+            button.reparent(w);
+            button.configure(buttonX, 10, 20, 20);
+            buttonX += 30;
+        }
+
         button = new SimpleButton('#ff0000', '#ff6666');
-        button.connect(server);
-        button.configure(10, 10, 20, 20);
-        button.reparent(w);
+        setupButton(button);
         button.clickCallback = function(event) {
             if (event.button === 1) {
                 isRaised = !isRaised;
@@ -205,9 +211,7 @@
         var freq = (windowNumber - 1) * 0.25 + 0.5;
         var animTask = animWindow(w, freq, 40);
         button = new SimpleButton('#ffaa00', '#ffcc00');
-        button.connect(server);
-        button.configure(40, 10, 20, 20);
-        button.reparent(w);
+        setupButton(button);
         button.clickCallback = function(event) {
             if (animTask.alive())
                 animTask.clear();
@@ -216,17 +220,13 @@
         };
 
         button = new SimpleButton('#ffff00', '#ffffcc');
-        button.connect(server);
-        button.configure(70, 10, 20, 20);
-        button.reparent(w);
+        setupButton(button);
         button.clickCallback = function(event) {
             newWindow();
         };
 
         button = new SimpleButton('#33ff33', '#99ff99', ["ButtonPress"]);
-        button.connect(server);
-        button.configure(100, 10, 20, 20);
-        button.reparent(w);
+        setupButton(button);
         button.eventHook = function(event) {
             switch (event.type) {
                 case "ButtonPress":
