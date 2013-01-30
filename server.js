@@ -175,19 +175,19 @@
     var ServerClient = new Class({
         initialize: function(server, client) {
             this._server = server;
-            this._client = client;
+            this.client = client;
 
             // window id => list of event types
             this._eventWindows = {};
         },
 
-        _isInterestedInEvent: function(event) {
+        isInterestedInEvent: function(event) {
             var listeningFor = this._eventWindows[event.windowId];
             return listeningFor && listeningFor.indexOf(event.type) >= 0;
         },
         sendEvent: function(event) {
-            if (this._isInterestedInEvent(event))
-                this._client.handleEvent(event);
+            if (this.isInterestedInEvent(event))
+                this.client.handleEvent(event);
         },
         selectInput: function(windowId, eventTypes) {
             var listeningFor = this._eventWindows[windowId];
@@ -195,6 +195,50 @@
                 listeningFor = this._eventWindows[windowId] = [];
 
             listeningFor.push.apply(listeningFor, eventTypes);
+        },
+    });
+
+    // A ServerGrabClient is a fake ServerClient that handles
+    // details if the pointer is grabbed to make event delivery
+    // and other things easier.
+    var ServerGrabClient = new Class({
+        Extends: ServerClient,
+
+        initialize: function(server, serverClient, grabWindow, ownerEvents, events) {
+            // this.client is the client which has sendEvent and friends.
+            // this.serverClient is the serverClient for client that we're
+            // wrapping, which we use isInterestedInEvent for the ownerEvents
+            // implementation.
+
+            this.parent(server, serverClient.client);
+            this.serverClient = serverClient;
+
+            this.grabWindow = grabWindow;
+
+            // events is an additional list of event types on grabWindowId to
+            // be used during the grab.
+            // If ownerEvents is false, only events inside this events list
+            // are delivered to the grab window.
+            // If ownerEvents is true, both events inside this events list
+            // and any selected events that are defined on grabWindowId are
+            // respected.
+            this._events = events;
+            this._ownerEvents = ownerEvents;
+        },
+        isInterestedInEvent: function(event) {
+            if (event.windowId !== this.grabWindow.windowId)
+                throw new Error("Got a grabbed event not on the grab window. Should not happen.");
+
+            // Since we are guaranteed that the event is on the grab window,
+            // we can simply ask the grabbing client if it wants to take this
+            // event for the ownerEvents implementation.
+            if (this._ownerEvents && this.serverClient.isInterestedInEvent(event))
+                return true;
+
+            return this._events.indexOf(event.type) >= 0;
+        },
+        selectInput: function() {
+            throw new Error("selectInput() called on the fake grab client. Should not happen.");
         },
     });
 
@@ -218,6 +262,8 @@
         'changeAttributes',
         'changeProperty',
         'defineCursor',
+        'grabPointer',
+        'ungrabPointer',
 
         // JS extension -- simplifies the case of drawing
         // by letting someone use an existing expose handler.
@@ -253,6 +299,7 @@
 
             this._backgroundColor = 'rgb(51, 110, 165)';
             this._clients = [];
+            this._grabClient = null;
 
             this._nextWindowId = 0;
             this._windowsById = {};
@@ -428,9 +475,13 @@
             // so don't queue a repaint.
         },
         sendEvent: function(event) {
-            this._clients.forEach(function(client) {
-                client.sendEvent(event);
-            });
+            if (this._grabClient !== null) {
+                this._grabClient.sendEvent(event);
+            } else {
+                this._clients.forEach(function(client) {
+                    client.sendEvent(event);
+                });
+            }
         },
 
         _constructInputEvent: function(domEvent, serverWindow) {
@@ -478,6 +529,11 @@
             var serverWindow = domInputWindow._serverWindow;
             if (!serverWindow)
                 return;
+
+            // If we have a grab, all events go to the grab window.
+            // XXX - are windowId and the coordinates on the event the same?
+            if (this._grabClient)
+                serverWindow = this._grabClient.grabWindow;
 
             var ourEvent = this._constructInputEvent(event, serverWindow);
             this.sendEvent(ourEvent);
@@ -565,6 +621,11 @@
             damagedRegion.finalize();
         },
 
+        _ungrabPointer: function() {
+            this._grabClient = null;
+            this._container.style.cursor = '';
+        },
+
         // Used by _createRootWindow and createWindow.
         _createWindowInternal: function() {
             var windowId = ++this._nextWindowId;
@@ -612,6 +673,10 @@
         },
         destroyWindow: function(windowId) {
             var serverWindow = this._windowsById[windowId];
+
+            if (this._grabClient !== null && this._grabClient.grabWindow)
+                this._ungrabPointer();
+
             this._unparentWindow(serverWindow);
             serverWindow.finalize();
             this._windowsById[windowId] = null;
@@ -663,6 +728,27 @@
         invalidateWindow: function(windowId) {
             var serverWindow = this._windowsById[windowId];
             this._damageWindow(serverWindow);
+        },
+        grabPointer: function(client, grabWindowId, ownerEvents, events, cursor) {
+            // TODO: pointerMode, keyboardMode
+            // Investigate HTML5 APIs for confineTo
+
+            if (this._grabClient !== null)
+                throw new Error("AlreadyGrabbed");
+
+            var grabWindow = this._windowsById[grabWindowId];
+            var serverClient = client._serverClient;
+            this._grabClient = new ServerGrabClient(this, serverClient, grabWindow, ownerEvents, events);
+
+            // XXX - make cursor override other cursors
+            this._container.style.cursor = cursor;
+        },
+
+        ungrabPointer: function(client) {
+            if (client != this._grabClient.client)
+                return;
+
+            this._ungrabPointer();
         },
     });
 
