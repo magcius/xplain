@@ -26,6 +26,32 @@
                  y: event.clientY - box.top };
     }
 
+    function copyArea(ctx, oldX, oldY, newX, newY, w, h) {
+        if (newX < 0) {
+            w += newX;
+            oldX -= newX;
+            newX = 0;
+        }
+
+        if (oldX < 0) {
+            w -= oldX;
+            oldX = 0;
+        }
+
+        if (newY < 0) {
+            h += newY;
+            oldY -= newY;
+            newY = 0;
+        }
+
+        if (oldY < 0) {
+            h -= oldY;
+            oldY = 0;
+        }
+
+        ctx.drawImage(ctx.canvas, oldX, oldY, w, h, newX, newY, w, h);
+    }
+
     var ContextWrapper = new Class({
         initialize: function(serverWindow, ctx) {
             this._serverWindow = serverWindow;
@@ -444,12 +470,17 @@
             });
         },
 
+        _clipRegionToVisibleCoords: function(region) {
+            region.intersect_rect(region, 0, 0, this.width, this.height);
+        },
+
         // For a given window, return the region that would be
         // immediately damaged if the window was removed. That is,
         // the window's shape region clipped to the areas that are
         // visible.
         _calculateEffectiveRegionForWindow: function(serverWindow) {
             var region = serverWindow.calculateTransformedShapeRegion();
+            this._clipRegionToVisibleCoords(region);
             this._subtractAboveWindowsFromRegion(serverWindow, region);
             return region;
         },
@@ -724,6 +755,7 @@
             //    to be translated to pixels on the global damaged region.
             damagedRegion.intersect(this._damagedRegion, oldRegion);
             damagedRegion.translate(newX - oldX, newY - oldY);
+            this._clipRegionToVisibleCoords(damagedRegion);
             this._damagedRegion.union(this._damagedRegion, damagedRegion);
 
             // 2. Pixels need to be exposed under the window in places where the
@@ -751,7 +783,7 @@
             ctx.save();
             pathFromRegion(ctx, newRegion);
             ctx.clip();
-            ctx.drawImage(ctx.canvas, oldX, oldY, oldW, oldH, newX, newY, oldW, oldH);
+            copyArea(ctx, oldX, oldY, newX, newY, oldW, oldH);
             ctx.restore();
             this._queueRedraw();
 

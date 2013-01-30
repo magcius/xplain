@@ -1,41 +1,139 @@
 <!doctype html>
 <html>
-<head>
-	<meta charset=utf8>
-	<title>Mask Test</title>
-	<style>
-	canvas { border: 1px solid #000; }
-	</style>
-</head>
-<body class="region-demo">
-	<h2>Mask Test</h2>
-	<canvas id="a" width=200 height=200></canvas>
-	<script>
-	(function() {
+  <head>
+    <meta charset=utf8>
+    <title>Mask Test</title>
+    <style>
+      canvas { border: 1px solid #000; }
+    </style>
+  </head>
+  <body class="region-demo">
+    <h2>Mask Test</h2>
+    <canvas id="shape" width=200 height=200></canvas>
+    <canvas id="a" width=200 height=200></canvas>
+    <script>
+    (function() {
 
-		var ctx_a = document.getElementById("a").getContext("2d");
-		ctx_a.fillStyle = 'red';
-		ctx_a.fillRect(20, 20, 100, 100);
+        var ctx_shape = document.getElementById("shape").getContext("2d");
+	ctx_shape.fillStyle = ctx_shape.createRadialGradient(100, 100, 0, 100, 100, 50);
+	ctx_shape.fillStyle.addColorStop(0, "red");
+	ctx_shape.fillStyle.addColorStop(1, "green");
+        ctx_shape.fillRect(20, 20, 100, 100);
 
-		function moveImage(ctx, fromX, fromY, toX, toY, size) {
-			ctx.beginPath();
-			ctx.save();
-			ctx.rect(toX, toY, size, size);
-			ctx.clip();
-			ctx.drawImage(ctx.canvas, fromX, fromY, size, size, toX, toY, size, size);
-			ctx.restore();
-			ctx.clearRect(fromX, fromY, toX - fromX, size);
-			ctx.clearRect(fromX, fromY, size, toY - fromY);
-		}
+        var ctx_a = document.getElementById("a").getContext("2d");
 
-		var pos = 20;
-		setInterval(function() {
-			var oldPos = pos;
-			var newPos = ++pos;
-			moveImage(ctx_a, oldPos, oldPos, newPos, newPos, 100, 100)
-		}, 50);
+        function drawShape() {
+            ctx_a.clearRect(0, 0, 200, 200);
+            ctx_a.drawImage(ctx_shape.canvas, 0, 0);
+        }
 
-	})();
-	</script>
-</body>
+        drawShape();
+
+        function copyArea(ctx, oldX, oldY, newX, newY, w, h) {
+            ctx.drawImage(ctx.canvas, oldX, oldY, w, h, newX, newY, w, h);
+        }
+
+	function moveImage(state, ctx, fromX, fromY, toX, toY, size) {
+            drawShape();
+
+            var w = size;
+            var h = size;
+
+            var oldX = fromX, oldY = fromY;
+            var newX = toX, newY = toY;
+
+            if (newX < 0) {
+                w += newX;
+                oldX -= newX;
+                newX = 0;
+            }
+
+            if (oldX < 0) {
+                w -= oldX;
+                oldX = 0;
+            }
+
+            function planCopyA() {
+                ctx.save();
+                ctx.fillStyle = 'rgba(0, 0, 255, 0.5)';
+                ctx.fillRect(oldX, oldY, w, h);
+                ctx.strokeRect(oldX, oldY, w, h);
+                ctx.restore();
+            }
+
+            function planCopyB() {
+                ctx.save();
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+                ctx.fillRect(newX, newY, w, h);
+                ctx.strokeRect(newX, newY, w, h);
+                ctx.restore();
+            }
+
+            function copy() {
+                var ctx = ctx_shape;
+	        ctx.beginPath();
+	        ctx.save();
+	        ctx.rect(newX, newY, w, h);
+	        ctx.clip();
+                copyArea(ctx_shape, oldX, oldY, newX, newY, w, h);
+	        ctx.restore();
+                drawShape();
+            }
+
+            function planClear() {
+                var diffX = Math.abs(toX - fromX);
+                ctx.save();
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                if (toX > fromX) {
+	            ctx.fillRect(fromX, fromY, diffX, size);
+                } else {
+                    ctx.fillRect(fromX + size - diffX, fromY, diffX, size);
+                }
+                ctx.restore();
+            }
+
+            function clear() {
+                var ctx = ctx_shape;
+                var diffX = Math.abs(toX - fromX);
+                
+                if (toX > fromX) {
+	            ctx.clearRect(fromX, fromY, diffX, size);
+                } else {
+                    ctx.clearRect(fromX + size - diffX, fromY, diffX, size);
+                }
+
+                // var diffY = Math.abs(toY - fromY);
+                // if (toY > fromY) {
+	        //     ctx.clearRect(fromX, fromY, size, diffY);
+                // } else {
+	        //     ctx.clearRect(fromX, fromY + size - diffY, size, diffY);
+                // }
+                drawShape();
+            }
+
+            return [planCopyA, planCopyB, copy, planClear, clear][state]();
+	}
+
+	var origPos = 20;
+        var pos = origPos;
+            var state = 0;
+        window.addEventListener("keydown", function(evt) {
+            var letter = String.fromCharCode(evt.keyCode);
+            var newPos;
+            if (letter === 'S') {
+	        newPos = pos + 10;
+            }
+            if (letter === 'A') {
+	        newPos = pos - 10;
+            }
+	    moveImage(state++, ctx_a, pos, origPos, newPos, origPos, 100, 100);
+            if (state === 5) {
+                pos = newPos;
+                state = 0;
+            }
+        });
+
+    })();
+  </script>
+  </body>
 </html>
