@@ -76,6 +76,10 @@
             this._image = new Image();
             this._image.src = imageSrc;
         },
+        connect: function(server) {
+            this.parent(server);
+            this.configure(0, 0, this._image.width, this._image.height);
+        },
         expose: function(wrapper) {
             wrapper.drawWithContext(function(ctx) {
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
@@ -173,7 +177,7 @@
 
         var w = new FakeWindow("TerminalScreenshot.png");
         w.connect(server);
-        w.configure(windowNumber * cascade, windowNumber * cascade, 735, 461);
+        w.configure(windowNumber * cascade, windowNumber * cascade, undefined, undefined);
 
         var button;
 
