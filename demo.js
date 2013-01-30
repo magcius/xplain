@@ -225,18 +225,18 @@
             newWindow();
         };
 
+        var isGrabbed = false;
         button = new SimpleButton('#33ff33', '#99ff99', ["ButtonPress"]);
         setupButton(button);
         button.eventHook = function(event) {
             switch (event.type) {
                 case "ButtonPress":
-                this._server.grabPointer(this, this._windowId, false, ["ButtonRelease", "Motion"], "crosshair");
-                return true;
-                case "ButtonRelease":
-                this._server.ungrabPointer(this);
-                return true;
-                case "Motion":
-                console.log("Motioning button!");
+                isGrabbed = !isGrabbed;
+                if (isGrabbed) {
+                    this._server.grabPointer(this, this._windowId, true, [], "crosshair");
+                } else {
+                    this._server.ungrabPointer(this);
+                }
                 return true;
             }
             return false;
