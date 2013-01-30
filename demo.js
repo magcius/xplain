@@ -193,10 +193,17 @@
             else
                 animTask();
         };
+
+        button = new SimpleButton('#ffff00', '#ffffcc');
+        button.connect(server);
+        button.configure(70, 10, 20, 20);
+        button.reparent(w);
+        button.clickCallback = function(event) {
+            newWindow();
+        };
     }
 
-    for (var i = 0; i < 5; i++)
-        newWindow();
+    newWindow();
 
     window.addEventListener("keydown", function(evt) {
         var letter = String.fromCharCode(evt.keyCode);
