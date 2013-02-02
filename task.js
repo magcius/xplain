@@ -7,6 +7,10 @@
             clearTimeout(id);
             id = 0;
         }
+        function start() {
+            var args = [].slice.call(arguments);
+            id = setTimeout(function() { run(args); }, delay);
+        }
         function run(args) {
             id = 0;
             if (func.apply(null, args))
@@ -16,11 +20,11 @@
             return id > 0;
         }
         function schedule() {
-            var args = [].slice.call(arguments);
             if (!alive())
-                id = setTimeout(function() { run(args); }, delay);
+                start.apply(null, arguments);
         }
 
+        schedule.start = start;
         schedule.clear = clear;
         schedule.run = run;
         schedule.alive = alive;
