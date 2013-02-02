@@ -10,7 +10,7 @@
         function run(args) {
             id = 0;
             if (func.apply(null, args))
-                schedule();
+                schedule.apply(null, args);
         }
         function alive() {
             return id > 0;
