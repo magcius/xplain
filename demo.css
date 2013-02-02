@@ -1,10 +1,12 @@
+body {
+    margin: 0;
+}
+
 .server {
     overflow: hidden;
-    border: 1px solid black;
 }
 
 .center {
-    margin: 20px;
     position: relative;
 }
 
