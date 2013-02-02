@@ -109,6 +109,8 @@
 
             // All child windows, sorted with the top-most window *first*.
             this.children = [];
+
+            this.mapped = false;
         },
         finalize: function() {
             this.shapeRegion.finalize();
@@ -185,14 +187,17 @@
                                      windowId: this.windowId,
                                      x: x, y: y, width: width, height: height });
         },
+        _syncPointerEvents: function() {
+            var shouldHavePointerEvents = this.mapped && this._hasInput;
+            if (shouldHavePointerEvents)
+                this.inputWindow.style.pointerEvents = '';
+            else
+                this.inputWindow.style.pointerEvents = 'none';
+        },
         changeAttributes: function(attributes) {
             if (attributes.hasInput !== undefined && this._hasInput != attributes.hasInput) {
                 this._hasInput = !!attributes.hasInput;
-
-                if (this._hasInput)
-                    this.inputWindow.style.pointerEvents = '';
-                else
-                    this.inputWindow.style.pointerEvents = 'none';
+                this._syncPointerEvents();
             }
 
             if (attributes.backgroundColor !== undefined && this._backgroundColor != attributes.backgroundColor) {
@@ -207,6 +212,24 @@
         },
         defineCursor: function(cursor) {
             this.inputWindow.style.cursor = cursor;
+        },
+        map: function() {
+            if (this.mapped)
+                return;
+
+            this.mapped = true;
+            this._syncPointerEvents();
+            this._server.sendEvent({ type: "MapNotify",
+                                     windowId: this.windowId });
+        },
+        unmap: function() {
+            if (!this.mapped)
+                return;
+
+            this.mapped = false;
+            this._syncPointerEvents();
+            this._server.sendEvent({ type: "UnmapNotify",
+                                     windowId: this.windowId });
         },
     });
 
@@ -305,6 +328,8 @@
         'createWindow',
         'destroyWindow',
         'reparentWindow',
+        'mapWindow',
+        'unmapWindow',
         'raiseWindow',
         'lowerWindow',
         'configureRequest',
@@ -389,6 +414,9 @@
             this._container.appendChild(this._rootWindow.inputWindow);
 
             this._cursorStyleSheet = newStyleSheet();
+
+            // Queue a full-stage redraw so that the root window shows.
+            this.queueFullRedraw();
         },
 
         _setupDOM: function() {
@@ -413,6 +441,7 @@
             rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             rootWindow.parentServerWindow = null;
             this.configureRequest(rootWindow.windowId, 0, 0, this.width, this.height);
+            rootWindow.map();
             return rootWindow;
         },
 
@@ -469,7 +498,9 @@
                 var parent = serverWindow.parentServerWindow;
                 var idx = parent.children.indexOf(serverWindow);
                 var windowsOnTop = parent.children.slice(0, idx);
-                windowsOnTop.forEach(callback);
+                windowsOnTop.filter(function(serverWindow) {
+                    return serverWindow.mapped;
+                }).forEach(callback);
                 serverWindow = parent;
             }
         },
@@ -518,6 +549,9 @@
             this._debugDrawRegion(calculatedDamageRegion, 'red');
 
             function iterateWindow(serverWindow) {
+                if (!serverWindow.mapped)
+                    return;
+
                 // When we iterate over children, transform the damage region into the
                 // child's parent space, which is the coordinate space of the shape region.
                 calculatedDamageRegion.translate(-serverWindow.x, -serverWindow.y);
@@ -597,6 +631,8 @@
             // XXX - are windowId and the coordinates on the event the same?
             if (this._grabClient)
                 serverWindow = this._grabClient.grabWindow;
+            else if (!serverWindow)
+                return null;
 
             var rootCoords = getEventCoordsInDomElementSpace(domEvent, this._container);
             var winCoords = getEventCoordsInDomElementSpace(domEvent, serverWindow.inputWindow);
@@ -727,6 +763,13 @@
         },
 
         _configureWindow: function(serverWindow, x, y, width, height) {
+            // If the server window isn't mapped, just reconfigure
+            // the window without doing any damage region stuff.
+            if (!serverWindow.mapped) {
+                serverWindow.reconfigure(x, y, width, height);
+                return;
+            }
+
             // This is a bit fancy. We need to accomplish a few things:
             //
             //   1. If the area on top of the window was damaged before
@@ -825,6 +868,9 @@
             return serverWindow;
         },
         _damageWindow: function(serverWindow) {
+            if (!serverWindow.mapped)
+                return;
+
             var region = this._calculateEffectiveRegionForWindow(serverWindow);
             this.damageRegion(region);
             region.finalize();
@@ -877,6 +923,16 @@
             var newServerParentWindow = this._windowsById[newParentId];
             this._unparentWindow(serverWindow);
             this._parentWindow(serverWindow, newServerParentWindow);
+        },
+        mapWindow: function(windowId) {
+            var serverWindow = this._windowsById[windowId];
+            serverWindow.map();
+            this._damageWindow(serverWindow);
+        },
+        unmapWindow: function(windowId) {
+            var serverWindow = this._windowsById[windowId];
+            serverWindow.unmap();
+            this._damageWindow(serverWindow);
         },
         raiseWindow: function(windowId) {
             var serverWindow = this._windowsById[windowId];
