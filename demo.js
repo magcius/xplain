@@ -213,10 +213,7 @@
         button = new SimpleButton('#ffaa00', '#ffcc00');
         setupButton(button);
         button.clickCallback = function(event) {
-            if (animTask.alive())
-                animTask.clear();
-            else
-                animTask();
+            animTask.toggle();
         };
 
         button = new SimpleButton('#ffff00', '#ffffcc');

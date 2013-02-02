@@ -23,11 +23,18 @@
             if (!alive())
                 start.apply(null, arguments);
         }
+        function toggle() {
+            if (alive())
+                stop();
+            else
+                schedule.apply(null, arguments);
+        }
 
         schedule.start = start;
         schedule.stop = stop;
         schedule.run = run;
         schedule.alive = alive;
+        schedule.toggle = toggle;
         return schedule;
     }
 
