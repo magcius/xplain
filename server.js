@@ -8,6 +8,18 @@
         });
     }
 
+    function newStyleSheet() {
+        var sheet = document.createElement("style");
+        sheet.css = "text/css";
+        document.body.appendChild(sheet);
+        return sheet;
+    }
+
+    function setCursorStylesheet(sheet, cursor) {
+        var cssText =  '.xserver.js .inputWindow { cursor: ' + cursor + ' !important; }';
+        sheet.innerHTML = cssText;
+    }
+
     function sizeElement(elem, w, h) {
         elem.style.width = w + "px";
         elem.style.height = h + "px";
@@ -379,6 +391,8 @@
             this._container.appendChild(this._rootWindow.inputWindow);
 
             this.setDebugEnabled(DEBUG);
+
+            this._cursorStyleSheet = newStyleSheet();
         },
 
         _setupDOM: function() {
@@ -799,7 +813,7 @@
         },
         _ungrabPointer: function() {
             this._grabClient = null;
-            this._container.style.cursor = '';
+            setCursorStylesheet(this._cursorStyleSheet, '');
         },
 
         // Used by _createRootWindow and createWindow.
@@ -921,10 +935,8 @@
             var serverClient = client._serverClient;
             this._grabPointer(serverClient, grabWindow, ownerEvents, events);
 
-            // XXX - make cursor override other cursors
-            this._container.style.cursor = cursor;
+            setCursorStylesheet(this._cursorStyleSheet, cursor);
         },
-
         ungrabPointer: function(client) {
             // Clients can't ungrab an implicit grab.
             if (this._grabClient.isImplicitGrab)
