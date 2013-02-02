@@ -1,7 +1,5 @@
 (function(exports) {
 
-    var DEBUG = false;
-
     function pathFromRegion(ctx, region) {
         region.iter_rectangles(function(rect) {
             ctx.rect(rect.x, rect.y, rect.width, rect.height);
@@ -389,8 +387,6 @@
             // as it uses the standard redraw and windowing machinery.
             this._rootWindow = this._createRootWindow();
             this._container.appendChild(this._rootWindow.inputWindow);
-
-            this.setDebugEnabled(DEBUG);
 
             this._cursorStyleSheet = newStyleSheet();
         },
