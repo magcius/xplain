@@ -627,7 +627,8 @@
             this.sendEvent(event);
         },
         _handleInputButtonPress: function(domEvent) {
-            this._handleInputSimple(domEvent);
+            if (!this._handleInputSimple(domEvent))
+                return;
 
             // If there's no active explicit pointer grab, take an implicit one.
             // Do this after event delivery for a slight perf gain in case a
@@ -638,7 +639,8 @@
             }
         },
         _handleInputButtonRelease: function(domEvent) {
-            this._handleInputSimple(domEvent);
+            if (!this._handleInputSimple(domEvent))
+                return;
 
             // Only release if we have an implicit grab.
             if (this._grabClient.isImplicitGrab)
@@ -646,6 +648,9 @@
         },
         _handleInputEnterLeave: function(domEvent) {
             var eventBase = this._handleInputBase(domEvent);
+            if (!eventBase)
+                return;
+
             var fromElem, toElem;
 
             if (domEvent.type === 'mouseover') {
