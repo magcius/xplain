@@ -3,7 +3,7 @@
     function Task(func, delay) {
         var id = 0;
         delay = delay || 0;
-        function clear() {
+        function stop() {
             clearTimeout(id);
             id = 0;
         }
@@ -25,7 +25,7 @@
         }
 
         schedule.start = start;
-        schedule.clear = clear;
+        schedule.stop = stop;
         schedule.run = run;
         schedule.alive = alive;
         return schedule;
