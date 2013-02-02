@@ -6,12 +6,12 @@
         function clear() {
             clearTimeout(id);
             id = 0;
-        };
+        }
         function run(args) {
             id = 0;
             if (func.apply(null, args))
                 schedule();
-        };
+        }
         function alive() {
             return id > 0;
         }
