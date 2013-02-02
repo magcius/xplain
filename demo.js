@@ -40,6 +40,12 @@
         destroy: function() {
             this._server.destroyWindow(this._windowId);
         },
+        map: function() {
+            this._server.mapWindow(this._windowId);
+        },
+        unmap: function() {
+            this._server.unmapWindow(this._windowId);
+        },
         configure: function(x, y, width, height) {
             x = x === undefined ? this.x : x;
             y = y === undefined ? this.y : y;
@@ -157,6 +163,7 @@
 
     var w = new BackgroundWindow();
     w.connect(server);
+    w.map();
 
     function animWindow(window, freq, amplitude) {
         var delay = 50;
@@ -187,6 +194,7 @@
         var w = new FakeWindow("TerminalScreenshot.png");
         w.connect(server);
         w.configure(windowNumber * cascade, windowNumber * cascade, undefined, undefined);
+        w.map();
 
         var button;
 
@@ -196,6 +204,7 @@
         button.connect(server);
         button.configure(700, 10, 20, 20);
         button.reparent(w);
+        button.map();
         button.clickCallback = function(event) {
             w.destroy();
         };
@@ -205,6 +214,7 @@
             button.connect(server);
             button.reparent(w);
             button.configure(buttonX, 10, 20, 20);
+            button.map();
             buttonX += 30;
         }
 
