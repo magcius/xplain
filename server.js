@@ -190,7 +190,7 @@
         _syncPointerEvents: function() {
             var shouldHavePointerEvents = this.mapped && this._hasInput;
             if (shouldHavePointerEvents)
-                this.inputWindow.style.pointerEvents = '';
+                this.inputWindow.style.pointerEvents = 'auto';
             else
                 this.inputWindow.style.pointerEvents = 'none';
         },
