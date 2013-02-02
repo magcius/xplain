@@ -34,7 +34,8 @@
         }
 
         if (oldX < 0) {
-            w -= oldX;
+            newX -= oldX;
+            w += oldX;
             oldX = 0;
         }
 
@@ -45,7 +46,8 @@
         }
 
         if (oldY < 0) {
-            h -= oldY;
+            newY -= oldY;
+            h += oldY;
             oldY = 0;
         }
 
