@@ -250,17 +250,14 @@
             if (!this.mapped)
                 return;
 
+            this._server.damageWindow(this);
             this.mapped = false;
             this._syncPointerEvents();
             this._server.sendEvent({ type: "UnmapNotify",
                                      windowId: this.windowId });
-            this._server.damageWindow(this);
         },
         unparentWindow: function() {
-            // Damage the region that will be exposed when the
-            // window is destroyed.
             this._server.damageWindow(this);
-
             this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
             this.parentServerWindow.children.erase(this);
         },
