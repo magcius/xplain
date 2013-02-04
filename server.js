@@ -916,14 +916,8 @@
             }
         },
 
-        _configureWindow: function(client, serverWindow, x, y, width, height) {
-            // If the server window isn't mapped, just reconfigure
-            // the window without doing any damage region stuff.
-            if (!serverWindow.mapped) {
-                serverWindow.configureWindow(client, x, y, width, height);
-                return;
-            }
-
+        // This function copies the front buffer around to move/resize windows.
+        _manipulateGraphicsForWindowMoveResize: function(oldRegion, newRegion, oldX, oldY, newX, newY, oldW, oldH) {
             // This is a bit fancy. We need to accomplish a few things:
             //
             //   1. If the area on top of the window was damaged before
@@ -947,23 +941,6 @@
             // 1., 2., and 3. are documented where the corresponding code is done.
             // 4. is done by making sure we call _calculateEffectiveRegionForWindow,
             //    which excludes the region where windows visually obscure the window.
-
-            var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            var oldTxform = serverWindow.calculateAbsoluteOffset(true);
-            var oldX = oldTxform.x, oldY = oldTxform.y;
-            var oldW = serverWindow.width, oldH = serverWindow.height;
-
-            // Reconfigure the window -- this will modify the shape region.
-            if (!serverWindow.configureWindow(client, x, y, width, height)) {
-                // If we didn't actually reconfigure the window, don't redraw
-                // anything. It shouldn't actually affect anything in this case,
-                // but better safe than sorry.
-                return;
-            }
-
-            var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            var newTxform = serverWindow.calculateAbsoluteOffset(true);
-            var newX = newTxform.x, newY = newTxform.y;
 
             var damagedRegion = new Region();
 
@@ -1009,6 +986,34 @@
             oldRegion.finalize();
             newRegion.finalize();
             damagedRegion.finalize();
+        },
+
+        _configureWindow: function(client, serverWindow, x, y, width, height) {
+            // If the server window isn't mapped, just reconfigure
+            // the window without doing any damage region stuff.
+            if (!serverWindow.mapped) {
+                serverWindow.configureWindow(client, x, y, width, height);
+                return;
+            }
+
+            var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+            var oldTxform = serverWindow.calculateAbsoluteOffset(true);
+            var oldX = oldTxform.x, oldY = oldTxform.y;
+            var oldW = serverWindow.width, oldH = serverWindow.height;
+
+            // Reconfigure the window -- this will modify the shape region.
+            if (!serverWindow.configureWindow(client, x, y, width, height)) {
+                // If we didn't actually reconfigure the window, don't redraw
+                // anything. It shouldn't actually affect anything in this case,
+                // but better safe than sorry.
+                return;
+            }
+
+            var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+            var newTxform = serverWindow.calculateAbsoluteOffset(true);
+            var newX = newTxform.x, newY = newTxform.y;
+
+            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion, oldX, oldY, newX, newY, oldW, oldH);
         },
 
         _grabPointer: function(serverClient, grabWindow, ownerEvents, events) {
