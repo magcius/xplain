@@ -58,6 +58,12 @@
             if (event.hasStack)
                 this._configureRequestStack(event);
         },
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "Expose":
+                return this.expose(event.ctx);
+            }
+        },
         expose: function(wrapper) {
             // background color takes care of it for now
             wrapper.clearDamage();
@@ -83,14 +89,11 @@
                 return this.mapRequest(event);
             case "ConfigureRequest":
                 return this.configureRequest(event);
+            // These should only happen for frame windows.
             case "Expose":
-                // This should only happen for frame windows.
-                return this.exposeFrame(event);
+                var frame = this._windowFramesById[event.windowId];
+                return frame.handleEvent(event);
             }
-        },
-        exposeFrame: function(event) {
-            var frame = this._windowFramesById[event.windowId];
-            frame.expose(event.ctx);
         },
         configureRequest: function(event) {
             var frame = this._windowFrames[event.windowId];
