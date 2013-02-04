@@ -1081,6 +1081,7 @@
             if (this._grabClient !== null && this._grabClient.grabWindow)
                 this._ungrabPointer();
 
+            serverWindow.unmap();
             serverWindow.unparentWindow();
             serverWindow.finalize();
             this._windowsById[windowId] = null;
