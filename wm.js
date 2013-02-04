@@ -99,11 +99,8 @@
             this._server.clientConnected(this);
             this._server.selectInput(this, this._server.rootWindowId, ["SubstructureRedirect", "UnmapNotify"]);
 
-            // client window => window frame
+            // window ID => WindowFrame
             this._windowFrames = {};
-
-            // frame window => window frame
-            this._windowFramesById = {};
         },
 
         handleEvent: function(event) {
@@ -117,7 +114,7 @@
             case "ButtonRelease":
             case "Motion":
             case "Expose":
-                var frame = this._windowFramesById[event.windowId];
+                var frame = this._windowFrames[event.windowId];
                 return frame.handleEvent(event);
             }
         },
@@ -138,12 +135,12 @@
         },
         mapRequest: function(event) {
             var frame = new WindowFrame(this, this._server, event.windowId);
-            this._windowFrames[event.windowId] = frame;
 
             // Reparent the original window and map the frame.
             frame.construct();
 
-            this._windowFramesById[frame.frameWindowId] = frame;
+            this._windowFrames[frame.frameWindowId] = frame;
+            this._windowFrames[frame.clientWindowId] = frame;
 
             // Map the original window, now that we've reparented it
             // back into the frame.
@@ -151,8 +148,9 @@
         },
         unmapNotify: function(event) {
             var frame = this._windowFrames[event.windowId];
+            delete this._windowFrames[frame.frameWindowId];
+            delete this._windowFrames[frame.clientWindowId];
             frame.destroy();
-            delete this._windowFrames[event.windowId];
         },
     });
 
