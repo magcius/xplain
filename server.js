@@ -319,6 +319,7 @@
             this._server = server;
             this.width = this._server.width;
             this.height = this._server.height;
+            this.rootWindowId = this._server.rootWindowId;
         }
     });
 
@@ -411,12 +412,15 @@
             // This needs to be done after we set up everything else
             // as it uses the standard redraw and windowing machinery.
             this._rootWindow = this._createRootWindow();
+            this.rootWindowId = this._rootWindow.windowId;
             this._container.appendChild(this._rootWindow.inputWindow);
 
             this._cursorStyleSheet = newStyleSheet();
 
             // Queue a full-stage redraw so that the root window shows.
             this.queueFullRedraw();
+
+            this.publicServer = new PublicServer(this);
         },
 
         _setupDOM: function() {
