@@ -10,7 +10,7 @@
             this._server.clientConnected(this);
             this._windowId = this._server.createWindow(this);
             this._server.changeAttributes(this, this._windowId, { hasInput: this.hasInput, backgroundColor: this.backgroundColor });
-            this._server.selectInput(this,  this._windowId, ["Expose", "ConfigureNotify"]);
+            this._server.selectInput(this, this._windowId, ["Expose", "ConfigureNotify"]);
         },
         handleEvent: function(event) {
             switch (event.type) {
