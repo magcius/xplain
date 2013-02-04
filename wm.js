@@ -32,8 +32,8 @@
             var geom = this._server.getGeometry(this._wm, this.clientWindowId);
 
             this.frameWindowId = this._server.createWindow(this._wm);
-            this._server.selectInput(this._wm, this.frameWindowId, ["Expose"]);
-            this._server.changeAttributes(this._wm, this.frameWindowId, { backgroundColor: 'red' }); // for now
+            this._server.selectInput(this._wm, this.frameWindowId, ["Expose", "ButtonPress"]);
+            this._server.changeAttributes(this._wm, this.frameWindowId, { hasInput: true, backgroundColor: 'red' }); // for now
             this._server.reparentWindow(this._wm, this.clientWindowId, this.frameWindowId);
 
             // Map the frame window.
@@ -60,9 +60,32 @@
         },
         handleEvent: function(event) {
             switch (event.type) {
+            case "ButtonPress":
+                return this.buttonPress(event);
+            case "ButtonRelease":
+                return this.buttonRelease(event);
+            case "Motion":
+                return this.motion(event);
             case "Expose":
                 return this.expose(event.ctx);
             }
+        },
+        buttonPress: function(event) {
+            this._origMousePos = { x: event.rootX, y: event.rootY };
+            var frameCoords = this._server.getGeometry(this, this.frameWindowId);
+            this._origWindowPos = { x: frameCoords.x, y: frameCoords.y };
+            this._server.grabPointer(this._wm, this.frameWindowId, true, ["ButtonRelease", "Motion"], "-moz-grabbing");
+        },
+        buttonRelease: function(event) {
+            this._server.ungrabPointer(this._wm, this.frameWindowId);
+
+            this._origMousePos = null;
+            this._origWindowPos = null;
+        },
+        motion: function(event) {
+            var newX = this._origWindowPos.x + event.rootX - this._origMousePos.x;
+            var newY = this._origWindowPos.y + event.rootY - this._origMousePos.y;
+            this._server.configureWindow(this._wm, this.frameWindowId, { x: newX, y: newY });
         },
         expose: function(wrapper) {
             // background color takes care of it for now
@@ -90,6 +113,9 @@
             case "ConfigureRequest":
                 return this.configureRequest(event);
             // These should only happen for frame windows.
+            case "ButtonPress":
+            case "ButtonRelease":
+            case "Motion":
             case "Expose":
                 var frame = this._windowFramesById[event.windowId];
                 return frame.handleEvent(event);
