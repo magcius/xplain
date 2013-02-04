@@ -843,7 +843,7 @@
             this._handleInputSimple(domEvent);
 
             // Only release if we have an implicit grab.
-            if (this._grabClient.isImplicitGrab)
+            if (this._grabClient && this._grabClient.isImplicitGrab)
                 this._ungrabPointer(null);
         },
         _handleInputEnterLeave: function(domEvent) {
