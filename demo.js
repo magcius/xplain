@@ -15,16 +15,16 @@
         handleEvent: function(event) {
             switch (event.type) {
             case "ConfigureNotify":
-                return this.configureNotify(event.x, event.y, event.width, event.height);
+                return this.configureNotify(event);
             case "Expose":
                 return this.expose(event.ctx);
             }
         },
-        configureNotify: function(x, y, width, height) {
-            this.x = x;
-            this.y = y;
-            this.width = width;
-            this.height = height;
+        configureNotify: function(event) {
+            this.x = event.x;
+            this.y = event.y;
+            this.width = event.width;
+            this.height = event.height;
         },
         reparent: function(newParent) {
             this._server.reparentWindow(this, this._windowId, newParent._windowId);
