@@ -89,7 +89,20 @@
             this._server.configureWindow(this._wm, this.frameWindowId, { x: newX, y: newY });
         },
         expose: function(wrapper) {
-            // background color takes care of it for now
+            // background color takes care of the base
+
+            // Draw title.
+            var title = this._server.getProperty(this._wm, this.clientWindowId, "WM_NAME");
+            if (title) {
+                var geom = this._server.getGeometry(this._wm, this.clientWindowId);
+                wrapper.drawWithContext(function(ctx) {
+                    ctx.fillStyle = '#000';
+                    ctx.textAlign = 'center';
+                    ctx.font = '12pt sans-serif';
+                    ctx.fillText(title, geom.width / 2, 21);
+                });
+            }
+
             wrapper.clearDamage();
         },
     });
