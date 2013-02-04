@@ -214,6 +214,9 @@
                 this.overrideRedirect = attributes.overrideRedirect;
             }
         },
+        getProperty: function(name, value) {
+            return this._properties[name];
+        },
         changeProperty: function(name, value) {
             this._properties[name] = value;
             this._server.sendEvent({ type: "PropertyChanged",
@@ -492,6 +495,7 @@
         'getGeometry',
         'translateCoordinates',
         'changeAttributes',
+        'getProperty',
         'changeProperty',
         'defineCursor',
         'grabPointer',
@@ -1122,6 +1126,10 @@
         changeAttributes: function(client, windowId, attributes) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.changeAttributes(attributes);
+        },
+        getProperty: function(client, windowId, name) {
+            var serverWindow = this._windowsById[windowId];
+            return serverWindow.getProperty(name);
         },
         changeProperty: function(client, windowId, name, value) {
             var serverWindow = this._windowsById[windowId];
