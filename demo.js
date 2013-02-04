@@ -169,6 +169,22 @@
             this.clientWindowId = windowId;
         },
 
+        _syncGeometry: function(geom, forceClientConfigure) {
+            // A real WM would cache this, as it would cause a round-trip.
+            var clientGeom = this._server.getGeometry(this._wm, this.clientWindowId);
+
+            // Hardcoded 10px border for now.
+
+            // The top-left of the frame is the top-left of the window, and we'll
+            // put the client 10px in. That means we should only touch the width
+            // and height.
+            this._server.moveResizeWindow(this._wm, this.frameWindowId, geom.x, geom.y, geom.width + 20, geom.height + 20);
+
+            if (forceClientConfigure || clientGeom.width != geom.width || clientGeom.height != geom.height) {
+                this._server.moveResizeWindow(this._wm, this.clientWindowId, 10, 10, geom.width, geom.height);
+            }
+        },
+
         construct: function() {
             var geom = this._server.getGeometry(this._wm, this.clientWindowId);
 
@@ -177,16 +193,10 @@
             this._server.changeAttributes(this._wm, this.frameWindowId, { backgroundColor: 'red' }); // for now
             this._server.reparentWindow(this._wm, this.clientWindowId, this.frameWindowId);
 
-            // Hardcoded 10px border for now.
-
-            // The top-left of the frame is the top-left of the window, and we'll
-            // put the client 10px in. That means we should only touch the width
-            // and height.
-            this._server.moveResizeWindow(this._wm, this.frameWindowId, geom.x, geom.y, geom.width + 20, geom.height + 20);
-            this._server.moveResizeWindow(this._wm, this.clientWindowId, 10, 10, geom.width, geom.height);
-
             // Map the frame window.
             this._server.mapWindow(this._wm, this.frameWindowId);
+
+            this._syncGeometry(geom, true);
         },
         configureRequest: function(event) {
             // ICCCM 4.1.5
@@ -197,13 +207,7 @@
             // window.
 
             // We don't generate synthetic events quite yet.
-
-            // Simply move the frame window to wherever the window wants it.
-            this._server.moveResizeWindow(this._wm, this.frameWindowId, event.x, event.y, event.width + 20, event.height + 20);
-
-            // And resize the window. This may cause extra effort if the window
-            // doesn't change its size, so we should check that in the future.
-            this._server.moveResizeWindow(this._wm, this.clientWindowId, 10, 10, event.width, event.height);
+            this._syncGeometry(event, false);
         },
         expose: function(wrapper) {
             // background color takes care of it for now
