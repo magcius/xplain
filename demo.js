@@ -31,15 +31,6 @@
         connect: function(server) {
             this.parent(server);
             this.moveResize(0, 0, this._image.width, this._image.height);
-            this._server.selectInput(this,  this._windowId, ["ButtonPress"]);
-        },
-        handleEvent: function(event) {
-            switch (event.type) {
-            case "ButtonPress":
-                return this.raise();
-            default:
-                return this.parent(event);
-            }
         },
         expose: function(wrapper) {
             wrapper.drawWithContext(function(ctx) {
@@ -184,8 +175,6 @@
         w.map();
 
         var button;
-
-        var isRaised = false;
 
         button = new SimpleButton('#ff0000', '#ff6666');
         button.connect(server);
