@@ -193,21 +193,6 @@
                                      windowId: this.windowId,
                                      ctx: this._ctxWrapper });
         },
-        reconfigure: function(x, y, width, height) {
-            this.x = x;
-            this.y = y;
-            this.width = width;
-            this.height = height;
-
-            this.shapeRegion.clear();
-            this.shapeRegion.init_rect(x, y, width, height);
-
-            positionElement(this.inputWindow, x, y, width, height);
-
-            this._server.sendEvent({ type: "ConfigureNotify",
-                                     windowId: this.windowId,
-                                     x: x, y: y, width: width, height: height });
-        },
         _syncPointerEvents: function() {
             var shouldHavePointerEvents = this.mapped && this._hasInput;
             if (shouldHavePointerEvents)
@@ -280,6 +265,21 @@
             this.parentServerWindow.children.unshift(this);
             this.parentServerWindow.inputWindow.appendChild(this.inputWindow);
             this._server.damageWindow(this);
+        },
+        reconfigure: function(x, y, width, height) {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+
+            this.shapeRegion.clear();
+            this.shapeRegion.init_rect(x, y, width, height);
+
+            positionElement(this.inputWindow, x, y, width, height);
+
+            this._server.sendEvent({ type: "ConfigureNotify",
+                                     windowId: this.windowId,
+                                     x: x, y: y, width: width, height: height });
         },
         raise: function() {
             this.parentServerWindow.children.erase(this);
