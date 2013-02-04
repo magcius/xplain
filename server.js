@@ -234,15 +234,28 @@
         defineCursor: function(cursor) {
             this.inputWindow.style.cursor = cursor;
         },
-        map: function() {
+        map: function(client) {
             if (this.mapped)
                 return;
 
-            this.mapped = true;
-            this._syncPointerEvents();
-            this._server.sendEvent({ type: "MapNotify",
-                                     windowId: this.windowId });
-            this._server.damageWindow(this);
+            var eventBase = { windowId: this.windowId };
+            var event;
+
+            event = Object.create(eventBase);
+            event.type = "MapRequest";
+
+            if (!this._server.sendEvent(event, client)) {
+                // Only actually map the window if we unsuccessfully
+                // managed to send a MapRequest.
+                event = Object.create(eventBase);
+                event.type = "MapNotify";
+
+                this.mapped = true;
+                this._syncPointerEvents();
+                this._server.sendEvent({ type: "MapNotify",
+                                         windowId: this.windowId });
+                this._server.damageWindow(this);
+            }
         },
         unmap: function() {
             if (!this.mapped)
@@ -985,13 +998,7 @@
         },
         mapWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
-            var event = { type: "MapRequest",
-                          windowId: windowId };
-            if (!this.sendEvent(event, client)) {
-                // Only actually map the window if we unsuccessfully
-                // managed to send a MapRequest.
-                serverWindow.map();
-            }
+            serverWindow.map(client);
         },
         unmapWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
