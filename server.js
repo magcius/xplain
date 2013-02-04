@@ -64,6 +64,27 @@
         ctx.drawImage(ctx.canvas, oldX, oldY, w, h, newX, newY, w, h);
     }
 
+    function isEventSubstructureRedirect(event) {
+        switch (event.type) {
+            case "MapRequest":
+            case "ConfigureRequest":
+            return true;
+        }
+        return false;
+    }
+
+    function isEventInputEvent(event) {
+        switch (event.type) {
+            case "Enter":
+            case "Leave":
+            case "ButtonPress":
+            case "ButtonRelease":
+            case "Motion":
+            return true;
+        }
+        return false;
+    }
+
     var ContextWrapper = new Class({
         initialize: function(serverWindow, ctx) {
             this._serverWindow = serverWindow;
@@ -242,9 +263,24 @@
             this._eventWindows = {};
         },
 
+        _isInterestedInWindowEvent: function(windowId, eventType) {
+            var listeningFor = this._eventWindows[windowId];
+            return listeningFor && listeningFor.indexOf(eventType) >= 0;
+        },
         isInterestedInEvent: function(event) {
-            var listeningFor = this._eventWindows[event.windowId];
-            return listeningFor && listeningFor.indexOf(event.type) >= 0;
+            var windowId = event.windowId;
+            if (this._isInterestedInWindowEvent(windowId, event.type))
+                return true;
+
+            if (isEventSubstructureRedirect(event)) {
+                while (windowId != 0) {
+                    if (this._isInterestedInWindowEvent(windowId, "SubstructureRedirect"))
+                        return true;
+                    windowId = this._server.getWindowParent(windowId);
+                }
+            }
+
+            return false;
         },
         sendEvent: function(event) {
             this.client.handleEvent(event);
@@ -357,17 +393,6 @@
         "mousemove": "Motion"
     };
 
-    function isInputEvent(event) {
-        switch (event.type) {
-            case "Enter":
-            case "Leave":
-            case "ButtonPress":
-            case "ButtonRelease":
-            case "Motion":
-            return true;
-        }
-    }
-
     // Is b a descendent of a?
     function isWindowDescendentOf(a, b) {
         for (b = b.parentServerWindow; b; b = b.parentServerWindow) {
@@ -389,8 +414,6 @@
         initialize: function(width, height) {
             this.width = width;
             this.height = height;
-
-            this.publicServer = new PublicServer(this);
 
             this._setupDOM();
             this.elem = this._container;
@@ -594,7 +617,7 @@
         sendEvent: function(event, except) {
             // Send input events to grabs if we have one, except in the case
             // of implicit grabs -- they should have normal delivery.
-            if (isInputEvent(event) && this._grabClient && !this._grabClient.isImplicitGrab) {
+            if (isEventInputEvent(event) && this._grabClient && !this._grabClient.isImplicitGrab) {
                 this._grabClient.sendEvent(event);
             } else {
                 return this._clients.some(function(serverClient) {
@@ -900,6 +923,13 @@
             parentServerWindow.inputWindow.appendChild(serverWindow.inputWindow);
             this._damageWindow(serverWindow);
         },
+        getWindowParent: function(windowId) {
+            var serverWindow = this._windowsById[windowId];
+            if (serverWindow && serverWindow.parentServerWindow)
+                return serverWindow.parentServerWindow.windowId;
+            else
+                return 0;
+        },
 
         //
         // Public API for clients.
@@ -936,8 +966,14 @@
         },
         mapWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
-            serverWindow.map();
-            this._damageWindow(serverWindow);
+            var event = { type: "MapRequest",
+                          windowId: windowId };
+            if (!this.sendEvent(event, client)) {
+                // Only actually map the window if we unsuccessfully
+                // managed to send a MapRequest.
+                serverWindow.map();
+                this._damageWindow(serverWindow);
+            }
         },
         unmapWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
