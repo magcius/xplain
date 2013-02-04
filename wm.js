@@ -98,7 +98,7 @@
         connect: function(server) {
             this._server = server;
             this._server.clientConnected(this);
-            this._server.selectInput(this, this._server.rootWindowId, ["SubstructureRedirect", "UnmapNotify"]);
+            this._server.selectInput(this, this._server.rootWindowId, ["SubstructureRedirect"]);
 
             // window ID => WindowFrame
             this._windowFrames = {};
@@ -154,12 +154,6 @@
             // Map the original window, now that we've reparented it
             // back into the frame.
             this._server.mapWindow(this, event.windowId);
-        },
-        unmapNotify: function(event) {
-            var frame = this._windowFrames[event.windowId];
-            delete this._windowFrames[frame.frameWindowId];
-            delete this._windowFrames[frame.clientWindowId];
-            frame.destroy();
         },
     });
 
