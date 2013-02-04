@@ -47,11 +47,19 @@
             this._server.unmapWindow(this, this._windowId);
         },
         moveResize: function(x, y, width, height) {
-            x = x === undefined ? this.x : x;
-            y = y === undefined ? this.y : y;
+            var coords = this.getRootCoords();
+            x = x === undefined ? coords.x : x;
+            y = y === undefined ? coords.y : y;
+
             width = width === undefined ? this.width : width;
             height = height === undefined ? this.height : height;
             this._server.moveResizeWindow(this, this._windowId, x | 0, y | 0, width | 0, height | 0);
+        },
+
+        getRootCoords: function() {
+            var clientGeom = this._server.getGeometry(this, this._windowId);
+            var totalGeom = this._server.translateCoordinates(this, this._windowId, this._server.rootWindowId, 0, 0);
+            return { x: totalGeom.x - clientGeom.x, y: totalGeom.y - clientGeom.y };
         },
     });
 
@@ -367,9 +375,7 @@
                 isGrabbed = !isGrabbed;
                 if (isGrabbed) {
                     omp = { x: event.rootX, y: event.rootY };
-                    var clientGeom = this._server.getGeometry(this, w._windowId);
-                    var totalGeom = this._server.translateCoordinates(this, w._windowId, this._server.rootWindowId, 0, 0);
-                    owp = { x: totalGeom.x - clientGeom.x, y: totalGeom.y - clientGeom.y };
+                    owp = w.getRootCoords();
                     this._server.grabPointer(this, this._windowId, true, ["Motion"], "crosshair");
                 } else {
                     this._server.ungrabPointer(this);
