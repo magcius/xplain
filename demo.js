@@ -66,6 +66,7 @@
         connect: function(server) {
             this.parent(server);
             this.moveResize(0, 0, server.width, server.height);
+            this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
         },
         expose: function(wrapper) {
             wrapper.drawWithContext(function(ctx) {
@@ -115,6 +116,7 @@
             this.parent(server);
             this._server.selectInput(this, this._windowId, ["Enter", "Leave"].concat(this, this._extraEvents));
             this._server.defineCursor(this, this._windowId, "pointer");
+            this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
             this._setHover(false);
         },
         _setHover: function(hover) {
@@ -157,9 +159,128 @@
         },
     });
 
+    // Don't extend Window as this needs to be in the
+    // WM client, not its own client.
+    var WindowFrame = new Class({
+        Extends: Window,
+        initialize: function(wm, server, windowId) {
+            this._wm = wm;
+            this._server = server;
+            this.clientWindowId = windowId;
+        },
+
+        construct: function() {
+            var geom = this._server.getGeometry(this._wm, this.clientWindowId);
+
+            this.frameWindowId = this._server.createWindow(this._wm);
+            this._server.selectInput(this._wm, this.frameWindowId, ["Expose"]);
+            this._server.changeAttributes(this._wm, this.frameWindowId, { backgroundColor: 'red' }); // for now
+            this._server.reparentWindow(this._wm, this.clientWindowId, this.frameWindowId);
+
+            // Hardcoded 10px border for now.
+
+            // The top-left of the frame is the top-left of the window, and we'll
+            // put the client 10px in. That means we should only touch the width
+            // and height.
+            this._server.moveResizeWindow(this._wm, this.frameWindowId, geom.x, geom.y, geom.width + 20, geom.height + 20);
+            this._server.moveResizeWindow(this._wm, this.clientWindowId, 10, 10, geom.width, geom.height);
+
+            // Map the frame window.
+            this._server.mapWindow(this._wm, this.frameWindowId);
+        },
+        configureRequest: function(event) {
+            // ICCCM 4.1.5
+
+            // The coordinate system of the ConfigureRequest is that of the root;
+            // that is, the X/Y in the ConfigureNotify are of the top-left of the
+            // outer frame window. Note that the width/height are of the client
+            // window.
+
+            // We don't generate synthetic events quite yet.
+
+            // Simply move the frame window to wherever the window wants it.
+            this._server.moveResizeWindow(this._wm, this.frameWindowId, event.x, event.y, event.width + 20, event.height + 20);
+
+            // And resize the window. This may cause extra effort if the window
+            // doesn't change its size, so we should check that in the future.
+            this._server.moveResizeWindow(this._wm, this.clientWindowId, 10, 10, event.width, event.height);
+        },
+        expose: function(wrapper) {
+            // background color takes care of it for now
+            wrapper.clearDamage();
+        },
+    });
+
+    var WindowManager = new Class({
+        connect: function(server) {
+            this._server = server;
+            this._server.clientConnected(this);
+            this._server.selectInput(this, this._server.rootWindowId, ["SubstructureRedirect", "UnmapNotify"]);
+
+            // client window => window frame
+            this._windowFrames = {};
+
+            // frame window => window frame
+            this._windowFramesById = {};
+        },
+
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "MapRequest":
+                return this.mapRequest(event);
+            case "ConfigureRequest":
+                return this.configureRequest(event);
+            case "Expose":
+                // This should only happen for frame windows.
+                return this.exposeFrame(event);
+            }
+        },
+        exposeFrame: function(event) {
+            var frame = this._windowFramesById[event.windowId];
+            frame.expose(event.ctx);
+        },
+        configureRequest: function(event) {
+            var frame = this._windowFrames[event.windowId];
+
+            // If we don't have a frame for a window, it was never
+            // mapped, simply re-configure the window with whatever
+            // it requested.
+            if (!frame) {
+                this._server.moveResizeWindow(this, event.windowId,
+                                              event.x, event.y,
+                                              event.width, event.height);
+            } else {
+                // The frame will move/resize the window to its
+                // client coordinates.
+                frame.configureRequest(event);
+            }
+        },
+        mapRequest: function(event) {
+            var frame = new WindowFrame(this, this._server, event.windowId);
+            this._windowFrames[event.windowId] = frame;
+
+            // Reparent the original window and map the frame.
+            frame.construct();
+
+            this._windowFramesById[frame.frameWindowId] = frame;
+
+            // Map the original window, now that we've reparented it
+            // back into the frame.
+            this._server.mapWindow(this, event.windowId);
+        },
+        unmapNotify: function(event) {
+            var frame = this._windowFrames[event.windowId];
+            frame.destroy();
+            delete this._windowFrames[event.windowId];
+        },
+    });
+
     var _server = new Server(1024, 768);
     var server = _server.publicServer;
     document.querySelector(".server").appendChild(_server.elem);
+
+    var wm = new WindowManager();
+    wm.connect(server);
 
     var w = new BackgroundWindow();
     w.connect(server);
@@ -242,7 +363,9 @@
                 isGrabbed = !isGrabbed;
                 if (isGrabbed) {
                     omp = { x: event.rootX, y: event.rootY };
-                    owp = { x: w.x, y: w.y };
+                    var clientGeom = this._server.getGeometry(this, w._windowId);
+                    var totalGeom = this._server.translateCoordinates(this, w._windowId, this._server.rootWindowId, 0, 0);
+                    owp = { x: totalGeom.x - clientGeom.x, y: totalGeom.y - clientGeom.y };
                     this._server.grabPointer(this, this._windowId, true, ["Motion"], "crosshair");
                 } else {
                     this._server.ungrabPointer(this);
