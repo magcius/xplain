@@ -444,7 +444,7 @@
             var rootWindow = this._createWindowInternal();
             rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             rootWindow.parentServerWindow = null;
-            this.configureRequest(rootWindow.windowId, 0, 0, this.width, this.height);
+            this._configureWindow(rootWindow, 0, 0, this.width, this.height);
             rootWindow.map();
             return rootWindow;
         },
@@ -907,12 +907,12 @@
             var serverClient = client._serverClient;
             serverClient.selectInput(windowId, eventTypes);
         },
-        createWindow: function() {
+        createWindow: function(client) {
             var serverWindow = this._createWindowInternal();
             this._parentWindow(serverWindow, this._rootWindow);
             return serverWindow.windowId;
         },
-        destroyWindow: function(windowId) {
+        destroyWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
 
             if (this._grabClient !== null && this._grabClient.grabWindow)
@@ -922,23 +922,23 @@
             serverWindow.finalize();
             this._windowsById[windowId] = null;
         },
-        reparentWindow: function(windowId, newParentId) {
+        reparentWindow: function(client, windowId, newParentId) {
             var serverWindow = this._windowsById[windowId];
             var newServerParentWindow = this._windowsById[newParentId];
             this._unparentWindow(serverWindow);
             this._parentWindow(serverWindow, newServerParentWindow);
         },
-        mapWindow: function(windowId) {
+        mapWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.map();
             this._damageWindow(serverWindow);
         },
-        unmapWindow: function(windowId) {
+        unmapWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.unmap();
             this._damageWindow(serverWindow);
         },
-        raiseWindow: function(windowId) {
+        raiseWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
             var parentServerWindow = serverWindow.parentServerWindow;
             parentServerWindow.children.erase(serverWindow);
@@ -947,7 +947,7 @@
             parentServerWindow.inputWindow.appendChild(serverWindow.inputWindow);
             this._damageWindow(serverWindow);
         },
-        lowerWindow: function(windowId) {
+        lowerWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
 
             // Damage the region that will be exposed when the
@@ -960,23 +960,23 @@
             parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
             parentServerWindow.inputWindow.insertBefore(serverWindow.inputWindow, parentServerWindow.inputWindow.firstChild);
         },
-        configureRequest: function(windowId, x, y, width, height) {
+        configureRequest: function(client, windowId, x, y, width, height) {
             var serverWindow = this._windowsById[windowId];
             this._configureWindow(serverWindow, x, y, width, height);
         },
-        changeAttributes: function(windowId, attributes) {
+        changeAttributes: function(client, windowId, attributes) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.changeAttributes(attributes);
         },
-        changeProperty: function(windowId, name, value) {
+        changeProperty: function(client, windowId, name, value) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.changeProperty(name, value);
         },
-        defineCursor: function(windowId, cursor) {
+        defineCursor: function(client, windowId, cursor) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.defineCursor(cursor);
         },
-        invalidateWindow: function(windowId) {
+        invalidateWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
             this._damageWindow(serverWindow);
         },

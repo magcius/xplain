@@ -8,9 +8,9 @@
         connect: function(server) {
             this._server = server;
             this._server.clientConnected(this);
-            this._windowId = this._server.createWindow();
-            this._server.changeAttributes(this._windowId, { hasInput: this.hasInput, backgroundColor: this.backgroundColor });
-            this._server.selectInput(this, this._windowId, ["Expose", "ConfigureNotify"]);
+            this._windowId = this._server.createWindow(this);
+            this._server.changeAttributes(this, this._windowId, { hasInput: this.hasInput, backgroundColor: this.backgroundColor });
+            this._server.selectInput(this,  this._windowId, ["Expose", "ConfigureNotify"]);
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -27,31 +27,31 @@
             this.height = height;
         },
         reparent: function(newParent) {
-            this._server.reparentWindow(this._windowId, newParent._windowId);
+            this._server.reparentWindow(this, this._windowId, newParent._windowId);
         },
         expose: function() {
         },
         raise: function() {
-            this._server.raiseWindow(this._windowId);
+            this._server.raiseWindow(this, this._windowId);
         },
         lower: function() {
-            this._server.lowerWindow(this._windowId);
+            this._server.lowerWindow(this, this._windowId);
         },
         destroy: function() {
-            this._server.destroyWindow(this._windowId);
+            this._server.destroyWindow(this, this._windowId);
         },
         map: function() {
-            this._server.mapWindow(this._windowId);
+            this._server.mapWindow(this, this._windowId);
         },
         unmap: function() {
-            this._server.unmapWindow(this._windowId);
+            this._server.unmapWindow(this, this._windowId);
         },
         configure: function(x, y, width, height) {
             x = x === undefined ? this.x : x;
             y = y === undefined ? this.y : y;
             width = width === undefined ? this.width : width;
             height = height === undefined ? this.height : height;
-            this._server.configureRequest(this._windowId, x | 0, y | 0, width | 0, height | 0);
+            this._server.configureRequest(this, this._windowId, x | 0, y | 0, width | 0, height | 0);
         },
     });
 
@@ -85,7 +85,7 @@
         connect: function(server) {
             this.parent(server);
             this.configure(0, 0, this._image.width, this._image.height);
-            this._server.selectInput(this, this._windowId, ["ButtonPress"]);
+            this._server.selectInput(this,  this._windowId, ["ButtonPress"]);
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -113,8 +113,8 @@
         },
         connect: function(server) {
             this.parent(server);
-            this._server.selectInput(this, this._windowId, ["Enter", "Leave"].concat(this._extraEvents));
-            this._server.defineCursor(this._windowId, "pointer");
+            this._server.selectInput(this, this._windowId, ["Enter", "Leave"].concat(this, this._extraEvents));
+            this._server.defineCursor(this, this._windowId, "pointer");
             this._setHover(false);
         },
         _setHover: function(hover) {
@@ -125,8 +125,8 @@
 
             if (this._server) {
                 var color = hover ? this._hoverColor : this._standardColor;
-                this._server.changeAttributes(this._windowId, { backgroundColor: color });
-                this._server.invalidateWindow(this._windowId);
+                this._server.changeAttributes(this, this._windowId, { backgroundColor: color });
+                this._server.invalidateWindow(this, this._windowId);
             }
         },
         handleEvent: function(event) {
