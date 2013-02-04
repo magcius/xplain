@@ -247,8 +247,7 @@
             return listeningFor && listeningFor.indexOf(event.type) >= 0;
         },
         sendEvent: function(event) {
-            if (this.isInterestedInEvent(event))
-                this.client.handleEvent(event);
+            this.client.handleEvent(event);
         },
         selectInput: function(windowId, eventTypes) {
             var listeningFor = this._eventWindows[windowId];
@@ -592,14 +591,21 @@
             // This is expected to be called after the client has painted,
             // so don't queue a repaint.
         },
-        sendEvent: function(event) {
+        sendEvent: function(event, except) {
             // Send input events to grabs if we have one, except in the case
             // of implicit grabs -- they should have normal delivery.
             if (isInputEvent(event) && this._grabClient && !this._grabClient.isImplicitGrab) {
                 this._grabClient.sendEvent(event);
             } else {
-                this._clients.forEach(function(client) {
-                    client.sendEvent(event);
+                return this._clients.some(function(serverClient) {
+                    if (serverClient.client == except)
+                        return false;
+
+                    if (!serverClient.isInterestedInEvent(event))
+                        return false;
+
+                    serverClient.sendEvent(event);
+                    return true;
                 });
             }
         },
