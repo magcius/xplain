@@ -209,6 +209,10 @@
             if (attributes.backgroundColor !== undefined && this._backgroundColor != attributes.backgroundColor) {
                 this._backgroundColor = attributes.backgroundColor || DEFAULT_BACKGROUND_COLOR;
             }
+
+            if (attributes.overrideRedirect !== undefined && this.overrideRedirect != attributes.overrideRedirect) {
+                this.overrideRedirect = attributes.overrideRedirect;
+            }
         },
         changeProperty: function(name, value) {
             this._properties[name] = value;
@@ -344,6 +348,13 @@
                 event.type = "ConfigureNotify";
                 this._server.sendEvent(event);
             }
+        },
+        filterEvent: function(event) {
+            // If we're an override redirect window and the event is a MapRequest
+            // or a ConfigureRequest, make sure it doesn't go to any selected clients.
+            if (this.overrideRedirect && isEventSubstructureRedirect(event))
+                return false;
+            return true;
         },
     });
 
@@ -713,8 +724,12 @@
             if (isEventInputEvent(event) && this._grabClient && !this._grabClient.isImplicitGrab) {
                 this._grabClient.sendEvent(event);
             } else {
+                var serverWindow = this._windowsById[event.windowId];
                 return this._clients.some(function(serverClient) {
                     if (serverClient.client == except)
+                        return false;
+
+                    if (!serverWindow.filterEvent(event))
                         return false;
 
                     if (!serverClient.isInterestedInEvent(event))
