@@ -41,57 +41,20 @@
     });
 
     var SimpleButton = new Class({
-        Extends: Window,
-        initialize: function(standardColor, hoverColor, extraEvents) {
+        Extends: Button,
+        initialize: function(standardColor, hoverColor) {
             this.parent();
             this._standardColor = standardColor;
             this._hoverColor = hoverColor;
-            this._extraEvents = extraEvents || ["ButtonRelease"];
         },
-        connect: function(server) {
-            this.parent(server);
-            this._server.selectInput(this, this._windowId, ["Enter", "Leave"].concat(this, this._extraEvents));
-            this._server.defineCursor(this, this._windowId, "pointer");
-            this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
-            this._setHover(false);
-        },
-        _setHover: function(hover) {
-            if (this._isHovering == hover)
-                return;
-
-            this._isHovering = hover;
-
-            if (this._server) {
-                var color = hover ? this._hoverColor : this._standardColor;
-                this._server.changeAttributes(this, this._windowId, { backgroundColor: color });
-                this._server.invalidateWindow(this, this._windowId);
-            }
-        },
-        handleEvent: function(event) {
-            if (this.eventHook(event))
-                return;
-
-            switch(event.type) {
-            case "Enter":
-                return this._setHover(true);
-            case "Leave":
-                return this._setHover(false);
-            default:
-                return this.parent(event);
-            }
-        },
-        eventHook: function(event) {
-            // Provide a nice, simple interface for basic buttons.
-            if (event.type === "ButtonRelease" && this.clickCallback) {
-                this.clickCallback(event);
-                return true;
-            }
-            return false;
-        },
-        expose: function(wrapper) {
-            // Don't draw anything -- the backgroundColor will take
-            // care of it for us.
-            wrapper.clearDamage();
+        _syncButtonState: function() {
+            this.parent();
+            var color;
+            if (this._state == "up" || this._state == "down")
+                color = this._standardColor;
+            else if (this._state == "over")
+                color = this._hoverColor;
+            this._server.changeAttributes(this, this._windowId, { backgroundColor: color });
         },
     });
 
