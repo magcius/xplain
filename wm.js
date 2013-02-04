@@ -14,15 +14,17 @@
             // A real WM would cache this, as it would cause a round-trip.
             var clientGeom = this._server.getGeometry(this._wm, this.clientWindowId);
 
-            // Hardcoded 10px border for now.
+            var border = { top: 30, left: 5, right: 5, bottom: 5 };
 
             // The top-left of the frame is the top-left of the window, and we'll
             // put the client 10px in. That means we should only touch the width
             // and height.
-            this._server.configureWindow(this._wm, this.frameWindowId, { x: geom.x, y: geom.y, width: geom.width + 20, height: geom.height + 20 });
+            this._server.configureWindow(this._wm, this.frameWindowId, { x: geom.x, y: geom.y,
+                                                                         width: geom.width + border.left + border.right,
+                                                                         height: geom.height + border.top + border.bottom });
 
             if (forceClientConfigure || clientGeom.width != geom.width || clientGeom.height != geom.height) {
-                this._server.configureWindow(this._wm, this.clientWindowId, { x: 10, y: 10, width: geom.width, height: geom.height });
+                this._server.configureWindow(this._wm, this.clientWindowId, { x: border.left, y: border.top, width: geom.width, height: geom.height });
             }
         },
 
