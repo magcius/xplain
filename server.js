@@ -242,6 +242,7 @@
             this._syncPointerEvents();
             this._server.sendEvent({ type: "MapNotify",
                                      windowId: this.windowId });
+            this._server.damageWindow(this);
         },
         unmap: function() {
             if (!this.mapped)
@@ -251,6 +252,7 @@
             this._syncPointerEvents();
             this._server.sendEvent({ type: "UnmapNotify",
                                      windowId: this.windowId });
+            this._server.damageWindow(this);
         },
         unparentWindow: function() {
             // Damage the region that will be exposed when the
@@ -989,13 +991,11 @@
                 // Only actually map the window if we unsuccessfully
                 // managed to send a MapRequest.
                 serverWindow.map();
-                this.damageWindow(serverWindow);
             }
         },
         unmapWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.unmap();
-            this.damageWindow(serverWindow);
         },
         raiseWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
