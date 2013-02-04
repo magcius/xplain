@@ -104,6 +104,37 @@
         },
     });
 
+    var Launcher = new Class({
+        Extends: Window,
+        initialize: function(imageSrc, callback) {
+            this.parent();
+            this._image = new Image();
+            this._image.src = imageSrc;
+            this._callback = callback;
+        },
+        connect: function(server) {
+            this.parent(server);
+            this.moveResize(0, 0, this._image.width, this._image.height);
+            this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
+            this._server.defineCursor(this, this._windowId, "pointer");
+            this._server.selectInput(this, this._windowId, ["ButtonPress"]);
+        },
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "ButtonPress":
+                return this._callback.call(null);
+            default:
+                return this.parent(event);
+            }
+        },
+        expose: function(wrapper) {
+            wrapper.drawWithContext(function(ctx) {
+                ctx.drawImage(this._image, 0, 0, this.width, this.height);
+            }.bind(this));
+            wrapper.clearDamage();
+        },
+    });
+
     var _server = new Server(1024, 768);
     var server = _server.publicServer;
     document.querySelector(".server").appendChild(_server.elem);
@@ -114,6 +145,11 @@
     var w = new BackgroundWindow();
     w.connect(server);
     w.map();
+
+    var launcher = new Launcher('TerminalIcon.png', newWindow);
+    launcher.connect(server);
+    launcher.moveResize(10, 10, undefined, undefined);
+    launcher.map();
 
     function animWindow(window, freq, amplitude) {
         var delay = 50;
@@ -175,12 +211,6 @@
         setupButton(button);
         button.clickCallback = function(event) {
             animTask.toggle();
-        };
-
-        button = new SimpleButton('#ffff00', '#ffffcc');
-        setupButton(button);
-        button.clickCallback = function(event) {
-            newWindow();
         };
     }
 
