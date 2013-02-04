@@ -356,6 +356,9 @@
                 return false;
             return true;
         },
+        getGeometry: function() {
+            return { x: this.x, y: this.y, width: this.width, height: this.height };
+        },
     });
 
     var ServerClient = new Class({
@@ -473,6 +476,7 @@
         'raiseWindow',
         'lowerWindow',
         'moveResizeWindow',
+        'getGeometry',
         'changeAttributes',
         'changeProperty',
         'defineCursor',
@@ -1088,6 +1092,10 @@
         moveResizeWindow: function(client, windowId, x, y, width, height) {
             var serverWindow = this._windowsById[windowId];
             this._configureWindow(client, serverWindow, x, y, width, height);
+        },
+        getGeometry: function(client, windowId) {
+            var serverWindow = this._windowsById[windowId];
+            return serverWindow.getGeometry();
         },
         changeAttributes: function(client, windowId, attributes) {
             var serverWindow = this._windowsById[windowId];
