@@ -53,7 +53,7 @@
 
             width = width === undefined ? this.width : width;
             height = height === undefined ? this.height : height;
-            this._server.moveResizeWindow(this, this._windowId, x | 0, y | 0, width | 0, height | 0);
+            this._server.moveResizeWindow(this, this._windowId, x, y, width, height);
         },
 
         getRootCoords: function() {

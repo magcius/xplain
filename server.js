@@ -290,13 +290,13 @@
             event.type = "ConfigureRequest";
             if (!this._server.sendEvent(event, client)) {
                 if (props.x !== undefined)
-                    this.x = props.x;
+                    this.x = props.x | 0;
                 if (props.y !== undefined)
-                    this.y = props.y;
+                    this.y = props.y | 0;
                 if (props.width !== undefined)
-                    this.width = props.width;
+                    this.width = props.width | 0;
                 if (props.height !== undefined)
-                    this.height = props.height;
+                    this.height = props.height | 0;
 
                 this.shapeRegion.clear();
                 this.shapeRegion.init_rect(this.x, this.y, this.width, this.height);
