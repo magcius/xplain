@@ -477,6 +477,7 @@
         'lowerWindow',
         'moveResizeWindow',
         'getGeometry',
+        'translateCoordinates',
         'changeAttributes',
         'changeProperty',
         'defineCursor',
@@ -1096,6 +1097,21 @@
         getGeometry: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
             return serverWindow.getGeometry();
+        },
+        translateCoordinates: function(client, srcWindowId, destWindowId, x, y) {
+            var srcServerWindow = this._windowsById[srcWindowId];
+            var destServerWindow = this._windowsById[destWindowId];
+
+            var offs;
+            offs = srcServerWindow.calculateAbsoluteOffset(true);
+            x += offs.x;
+            y += offs.y;
+
+            offs = destServerWindow.calculateAbsoluteOffset(true);
+            x -= offs.x;
+            y -= offs.y;
+
+            return { x: x, y: y };
         },
         changeAttributes: function(client, windowId, attributes) {
             var serverWindow = this._windowsById[windowId];
