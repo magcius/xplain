@@ -303,7 +303,8 @@
         var stepsPerSec = 1000 / delay;
 
         var time = 0;
-        var origX = window.x;
+        var coords = window.getRootCoords();
+        var origX = coords.x;
 
         var step = freq * (Math.PI * 2 / stepsPerSec);
 
