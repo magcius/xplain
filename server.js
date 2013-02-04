@@ -272,9 +272,24 @@
         },
         _constructConfigureEventMoveResize: function(props) {
             // hasStack is the equivalent of (value_mask & CWStackMode) in real X11.
-            return { windowId: this.windowId,
-                     x: props.x, y: props.y, width: props.width, height: props.height,
-                     sibling: 0, detail: "Above", hasStack: false };
+            var event = { windowId: this.windowId,
+                          x: props.x, y: props.y, width: props.width, height: props.height,
+                          sibling: 0, detail: "Above", hasStack: false };
+
+            if (event.x === undefined || event.y === undefined) {
+                var offs = this.calculateAbsoluteOffset(false);
+                if (event.x === undefined)
+                    event.x = offs.x;
+                if (event.y === undefined)
+                    event.y = offs.y;
+            }
+
+            if (event.width === undefined)
+                event.width = this.width;
+            if (event.height === undefined)
+                event.height = this.height;
+
+            return event;
         },
         _constructConfigureEventStack: function(sibling, detail) {
             var offs = this.calculateAbsoluteOffset(false);
@@ -480,7 +495,7 @@
         'unmapWindow',
         'raiseWindow',
         'lowerWindow',
-        'moveResizeWindow',
+        'configureWindow',
         'getGeometry',
         'translateCoordinates',
         'changeAttributes',
@@ -1096,9 +1111,9 @@
             var serverWindow = this._windowsById[windowId];
             serverWindow.lower(client);
         },
-        moveResizeWindow: function(client, windowId, x, y, width, height) {
+        configureWindow: function(client, windowId, props) {
             var serverWindow = this._windowsById[windowId];
-            this._configureWindow(client, serverWindow, { x: x, y: y, width: width, height: height });
+            this._configureWindow(client, serverWindow, props);
         },
         getGeometry: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];

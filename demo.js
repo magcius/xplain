@@ -47,13 +47,7 @@
             this._server.unmapWindow(this, this._windowId);
         },
         moveResize: function(x, y, width, height) {
-            var coords = this.getRootCoords();
-            x = x === undefined ? coords.x : x;
-            y = y === undefined ? coords.y : y;
-
-            width = width === undefined ? this.width : width;
-            height = height === undefined ? this.height : height;
-            this._server.moveResizeWindow(this, this._windowId, x, y, width, height);
+            this._server.configureWindow(this, this._windowId, { x: x, y: y, width: width, height: height });
         },
 
         getRootCoords: function() {
@@ -186,10 +180,10 @@
             // The top-left of the frame is the top-left of the window, and we'll
             // put the client 10px in. That means we should only touch the width
             // and height.
-            this._server.moveResizeWindow(this._wm, this.frameWindowId, geom.x, geom.y, geom.width + 20, geom.height + 20);
+            this._server.configureWindow(this._wm, this.frameWindowId, { x: geom.x, y: geom.y, width: geom.width + 20, height: geom.height + 20 });
 
             if (forceClientConfigure || clientGeom.width != geom.width || clientGeom.height != geom.height) {
-                this._server.moveResizeWindow(this._wm, this.clientWindowId, 10, 10, geom.width, geom.height);
+                this._server.configureWindow(this._wm, this.clientWindowId, { x: 10, y: 10, width: geom.width, height: geom.height });
             }
         },
 
@@ -269,9 +263,8 @@
             // mapped, simply re-configure the window with whatever
             // it requested.
             if (!frame) {
-                this._server.moveResizeWindow(this, event.windowId,
-                                              event.x, event.y,
-                                              event.width, event.height);
+                this._server.configureWindow(this, event.windowId,
+                                             { x: event.x, y: event.y, width: event.width, height: event.height });
             } else {
                 // The frame will move/resize the window to its
                 // client coordinates.
