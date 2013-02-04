@@ -206,6 +206,14 @@
 
             this._syncGeometry(geom, true);
         },
+        _configureRequestStack: function(event) {
+            switch (event.detail) {
+            case "Above":
+                return this._server.raiseWindow(this._wm, this.frameWindowId);
+            case "Below":
+                return this._server.lowerWindow(this._wm, this.frameWindowId);
+            }
+        },
         configureRequest: function(event) {
             // ICCCM 4.1.5
 
@@ -216,6 +224,9 @@
 
             // We don't generate synthetic events quite yet.
             this._syncGeometry(event, false);
+
+            if (event.hasStack)
+                this._configureRequestStack(event);
         },
         expose: function(wrapper) {
             // background color takes care of it for now
