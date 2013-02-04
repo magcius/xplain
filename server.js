@@ -266,6 +266,18 @@
             this.parentServerWindow.inputWindow.appendChild(this.inputWindow);
             this._server.damageWindow(this);
         },
+        _constructConfigureEventMoveResize: function(x, y, width, height) {
+            // hasStack is the equivalent of (value_mask & CWStackMode) in real X11.
+            return { windowId: this.windowId,
+                     x: x, y: y, width: width, height: height,
+                     sibling: 0, detail: "Above", hasStack: false };
+        },
+        _constructConfigureEventStack: function(sibling, detail) {
+            var offs = this.calculateAbsoluteOffset(false);
+            return { windowId: this.windowId,
+                     x: offs.x, y: offs.y, width: this.width, height: this.height,
+                     sibling: sibling, detail: detail, hasStack: true };
+        },
         reconfigure: function(x, y, width, height) {
             this.x = x;
             this.y = y;
@@ -277,18 +289,26 @@
 
             positionElement(this.inputWindow, x, y, width, height);
 
-            this._server.sendEvent({ type: "ConfigureNotify",
-                                     windowId: this.windowId,
-                                     x: x, y: y, width: width, height: height });
+            var event = this._constructConfigureEventMoveResize(x, y, width, height);
+            event.type = "ConfigureNotify";
+            this._server.sendEvent(event);
         },
         raise: function() {
+            var sibling = this._server.getWindowIdFromDOMNode(this.parentServerWindow.inputWindow.firstChild);
+
             this.parentServerWindow.children.erase(this);
             this.parentServerWindow.children.unshift(this);
             this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
             this.parentServerWindow.inputWindow.appendChild(this.inputWindow);
             this._server.damageWindow(this);
+
+            var event = this._constructConfigureEventStack(sibling, "Above");
+            event.type = "ConfigureNotify";
+            this._server.sendEvent(event);
         },
         lower: function() {
+            var sibling = this._server.getWindowIdFromDOMNode(this.parentServerWindow.inputWindow.lastChild);
+
             // Damage the region that will be exposed when the
             // window is lowered to the bottom.
             this._server.damageWindow(this);
@@ -298,6 +318,10 @@
             this.parentServerWindow.children.push(serverWindow);
             this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
             this.parentServerWindow.inputWindow.insertBefore(this.inputWindow, this.parentServerWindow.inputWindow.firstChild);
+
+            var event = this._constructConfigureEventStack(sibling, "Below");
+            event.type = "ConfigureNotify";
+            this._server.sendEvent(event);
         },
     });
 
@@ -691,6 +715,13 @@
             // and mouseout, simply use mouseenter. Leaving the stage
             // won't quite work, but we can special case that later.
             this._container.addEventListener("mouseover", this._handleInputEnterLeave.bind(this));
+        },
+
+        getWindowIdFromDOMNode: function(node) {
+            if (!node._serverWindow)
+                return 0;
+
+            return node._serverWindow.windowId;
         },
         _getServerWindowFromDOMEvent: function(domEvent) {
             var domInputWindow = domEvent.target;
