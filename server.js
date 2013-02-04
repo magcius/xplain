@@ -270,10 +270,10 @@
             this.parentServerWindow.inputWindow.appendChild(this.inputWindow);
             this._server.damageWindow(this);
         },
-        _constructConfigureEventMoveResize: function(x, y, width, height) {
+        _constructConfigureEventMoveResize: function(props) {
             // hasStack is the equivalent of (value_mask & CWStackMode) in real X11.
             return { windowId: this.windowId,
-                     x: x, y: y, width: width, height: height,
+                     x: props.x, y: props.y, width: props.width, height: props.height,
                      sibling: 0, detail: "Above", hasStack: false };
         },
         _constructConfigureEventStack: function(sibling, detail) {
@@ -282,22 +282,26 @@
                      x: offs.x, y: offs.y, width: this.width, height: this.height,
                      sibling: sibling, detail: detail, hasStack: true };
         },
-        configureWindow: function(client, x, y, width, height) {
-            var eventBase = this._constructConfigureEventMoveResize(x, y, width, height);
+        configureWindow: function(client, props) {
+            var eventBase = this._constructConfigureEventMoveResize(props);
             var event;
 
             event = Object.create(eventBase);
             event.type = "ConfigureRequest";
             if (!this._server.sendEvent(event, client)) {
-                this.x = x;
-                this.y = y;
-                this.width = width;
-                this.height = height;
+                if (props.x !== undefined)
+                    this.x = props.x;
+                if (props.y !== undefined)
+                    this.y = props.y;
+                if (props.width !== undefined)
+                    this.width = props.width;
+                if (props.height !== undefined)
+                    this.height = props.height;
 
                 this.shapeRegion.clear();
-                this.shapeRegion.init_rect(x, y, width, height);
+                this.shapeRegion.init_rect(this.x, this.y, this.width, this.height);
 
-                positionElement(this.inputWindow, x, y, width, height);
+                positionElement(this.inputWindow, this.x, this.y, this.width, this.height);
 
                 event = Object.create(eventBase);
                 event.type = "ConfigureNotify";
@@ -576,7 +580,7 @@
             var rootWindow = this._createWindowInternal();
             rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             rootWindow.parentServerWindow = null;
-            this._configureWindow(this, rootWindow, 0, 0, this.width, this.height);
+            this._configureWindow(this, rootWindow, { x: 0, y: 0, width: this.width, height: this.height });
             rootWindow.map();
             return rootWindow;
         },
@@ -988,11 +992,11 @@
             damagedRegion.finalize();
         },
 
-        _configureWindow: function(client, serverWindow, x, y, width, height) {
+        _configureWindow: function(client, serverWindow, props) {
             // If the server window isn't mapped, just reconfigure
             // the window without doing any damage region stuff.
             if (!serverWindow.mapped) {
-                serverWindow.configureWindow(client, x, y, width, height);
+                serverWindow.configureWindow(client, props);
                 return;
             }
 
@@ -1002,7 +1006,7 @@
             var oldW = serverWindow.width, oldH = serverWindow.height;
 
             // Reconfigure the window -- this will modify the shape region.
-            if (!serverWindow.configureWindow(client, x, y, width, height)) {
+            if (!serverWindow.configureWindow(client, props)) {
                 // If we didn't actually reconfigure the window, don't redraw
                 // anything. It shouldn't actually affect anything in this case,
                 // but better safe than sorry.
@@ -1094,7 +1098,7 @@
         },
         moveResizeWindow: function(client, windowId, x, y, width, height) {
             var serverWindow = this._windowsById[windowId];
-            this._configureWindow(client, serverWindow, x, y, width, height);
+            this._configureWindow(client, serverWindow, { x: x, y: y, width: width, height: height });
         },
         getGeometry: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
