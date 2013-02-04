@@ -33,6 +33,7 @@
 
             this.frameWindowId = this._server.createWindow(this._wm);
             this._server.selectInput(this._wm, this.frameWindowId, ["Expose", "ButtonPress"]);
+            this._server.selectInput(this._wm, this.clientWindowId, ["ButtonPress"]);
             this._server.changeAttributes(this._wm, this.frameWindowId, { hasInput: true, backgroundColor: 'red' }); // for now
             this._server.reparentWindow(this._wm, this.clientWindowId, this.frameWindowId);
 
@@ -104,17 +105,25 @@
         },
 
         handleEvent: function(event) {
+            var frame = this._windowFrames[event.windowId];
+            var frameWasReceiver = !!(frame && frame.frameWindowId == event.windowId);
+
             switch (event.type) {
             case "MapRequest":
                 return this.mapRequest(event);
             case "ConfigureRequest":
                 return this.configureRequest(event);
-            // These should only happen for frame windows.
             case "ButtonPress":
+                // Raise on click.
+                this._server.configureWindow(this, frame.frameWindowId, { stackMode: "Above" });
+                if (frameWasReceiver)
+                    return frame.handleEvent(event);
+                break;
+
+            // These should only happen for frame windows.
             case "ButtonRelease":
             case "Motion":
             case "Expose":
-                var frame = this._windowFrames[event.windowId];
                 return frame.handleEvent(event);
             }
         },
