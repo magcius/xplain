@@ -46,12 +46,12 @@
         unmap: function() {
             this._server.unmapWindow(this, this._windowId);
         },
-        configure: function(x, y, width, height) {
+        moveResize: function(x, y, width, height) {
             x = x === undefined ? this.x : x;
             y = y === undefined ? this.y : y;
             width = width === undefined ? this.width : width;
             height = height === undefined ? this.height : height;
-            this._server.configureRequest(this, this._windowId, x | 0, y | 0, width | 0, height | 0);
+            this._server.moveResizeWindow(this, this._windowId, x | 0, y | 0, width | 0, height | 0);
         },
     });
 
@@ -65,7 +65,7 @@
         },
         connect: function(server) {
             this.parent(server);
-            this.configure(0, 0, server.width, server.height);
+            this.moveResize(0, 0, server.width, server.height);
         },
         expose: function(wrapper) {
             wrapper.drawWithContext(function(ctx) {
@@ -84,7 +84,7 @@
         },
         connect: function(server) {
             this.parent(server);
-            this.configure(0, 0, this._image.width, this._image.height);
+            this.moveResize(0, 0, this._image.width, this._image.height);
             this._server.selectInput(this,  this._windowId, ["ButtonPress"]);
         },
         handleEvent: function(event) {
@@ -177,7 +177,7 @@
         function animate() {
             var offs = Math.sin(time) * amplitude;
             var x = origX + offs;
-            window.configure(x, undefined, undefined, undefined);
+            window.moveResize(x, undefined, undefined, undefined);
             time += step;
             return true;
         }
@@ -193,7 +193,7 @@
 
         var w = new FakeWindow("TerminalScreenshot.png");
         w.connect(server);
-        w.configure(windowNumber * cascade, windowNumber * cascade, undefined, undefined);
+        w.moveResize(windowNumber * cascade, windowNumber * cascade, undefined, undefined);
         w.map();
 
         var button;
@@ -202,7 +202,7 @@
 
         button = new SimpleButton('#ff0000', '#ff6666');
         button.connect(server);
-        button.configure(700, 10, 20, 20);
+        button.moveResize(700, 10, 20, 20);
         button.reparent(w);
         button.map();
         button.clickCallback = function(event) {
@@ -213,7 +213,7 @@
         function setupButton(button) {
             button.connect(server);
             button.reparent(w);
-            button.configure(buttonX, 10, 20, 20);
+            button.moveResize(buttonX, 10, 20, 20);
             button.map();
             buttonX += 30;
         }
@@ -249,9 +249,9 @@
                 }
                 return true;
                 case "Motion":
-                w.configure(owp.x + event.rootX - omp.x,
-                            owp.y + event.rootY - omp.y,
-                            undefined, undefined);
+                w.moveResize(owp.x + event.rootX - omp.x,
+                             owp.y + event.rootY - omp.y,
+                             undefined, undefined);
             }
             return false;
         };

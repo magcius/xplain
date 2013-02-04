@@ -461,7 +461,7 @@
         'unmapWindow',
         'raiseWindow',
         'lowerWindow',
-        'configureRequest',
+        'moveResizeWindow',
         'changeAttributes',
         'changeProperty',
         'defineCursor',
@@ -1070,7 +1070,7 @@
             var serverWindow = this._windowsById[windowId];
             serverWindow.lower(client);
         },
-        configureRequest: function(client, windowId, x, y, width, height) {
+        moveResizeWindow: function(client, windowId, x, y, width, height) {
             var serverWindow = this._windowsById[windowId];
             this._configureWindow(client, serverWindow, x, y, width, height);
         },
