@@ -252,6 +252,38 @@
             this._server.sendEvent({ type: "UnmapNotify",
                                      windowId: this.windowId });
         },
+        unparentWindow: function() {
+            // Damage the region that will be exposed when the
+            // window is destroyed.
+            this._server.damageWindow(this);
+
+            this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
+            this.parentServerWindow.children.erase(this);
+        },
+        parentWindow: function(parentServerWindow) {
+            this.parentServerWindow = parentServerWindow;
+            this.parentServerWindow.children.unshift(this);
+            this.parentServerWindow.inputWindow.appendChild(this.inputWindow);
+            this._server.damageWindow(this);
+        },
+        raise: function() {
+            this.parentServerWindow.children.erase(this);
+            this.parentServerWindow.children.unshift(this);
+            this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
+            this.parentServerWindow.inputWindow.appendChild(this.inputWindow);
+            this._server.damageWindow(this);
+        },
+        lower: function() {
+            // Damage the region that will be exposed when the
+            // window is lowered to the bottom.
+            this._server.damageWindow(this);
+
+            var parentServerWindow = serverWindow.parentServerWindow;
+            this.parentServerWindow.children.erase(serverWindow);
+            this.parentServerWindow.children.push(serverWindow);
+            this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
+            this.parentServerWindow.inputWindow.insertBefore(this.inputWindow, this.parentServerWindow.inputWindow.firstChild);
+        },
     });
 
     var ServerClient = new Class({
@@ -900,28 +932,13 @@
             this._windowsById[windowId] = serverWindow;
             return serverWindow;
         },
-        _damageWindow: function(serverWindow) {
+        damageWindow: function(serverWindow) {
             if (!serverWindow.mapped)
                 return;
 
             var region = this._calculateEffectiveRegionForWindow(serverWindow);
             this.damageRegion(region);
             region.finalize();
-        },
-        _unparentWindow: function(serverWindow) {
-            // Damage the region that will be exposed when the
-            // window is destroyed.
-            this._damageWindow(serverWindow);
-
-            var parentServerWindow = serverWindow.parentServerWindow;
-            parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
-            parentServerWindow.children.erase(serverWindow);
-        },
-        _parentWindow: function(serverWindow, parentServerWindow) {
-            serverWindow.parentServerWindow = parentServerWindow;
-            parentServerWindow.children.unshift(serverWindow);
-            parentServerWindow.inputWindow.appendChild(serverWindow.inputWindow);
-            this._damageWindow(serverWindow);
         },
         getWindowParent: function(windowId) {
             var serverWindow = this._windowsById[windowId];
@@ -945,7 +962,7 @@
         },
         createWindow: function(client) {
             var serverWindow = this._createWindowInternal();
-            this._parentWindow(serverWindow, this._rootWindow);
+            serverWindow.parentWindow(this._rootWindow);
             return serverWindow.windowId;
         },
         destroyWindow: function(client, windowId) {
@@ -954,15 +971,15 @@
             if (this._grabClient !== null && this._grabClient.grabWindow)
                 this._ungrabPointer();
 
-            this._unparentWindow(serverWindow);
+            serverWindow.unparentWindow();
             serverWindow.finalize();
             this._windowsById[windowId] = null;
         },
         reparentWindow: function(client, windowId, newParentId) {
             var serverWindow = this._windowsById[windowId];
             var newServerParentWindow = this._windowsById[newParentId];
-            this._unparentWindow(serverWindow);
-            this._parentWindow(serverWindow, newServerParentWindow);
+            serverWindow.unparentWindow();
+            serverWindow.parentWindow(newServerParentWindow);
         },
         mapWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
@@ -972,35 +989,21 @@
                 // Only actually map the window if we unsuccessfully
                 // managed to send a MapRequest.
                 serverWindow.map();
-                this._damageWindow(serverWindow);
+                this.damageWindow(serverWindow);
             }
         },
         unmapWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.unmap();
-            this._damageWindow(serverWindow);
+            this.damageWindow(serverWindow);
         },
         raiseWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
-            var parentServerWindow = serverWindow.parentServerWindow;
-            parentServerWindow.children.erase(serverWindow);
-            parentServerWindow.children.unshift(serverWindow);
-            parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
-            parentServerWindow.inputWindow.appendChild(serverWindow.inputWindow);
-            this._damageWindow(serverWindow);
+            serverWindow.raise();
         },
         lowerWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
-
-            // Damage the region that will be exposed when the
-            // window is lowered to the bottom.
-            this._damageWindow(serverWindow);
-
-            var parentServerWindow = serverWindow.parentServerWindow;
-            parentServerWindow.children.erase(serverWindow);
-            parentServerWindow.children.push(serverWindow);
-            parentServerWindow.inputWindow.removeChild(serverWindow.inputWindow);
-            parentServerWindow.inputWindow.insertBefore(serverWindow.inputWindow, parentServerWindow.inputWindow.firstChild);
+            serverWindow.lower();
         },
         configureRequest: function(client, windowId, x, y, width, height) {
             var serverWindow = this._windowsById[windowId];
@@ -1020,7 +1023,7 @@
         },
         invalidateWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
-            this._damageWindow(serverWindow);
+            this.damageWindow(serverWindow);
         },
         grabPointer: function(client, grabWindowId, ownerEvents, events, cursor) {
             // TODO: pointerMode, keyboardMode
