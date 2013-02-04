@@ -1026,8 +1026,9 @@
             this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion, oldX, oldY, newX, newY, oldW, oldH);
         },
 
-        _grabPointer: function(serverClient, grabWindow, ownerEvents, events) {
+        _grabPointer: function(serverClient, grabWindow, ownerEvents, events, cursor) {
             this._grabClient = new ServerGrabClient(this, serverClient, grabWindow, ownerEvents, events);
+            setCursorStylesheet(this._cursorStyleSheet, cursor);
         },
         _ungrabPointer: function() {
             this._grabClient = null;
@@ -1148,9 +1149,7 @@
 
             var grabWindow = this._windowsById[grabWindowId];
             var serverClient = client._serverClient;
-            this._grabPointer(serverClient, grabWindow, ownerEvents, events);
-
-            setCursorStylesheet(this._cursorStyleSheet, cursor);
+            this._grabPointer(serverClient, grabWindow, ownerEvents, events, cursor);
         },
         ungrabPointer: function(client) {
             // Clients can't ungrab an implicit grab.
