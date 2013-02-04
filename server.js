@@ -66,8 +66,8 @@
 
     function isEventSubstructureRedirect(event) {
         switch (event.type) {
-            case "MapRequest":
-            case "ConfigureRequest":
+        case "MapRequest":
+        case "ConfigureRequest":
             return true;
         }
         return false;
@@ -75,11 +75,11 @@
 
     function isEventInputEvent(event) {
         switch (event.type) {
-            case "Enter":
-            case "Leave":
-            case "ButtonPress":
-            case "ButtonRelease":
-            case "Motion":
+        case "Enter":
+        case "Leave":
+        case "ButtonPress":
+        case "ButtonRelease":
+        case "Motion":
             return true;
         }
         return false;
@@ -807,8 +807,8 @@
             event.type = eventType;
 
             switch (eventType) {
-                case "ButtonPress":
-                case "ButtonRelease":
+            case "ButtonPress":
+            case "ButtonRelease":
                 event.button = domEvent.which;
                 break;
             }

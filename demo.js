@@ -89,9 +89,9 @@
         },
         handleEvent: function(event) {
             switch (event.type) {
-                case "ButtonPress":
+            case "ButtonPress":
                 return this.raise();
-                default:
+            default:
                 return this.parent(event);
             }
         },
@@ -134,11 +134,11 @@
                 return;
 
             switch(event.type) {
-                case "Enter":
+            case "Enter":
                 return this._setHover(true);
-                case "Leave":
+            case "Leave":
                 return this._setHover(false);
-                default:
+            default:
                 return this.parent(event);
             }
         },
@@ -238,7 +238,7 @@
         setupButton(button);
         button.eventHook = function(event) {
             switch (event.type) {
-                case "ButtonPress":
+            case "ButtonPress":
                 isGrabbed = !isGrabbed;
                 if (isGrabbed) {
                     omp = { x: event.rootX, y: event.rootY };
@@ -248,7 +248,7 @@
                     this._server.ungrabPointer(this);
                 }
                 return true;
-                case "Motion":
+            case "Motion":
                 w.moveResize(owp.x + event.rootX - omp.x,
                              owp.y + event.rootY - omp.y,
                              undefined, undefined);
