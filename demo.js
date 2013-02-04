@@ -127,7 +127,7 @@
     }
 
     var cascade = 40;
-    var windowNumber = 1;
+    var windowNumber = 0;
 
     function newWindow() {
         ++windowNumber;
@@ -135,6 +135,7 @@
         var w = new FakeWindow("TerminalScreenshot.png");
         w.connect(server);
         w.moveResize(windowNumber * cascade, windowNumber * cascade, undefined, undefined);
+        w.changeProperty("WM_NAME", "Terminal Window {i}".substitute({ i: windowNumber }));
         w.map();
 
         var button;

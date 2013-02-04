@@ -49,6 +49,9 @@
         moveResize: function(x, y, width, height) {
             this._server.configureWindow(this, this._windowId, { x: x, y: y, width: width, height: height });
         },
+        changeProperty: function(name, value) {
+            this._server.changeProperty(this, this._windowId, name, value);
+        },
 
         getRootCoords: function() {
             var clientGeom = this._server.getGeometry(this, this._windowId);
