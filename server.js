@@ -379,11 +379,12 @@
             if (this._isInterestedInWindowEvent(windowId, event.type))
                 return true;
 
+            var serverWindow = this._server.getServerWindow(windowId);
             if (isEventSubstructureRedirect(event)) {
-                while (windowId != 0) {
-                    if (this._isInterestedInWindowEvent(windowId, "SubstructureRedirect"))
+                while (serverWindow) {
+                    if (this._isInterestedInWindowEvent(serverWindow.windowId, "SubstructureRedirect"))
                         return true;
-                    windowId = this._server.getWindowParent(windowId);
+                    serverWindow = serverWindow.parentServerWindow;
                 }
             }
 
@@ -1033,12 +1034,8 @@
             this.damageRegion(region);
             region.finalize();
         },
-        getWindowParent: function(windowId) {
-            var serverWindow = this._windowsById[windowId];
-            if (serverWindow && serverWindow.parentServerWindow)
-                return serverWindow.parentServerWindow.windowId;
-            else
-                return 0;
+        getServerWindow: function(windowId) {
+            return this._windowsById[windowId];
         },
 
         //
