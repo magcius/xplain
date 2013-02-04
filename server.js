@@ -829,20 +829,18 @@
             this.sendEvent(event);
         },
         _handleInputButtonPress: function(domEvent) {
-            if (!this._handleInputSimple(domEvent))
-                return;
+            this._handleInputSimple(domEvent);
 
             // If there's no active explicit pointer grab, take an implicit one.
             // Do this after event delivery for a slight perf gain in case a
             // client takes their own grab.
             if (this._grabClient === null) {
                 var serverWindow = this._getServerWindowFromDOMEvent(domEvent);
-                this._grabPointer(null, serverWindow, false, []);
+                this._grabPointer(null, serverWindow, false, [], serverWindow.inputWindow.style.cursor);
             }
         },
         _handleInputButtonRelease: function(domEvent) {
-            if (!this._handleInputSimple(domEvent))
-                return;
+            this._handleInputSimple(domEvent);
 
             // Only release if we have an implicit grab.
             if (this._grabClient.isImplicitGrab)
