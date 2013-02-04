@@ -278,50 +278,72 @@
                      x: offs.x, y: offs.y, width: this.width, height: this.height,
                      sibling: sibling, detail: detail, hasStack: true };
         },
-        reconfigure: function(x, y, width, height) {
-            this.x = x;
-            this.y = y;
-            this.width = width;
-            this.height = height;
+        configureWindow: function(client, x, y, width, height) {
+            var eventBase = this._constructConfigureEventMoveResize(x, y, width, height);
+            var event;
 
-            this.shapeRegion.clear();
-            this.shapeRegion.init_rect(x, y, width, height);
+            event = Object.create(eventBase);
+            event.type = "ConfigureRequest";
+            if (!this._server.sendEvent(event, client)) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
 
-            positionElement(this.inputWindow, x, y, width, height);
+                this.shapeRegion.clear();
+                this.shapeRegion.init_rect(x, y, width, height);
 
-            var event = this._constructConfigureEventMoveResize(x, y, width, height);
-            event.type = "ConfigureNotify";
-            this._server.sendEvent(event);
+                positionElement(this.inputWindow, x, y, width, height);
+
+                event = Object.create(eventBase);
+                event.type = "ConfigureNotify";
+                this._server.sendEvent(event);
+
+                return true;
+            }
+            return false;
         },
-        raise: function() {
+        raise: function(client) {
             var sibling = this._server.getWindowIdFromDOMNode(this.parentServerWindow.inputWindow.firstChild);
+            var eventBase = this._constructConfigureEventStack(sibling, "Above");
+            var event;
 
-            this.parentServerWindow.children.erase(this);
-            this.parentServerWindow.children.unshift(this);
-            this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
-            this.parentServerWindow.inputWindow.appendChild(this.inputWindow);
-            this._server.damageWindow(this);
+            event = Object.create(eventBase);
+            event.type = "ConfigureRequest";
+            if (!this._server.sendEvent(event, client)) {
+                this.parentServerWindow.children.erase(this);
+                this.parentServerWindow.children.unshift(this);
+                this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
+                this.parentServerWindow.inputWindow.appendChild(this.inputWindow);
+                this._server.damageWindow(this);
 
-            var event = this._constructConfigureEventStack(sibling, "Above");
-            event.type = "ConfigureNotify";
-            this._server.sendEvent(event);
+                event = Object.create(eventBase);
+                event.type = "ConfigureNotify";
+                this._server.sendEvent(event);
+            }
         },
-        lower: function() {
+        lower: function(client) {
             var sibling = this._server.getWindowIdFromDOMNode(this.parentServerWindow.inputWindow.lastChild);
+            var eventBase = this._constructConfigureEventStack(sibling, "Below");
+            var event;
 
-            // Damage the region that will be exposed when the
-            // window is lowered to the bottom.
-            this._server.damageWindow(this);
+            event = Object.create(eventBase);
+            event.type = "ConfigureRequest";
+            if (!this._server.sendEvent(event, client)) {
+                // Damage the region that will be exposed when the
+                // window is lowered to the bottom.
+                this._server.damageWindow(this);
 
-            var parentServerWindow = serverWindow.parentServerWindow;
-            this.parentServerWindow.children.erase(serverWindow);
-            this.parentServerWindow.children.push(serverWindow);
-            this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
-            this.parentServerWindow.inputWindow.insertBefore(this.inputWindow, this.parentServerWindow.inputWindow.firstChild);
+                var parentServerWindow = serverWindow.parentServerWindow;
+                this.parentServerWindow.children.erase(serverWindow);
+                this.parentServerWindow.children.push(serverWindow);
+                this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
+                this.parentServerWindow.inputWindow.insertBefore(this.inputWindow, this.parentServerWindow.inputWindow.firstChild);
 
-            var event = this._constructConfigureEventStack(sibling, "Below");
-            event.type = "ConfigureNotify";
-            this._server.sendEvent(event);
+                event = Object.create(eventBase);
+                event.type = "ConfigureNotify";
+                this._server.sendEvent(event);
+            }
         },
     });
 
@@ -537,7 +559,7 @@
             var rootWindow = this._createWindowInternal();
             rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             rootWindow.parentServerWindow = null;
-            this._configureWindow(rootWindow, 0, 0, this.width, this.height);
+            this._configureWindow(this, rootWindow, 0, 0, this.width, this.height);
             rootWindow.map();
             return rootWindow;
         },
@@ -873,11 +895,11 @@
             }
         },
 
-        _configureWindow: function(serverWindow, x, y, width, height) {
+        _configureWindow: function(client, serverWindow, x, y, width, height) {
             // If the server window isn't mapped, just reconfigure
             // the window without doing any damage region stuff.
             if (!serverWindow.mapped) {
-                serverWindow.reconfigure(x, y, width, height);
+                serverWindow.configureWindow(client, x, y, width, height);
                 return;
             }
 
@@ -911,7 +933,12 @@
             var oldW = serverWindow.width, oldH = serverWindow.height;
 
             // Reconfigure the window -- this will modify the shape region.
-            serverWindow.reconfigure(x, y, width, height);
+            if (!serverWindow.configureWindow(client, x, y, width, height)) {
+                // If we didn't actually reconfigure the window, don't redraw
+                // anything. It shouldn't actually affect anything in this case,
+                // but better safe than sorry.
+                return;
+            }
 
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             var newTxform = serverWindow.calculateAbsoluteOffset(true);
@@ -1037,15 +1064,15 @@
         },
         raiseWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
-            serverWindow.raise();
+            serverWindow.raise(client);
         },
         lowerWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
-            serverWindow.lower();
+            serverWindow.lower(client);
         },
         configureRequest: function(client, windowId, x, y, width, height) {
             var serverWindow = this._windowsById[windowId];
-            this._configureWindow(serverWindow, x, y, width, height);
+            this._configureWindow(client, serverWindow, x, y, width, height);
         },
         changeAttributes: function(client, windowId, attributes) {
             var serverWindow = this._windowsById[windowId];
