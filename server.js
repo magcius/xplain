@@ -270,11 +270,48 @@
             this.parentServerWindow.inputWindow.appendChild(this.inputWindow);
             this._server.damageWindow(this);
         },
-        _constructConfigureEventMoveResize: function(props) {
+
+        _siblingIndex: function(sibling) {
+            return sibling.parentServerWindow.children.indexOf(sibling);
+        },
+        // Return the index that we should be inserted to, given
+        // sibling and mode.
+        _insertIntoStack: function(sibling, mode) {
+            var parent = this.parentServerWindow;
+            parent.inputWindow.removeChild(this.inputWindow);
+            parent.children.erase(this);
+            switch (mode) {
+            case "Above":
+                if (sibling) {
+                    var siblingIndex = this._siblingIndex(sibling);
+                    parent.inputWindow.insertBefore(this.inputWindow, sibling.inputWindow);
+                    parent.children.splice(siblingIndex, 0, this);
+                } else {
+                    parent.inputWindow.insertBefore(this.inputWindow, parent.firstChild);
+                    parent.children.unshift(this);
+                }
+                break;
+            case "Below":
+                if (sibling) {
+                    var siblingIndex = this._siblingIndex(sibling);
+                    parent.inputWindow.insertAfter(this.inputWindow, sibling.inputWindow);
+                    parent.children.splice(siblingIndex + 1, 0, this);
+                } else {
+                    parent.inputWindow.insertAfter(this.inputWidow, parent.lastChild);
+                    parent.children.push(this);
+                }
+                break;
+                // TODO: TopIf, BottomIf, Opposite. Ever seen in practice?
+            }
+            this._server.damageWindow(this);
+        },
+
+        _constructConfigureEvent: function(props) {
             // hasStack is the equivalent of (value_mask & CWStackMode) in real X11.
             var event = { windowId: this.windowId,
                           x: props.x, y: props.y, width: props.width, height: props.height,
-                          sibling: 0, detail: "Above", hasStack: false };
+                          sibling: props.sibling, detail: props.stackMode,
+                          hasStack: props.stackMode !== undefined };
 
             if (event.x === undefined || event.y === undefined) {
                 var offs = this.calculateAbsoluteOffset(false);
@@ -289,16 +326,16 @@
             if (event.height === undefined)
                 event.height = this.height;
 
+            if (event.sibling === undefined)
+                event.sibling = 0;
+            if (event.detail === undefined)
+                event.detail = "Above";
+
             return event;
         },
-        _constructConfigureEventStack: function(sibling, detail) {
-            var offs = this.calculateAbsoluteOffset(false);
-            return { windowId: this.windowId,
-                     x: offs.x, y: offs.y, width: this.width, height: this.height,
-                     sibling: sibling, detail: detail, hasStack: true };
-        },
+
         configureWindow: function(client, props) {
-            var eventBase = this._constructConfigureEventMoveResize(props);
+            var eventBase = this._constructConfigureEvent(props);
             var event;
 
             event = Object.create(eventBase);
@@ -318,6 +355,9 @@
 
                 positionElement(this.inputWindow, this.x, this.y, this.width, this.height);
 
+                if (props.stackMode)
+                    this._insertIntoStack(this._server.getServerWindow(props.sibling), props.stackMode);
+
                 event = Object.create(eventBase);
                 event.type = "ConfigureNotify";
                 this._server.sendEvent(event);
@@ -325,48 +365,6 @@
                 return true;
             }
             return false;
-        },
-        raise: function(client) {
-            var sibling = this._server.getWindowIdFromDOMNode(this.parentServerWindow.inputWindow.firstChild);
-            var eventBase = this._constructConfigureEventStack(sibling, "Above");
-            var event;
-
-            event = Object.create(eventBase);
-            event.type = "ConfigureRequest";
-            if (!this._server.sendEvent(event, client)) {
-                this.parentServerWindow.children.erase(this);
-                this.parentServerWindow.children.unshift(this);
-                this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
-                this.parentServerWindow.inputWindow.appendChild(this.inputWindow);
-                this._server.damageWindow(this);
-
-                event = Object.create(eventBase);
-                event.type = "ConfigureNotify";
-                this._server.sendEvent(event);
-            }
-        },
-        lower: function(client) {
-            var sibling = this._server.getWindowIdFromDOMNode(this.parentServerWindow.inputWindow.lastChild);
-            var eventBase = this._constructConfigureEventStack(sibling, "Below");
-            var event;
-
-            event = Object.create(eventBase);
-            event.type = "ConfigureRequest";
-            if (!this._server.sendEvent(event, client)) {
-                // Damage the region that will be exposed when the
-                // window is lowered to the bottom.
-                this._server.damageWindow(this);
-
-                var parentServerWindow = serverWindow.parentServerWindow;
-                this.parentServerWindow.children.erase(serverWindow);
-                this.parentServerWindow.children.push(serverWindow);
-                this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
-                this.parentServerWindow.inputWindow.insertBefore(this.inputWindow, this.parentServerWindow.inputWindow.firstChild);
-
-                event = Object.create(eventBase);
-                event.type = "ConfigureNotify";
-                this._server.sendEvent(event);
-            }
         },
         filterEvent: function(event) {
             // If we're an override redirect window and the event is a MapRequest
@@ -493,8 +491,6 @@
         'reparentWindow',
         'mapWindow',
         'unmapWindow',
-        'raiseWindow',
-        'lowerWindow',
         'configureWindow',
         'getGeometry',
         'translateCoordinates',
@@ -1102,14 +1098,6 @@
         unmapWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.unmap();
-        },
-        raiseWindow: function(client, windowId) {
-            var serverWindow = this._windowsById[windowId];
-            serverWindow.raise(client);
-        },
-        lowerWindow: function(client, windowId) {
-            var serverWindow = this._windowsById[windowId];
-            serverWindow.lower(client);
         },
         configureWindow: function(client, windowId, props) {
             var serverWindow = this._windowsById[windowId];

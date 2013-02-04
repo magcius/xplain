@@ -32,10 +32,10 @@
         expose: function() {
         },
         raise: function() {
-            this._server.raiseWindow(this, this._windowId);
+            this._server.configureWindow(this, this._windowId, { stackMode: "Above" });
         },
         lower: function() {
-            this._server.lowerWindow(this, this._windowId);
+            this._server.configureWindow(this, this._windowId, { stackMode: "Below" });
         },
         destroy: function() {
             this._server.destroyWindow(this, this._windowId);
@@ -201,12 +201,7 @@
             this._syncGeometry(geom, true);
         },
         _configureRequestStack: function(event) {
-            switch (event.detail) {
-            case "Above":
-                return this._server.raiseWindow(this._wm, this.frameWindowId);
-            case "Below":
-                return this._server.lowerWindow(this._wm, this.frameWindowId);
-            }
+            this._server.configureWindow(this._wm, this.frameWindowId, { stackMode: event.detail });
         },
         configureRequest: function(event) {
             // ICCCM 4.1.5
