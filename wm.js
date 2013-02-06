@@ -26,6 +26,9 @@
             if (forceClientConfigure || clientGeom.width != geom.width || clientGeom.height != geom.height) {
                 this._server.configureWindow(this._wm, this.clientWindowId, { x: border.left, y: border.top, width: geom.width, height: geom.height });
             }
+
+            // Invalidate the frame that's already been partially painted.
+            this._server.invalidateWindow(this._wm, this.frameWindowId);
         },
 
         construct: function() {
