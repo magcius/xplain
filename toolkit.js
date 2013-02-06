@@ -26,6 +26,9 @@
             this.width = event.width;
             this.height = event.height;
         },
+        invalidate: function() {
+            this._server.invalidateWindow(this, this._windowId);
+        },
         reparent: function(newParent) {
             this._server.reparentWindow(this, this._windowId, newParent._windowId);
         },

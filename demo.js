@@ -10,8 +10,11 @@
         },
         connect: function(server) {
             this.parent(server);
-            this.moveResize(0, 0, server.width, server.height);
             this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
+            this._image.addEventListener("load", function() {
+                this.moveResize(0, 0, server.width, server.height);
+                this.invalidate();
+            }.bind(this));
         },
         expose: function(wrapper) {
             wrapper.drawWithContext(function(ctx) {
@@ -30,7 +33,10 @@
         },
         connect: function(server) {
             this.parent(server);
-            this.moveResize(0, 0, this._image.width, this._image.height);
+            this._image.addEventListener("load", function() {
+                this.moveResize(0, 0, this._image.width, this._image.height);
+                this.invalidate();
+            }.bind(this));
         },
         expose: function(wrapper) {
             wrapper.drawWithContext(function(ctx) {
@@ -68,10 +74,13 @@
         },
         connect: function(server) {
             this.parent(server);
-            this.moveResize(0, 0, this._image.width, this._image.height);
             this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
             this._server.defineCursor(this, this._windowId, "pointer");
             this._server.selectInput(this, this._windowId, ["ButtonPress"]);
+            this._image.addEventListener("load", function() {
+                this.moveResize(0, 0, this._image.width, this._image.height);
+                this.invalidate();
+            }.bind(this));
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -165,9 +174,9 @@
         button.clickCallback = function(event) {
             animTask.toggle();
         };
-    }
 
-    newWindow();
+        return w;
+    }
 
     window.addEventListener("keydown", function(evt) {
         var letter = String.fromCharCode(evt.keyCode);
