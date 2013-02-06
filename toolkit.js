@@ -63,6 +63,28 @@
         },
     });
 
+    var ImageWindow = new Class({
+        Extends: Window,
+        initialize: function(src) {
+            this.parent();
+            this._image = new Image();
+            this._image.src = src;
+        },
+        connect: function(server) {
+            this.parent(server);
+            this._image.addEventListener("load", function() {
+                this.moveResize(0, 0, this._image.width, this._image.height);
+                this.invalidate();
+            }.bind(this));
+        },
+        expose: function(wrapper) {
+            wrapper.drawWithContext(function(ctx) {
+                ctx.drawImage(this._image, 0, 0, this.width, this.height);
+            }.bind(this));
+            wrapper.clearDamage();
+        },
+    });
+
     var Button = new Class({
         Extends: Window,
         initialize: function() {
@@ -134,6 +156,7 @@
     });
 
     exports.Window = Window;
+    exports.ImageWindow = ImageWindow;
     exports.Button = Button;
 
 })(window);

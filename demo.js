@@ -1,49 +1,14 @@
 (function(exports) {
 
     var BackgroundWindow = new Class({
-        Extends: Window,
+        Extends: ImageWindow,
         initialize: function() {
-            this.parent();
-            this._image = new Image();
-            this._image.src = "WoodBackground.jpg";
-            this.hasInput = false;
+            this.parent("WoodBackground.jpg");
         },
         connect: function(server) {
             this.parent(server);
             this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
-            this._image.addEventListener("load", function() {
-                this.moveResize(0, 0, server.width, server.height);
-                this.invalidate();
-            }.bind(this));
-        },
-        expose: function(wrapper) {
-            wrapper.drawWithContext(function(ctx) {
-                ctx.drawImage(this._image, 0, 0, this.width, this.height);
-            }.bind(this));
-            wrapper.clearDamage();
-        },
-    });
-
-    var FakeWindow = new Class({
-        Extends: Window,
-        initialize: function(imageSrc) {
-            this.parent();
-            this._image = new Image();
-            this._image.src = imageSrc;
-        },
-        connect: function(server) {
-            this.parent(server);
-            this._image.addEventListener("load", function() {
-                this.moveResize(0, 0, this._image.width, this._image.height);
-                this.invalidate();
-            }.bind(this));
-        },
-        expose: function(wrapper) {
-            wrapper.drawWithContext(function(ctx) {
-                ctx.drawImage(this._image, 0, 0, this.width, this.height);
-            }.bind(this));
-            wrapper.clearDamage();
-        },
+        }
     });
 
     var SimpleButton = new Class({
@@ -65,11 +30,9 @@
     });
 
     var Launcher = new Class({
-        Extends: Window,
+        Extends: ImageWindow,
         initialize: function(imageSrc, callback) {
-            this.parent();
-            this._image = new Image();
-            this._image.src = imageSrc;
+            this.parent(imageSrc);
             this._callback = callback;
         },
         connect: function(server) {
@@ -77,10 +40,6 @@
             this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
             this._server.defineCursor(this, this._windowId, "pointer");
             this._server.selectInput(this, this._windowId, ["ButtonPress"]);
-            this._image.addEventListener("load", function() {
-                this.moveResize(0, 0, this._image.width, this._image.height);
-                this.invalidate();
-            }.bind(this));
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -89,12 +48,6 @@
             default:
                 return this.parent(event);
             }
-        },
-        expose: function(wrapper) {
-            wrapper.drawWithContext(function(ctx) {
-                ctx.drawImage(this._image, 0, 0, this.width, this.height);
-            }.bind(this));
-            wrapper.clearDamage();
         },
     });
 
@@ -141,7 +94,7 @@
     function newWindow() {
         ++windowNumber;
 
-        var w = new FakeWindow("TerminalScreenshot.png");
+        var w = new ImageWindow("TerminalScreenshot.png");
         w.connect(server);
         w.moveResize(windowNumber * cascade, windowNumber * cascade, undefined, undefined);
         w.changeProperty("WM_NAME", "Terminal Window {i}".substitute({ i: windowNumber }));
@@ -174,8 +127,6 @@
         button.clickCallback = function(event) {
             animTask.toggle();
         };
-
-        return w;
     }
 
     window.addEventListener("keydown", function(evt) {
