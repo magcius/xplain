@@ -73,7 +73,7 @@
         connect: function(server) {
             this.parent(server);
             this._image.addEventListener("load", function() {
-                this.moveResize(0, 0, this._image.width, this._image.height);
+                this.moveResize(undefined, undefined, this._image.width, this._image.height);
                 this.invalidate();
             }.bind(this));
         },
