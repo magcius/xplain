@@ -752,19 +752,22 @@
                 this._grabClient.sendEvent(event);
             } else {
                 var serverWindow = this._windowsById[event.windowId];
-                return this._clients.some(function(serverClient) {
+                var foundOneClient = false;
+                for (var i = 0; i < this._clients.length; i++) {
+                    var serverClient = this._clients[i];
                     if (serverClient.client == except)
-                        return false;
+                        continue;
 
                     if (!serverWindow.filterEvent(event))
-                        return false;
+                        continue;
 
                     if (!serverClient.isInterestedInEvent(event))
-                        return false;
+                        continue;
 
                     serverClient.sendEvent(event);
-                    return true;
-                });
+                    foundOneClient = true;
+                }
+                return foundOneClient;
             }
         },
 
