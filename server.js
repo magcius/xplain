@@ -392,19 +392,19 @@
             this._eventWindows = {};
         },
 
-        _isInterestedInWindowEvent: function(windowId, eventType) {
+        isInterestedInWindowEvent: function(windowId, eventType) {
             var listeningFor = this._eventWindows[windowId];
             return listeningFor && listeningFor.indexOf(eventType) >= 0;
         },
         isInterestedInEvent: function(event) {
             var windowId = event.windowId;
-            if (this._isInterestedInWindowEvent(windowId, event.type))
+            if (this.isInterestedInWindowEvent(windowId, event.type))
                 return true;
 
             var serverWindow = this._server.getServerWindow(windowId);
             if (isEventSubstructureRedirect(event)) {
                 while (serverWindow) {
-                    if (this._isInterestedInWindowEvent(serverWindow.windowId, "SubstructureRedirect"))
+                    if (this.isInterestedInWindowEvent(serverWindow.windowId, "SubstructureRedirect"))
                         return true;
                     serverWindow = serverWindow.parentServerWindow;
                 }
@@ -1071,8 +1071,25 @@
             client._serverClient = serverClient;
             this._clients.push(serverClient);
         },
+        _checkOtherClientsForEvent: function(windowId, eventType, except) {
+            return this._clients.some(function(otherClient) {
+                if (otherClient === except)
+                    return false;
+
+                return otherClient.isInterestedInWindowEvent(windowId, eventType);
+            });
+        },
         selectInput: function(client, windowId, eventTypes) {
             var serverClient = client._serverClient;
+
+            var checkEvent = (function checkEvent(eventType) {
+                if (eventTypes.indexOf(eventType) >= 0)
+                    if (this._checkOtherClientsForEvent(windowId, eventType, serverClient))
+                        throw new Error("BadAccess");
+            }).bind(this);
+            checkEvent("SubstructureRedirect");
+            checkEvent("ButtonPress");
+
             serverClient.selectInput(windowId, eventTypes);
         },
         createWindow: function(client) {
