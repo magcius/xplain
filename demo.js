@@ -137,4 +137,6 @@
             _server.queueFullRedraw();
     });
 
+    window._server = _server;
+
 })(window);
