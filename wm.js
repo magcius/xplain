@@ -45,6 +45,10 @@
 
             this._syncGeometry(geom, true);
         },
+        destroy: function() {
+            this._server.destroyWindow(this._wm, this.frameWindowId);
+        },
+
         _configureRequestStack: function(event) {
             this._server.configureWindow(this._wm, this.frameWindowId, { stackMode: event.detail });
         },
@@ -136,6 +140,8 @@
             switch (event.type) {
             case "MapRequest":
                 return this.mapRequest(event);
+            case "UnmapNotify":
+                return this.unmapNotify(event);
             case "ConfigureRequest":
                 return this.configureRequest(event);
             case "ButtonPress":
@@ -166,6 +172,14 @@
                 // client coordinates.
                 frame.configureRequest(event);
             }
+        },
+        unmapNotify: function(event) {
+            var frame = this._windowFrames[event.windowId];
+
+            if (!frame || event.windowId == frame.frameWindowId)
+                return;
+
+            frame.destroy();
         },
         mapRequest: function(event) {
             var frame = new WindowFrame(this, this._server, event.windowId);
