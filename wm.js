@@ -56,10 +56,19 @@
             // outer frame window. Note that the width/height are of the client
             // window.
 
-            // We don't generate synthetic events quite yet.
-            this._syncGeometry(event, false);
+            var clientGeom = this._server.getGeometry(this._wm, this.clientWindowId);
+            var frameGeom = this._server.getGeometry(this._wm, this.frameWindowId);
+            var geom = {};
 
-            if (event.hasStack)
+            geom.x = event.x === undefined ? frameGeom.x : event.x;
+            geom.y = event.y === undefined ? frameGeom.y : event.y;
+            geom.width = event.width === undefined ? clientGeom.width : event.width;
+            geom.height = event.height === undefined ? clientGeom.height : event.height;
+
+            // We don't generate synthetic events quite yet.
+            this._syncGeometry(geom, false);
+
+            if (event.detail !== undefined)
                 this._configureRequestStack(event);
         },
         handleEvent: function(event) {

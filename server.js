@@ -311,33 +311,10 @@
             this._server.damageWindow(this);
         },
 
-        _constructConfigureEvent: function(props) {
-            // hasStack is the equivalent of (value_mask & CWStackMode) in real X11.
-            var event = { windowId: this.windowId,
-                          x: props.x, y: props.y, width: props.width, height: props.height,
-                          sibling: props.sibling, detail: props.stackMode,
-                          hasStack: props.stackMode !== undefined };
-
-            if (event.x === undefined)
-                event.x = this.x;
-            if (event.y === undefined)
-                event.y = this.y;
-
-            if (event.width === undefined)
-                event.width = this.width;
-            if (event.height === undefined)
-                event.height = this.height;
-
-            if (event.sibling === undefined)
-                event.sibling = 0;
-            if (event.detail === undefined)
-                event.detail = "Above";
-
-            return event;
-        },
-
         configureWindow: function(client, props) {
-            var eventBase = this._constructConfigureEvent(props);
+            var eventBase = { windowId: this.windowId,
+                              x: props.x, y: props.y, width: props.width, height: props.height,
+                              sibling: props.sibling, detail: props.stackMode };
             var event;
 
             event = Object.create(eventBase);

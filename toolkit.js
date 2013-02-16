@@ -21,10 +21,14 @@
             }
         },
         configureNotify: function(event) {
-            this.x = event.x;
-            this.y = event.y;
-            this.width = event.width;
-            this.height = event.height;
+            if (event.x !== undefined)
+                this.x = event.x;
+            if (event.y !== undefined)
+                this.y = event.y;
+            if (event.width !== undefined)
+                this.width = event.width;
+            if (event.height !== undefined)
+                this.height = event.height;
         },
         invalidate: function() {
             this._server.invalidateWindow(this, this._windowId);
