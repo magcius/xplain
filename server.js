@@ -318,13 +318,10 @@
                           sibling: props.sibling, detail: props.stackMode,
                           hasStack: props.stackMode !== undefined };
 
-            if (event.x === undefined || event.y === undefined) {
-                var offs = this.calculateAbsoluteOffset(false);
-                if (event.x === undefined)
-                    event.x = offs.x;
-                if (event.y === undefined)
-                    event.y = offs.y;
-            }
+            if (event.x === undefined)
+                event.x = this.x;
+            if (event.y === undefined)
+                event.y = this.y;
 
             if (event.width === undefined)
                 event.width = this.width;
