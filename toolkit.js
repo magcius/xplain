@@ -57,9 +57,8 @@
         },
 
         getRootCoords: function() {
-            var clientGeom = this._server.getGeometry(this, this._windowId);
-            var totalGeom = this._server.translateCoordinates(this, this._windowId, this._server.rootWindowId, 0, 0);
-            return { x: totalGeom.x - clientGeom.x, y: totalGeom.y - clientGeom.y };
+            var translated = this._server.translateCoordinates(this, this._windowId, this._server.rootWindowId, 0, 0);
+            return { x: translated.x, y: translated.y };
         },
     });
 
