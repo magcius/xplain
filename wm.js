@@ -123,7 +123,7 @@
         connect: function(server) {
             this._server = server;
             this._server.clientConnected(this);
-            this._server.selectInput(this, this._server.rootWindowId, ["SubstructureRedirect"]);
+            this._server.selectInput(this, this._server.rootWindowId, ["SubstructureRedirect", "SubstructureNotify"]);
 
             // window ID => WindowFrame
             this._windowFrames = {};

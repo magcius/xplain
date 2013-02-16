@@ -73,6 +73,16 @@
         return false;
     }
 
+    function isEventSubstructureNotify(event) {
+        switch (event.type) {
+        case "MapNotify":
+        case "UnmapNotify":
+        case "ConfigureNotify":
+            return true;
+        }
+        return false;
+    }
+
     function isEventInputEvent(event) {
         switch (event.type) {
         case "Enter":
@@ -376,9 +386,13 @@
                 return true;
 
             var serverWindow = this._server.getServerWindow(windowId);
-            if (isEventSubstructureRedirect(event)) {
+            var substructureRedirect = isEventSubstructureRedirect(event);
+            var substructureNotify = isEventSubstructureNotify(event);
+            if (substructureNotify || substructureRedirect) {
                 while (serverWindow) {
-                    if (this.isInterestedInWindowEvent(serverWindow.windowId, "SubstructureRedirect"))
+                    if (substructureRedirect && this.isInterestedInWindowEvent(serverWindow.windowId, "SubstructureRedirect"))
+                        return true;
+                    if (substructureNotify && this.isInterestedInWindowEvent(serverWindow.windowId, "SubstructureNotify"))
                         return true;
                     serverWindow = serverWindow.parentServerWindow;
                 }
