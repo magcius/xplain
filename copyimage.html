@@ -15,10 +15,13 @@
     (function() {
 
         var ctx_shape = document.getElementById("shape").getContext("2d");
-        ctx_shape.fillStyle = ctx_shape.createRadialGradient(100, 100, 0, 100, 100, 50);
-        ctx_shape.fillStyle.addColorStop(0, "red");
-        ctx_shape.fillStyle.addColorStop(1, "green");
-        ctx_shape.fillRect(20, 20, 100, 100);
+        var img = new Image();
+        img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABHPGVmAAAABlBMVEUAAAD///+l2Z/dAAAAWUlEQVRo3u3YQQoAIAgEQO3/f7YXeAiiIsbrInPwspjRTXZBLW+MODAQCAQCgUAgkMiNHa7cBAKBQCAQCORyuVtPfO4gEAgEAoFAni13PncQCAQCgUAg/yATfaoGxysJ+mUAAAAASUVORK5CYII=";
+        ctx_shape.fillStyle = ctx_shape.createPattern(img, "no-repeat");
+        ctx_shape.save();
+        ctx_shape.translate(20, 20);
+        ctx_shape.fillRect(0, 0, 100, 100);
+        ctx_shape.restore();
 
         var ctx_a = document.getElementById("a").getContext("2d");
 
@@ -42,32 +45,20 @@
             var oldX = fromX, oldY = fromY;
             var newX = toX, newY = toY;
 
-            if (newX < 0) {
-                w += newX;
-                oldX -= newX;
-                newX = 0;
-            }
-
-            if (oldX < 0) {
-                newX -= oldX;
-                w += oldX;
-                oldX = 0;
+            function rect(fill, x, y, w, h) {
+                ctx.save();
+                ctx.fillStyle = fill;
+                ctx.fillRect(x, y, w, h);
+                ctx.strokeRect(x, y, w, h);
+                ctx.restore();
             }
 
             function planCopyA() {
-                ctx.save();
-                ctx.fillStyle = 'rgba(0, 0, 255, 0.5)';
-                ctx.fillRect(oldX, oldY, w, h);
-                ctx.strokeRect(oldX, oldY, w, h);
-                ctx.restore();
+                rect('rgba(0, 0, 255, 0.5)', oldX, oldY, w, h);
             }
 
             function planCopyB() {
-                ctx.save();
-                ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
-                ctx.fillRect(newX, newY, w, h);
-                ctx.strokeRect(newX, newY, w, h);
-                ctx.restore();
+                rect('rgba(0, 255, 0, 0.5)', newX, newY, w, h);
             }
 
             function copy() {
@@ -84,25 +75,14 @@
             function planClear() {
                 var diffX = Math.abs(toX - fromX);
                 ctx.save();
-                ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-                if (toX > fromX) {
-                    ctx.fillRect(fromX, fromY, diffX, size);
-                } else {
-                    ctx.fillRect(fromX + size - diffX, fromY, diffX, size);
-                }
+                rect('rgba(255, 0, 0, 0.5)', fromX, fromY, diffX, h);
                 ctx.restore();
             }
 
             function clear() {
                 var ctx = ctx_shape;
                 var diffX = Math.abs(toX - fromX);
-
-                if (toX > fromX) {
-                    ctx.clearRect(fromX, fromY, diffX, size);
-                } else {
-                    ctx.clearRect(fromX + size - diffX, fromY, diffX, size);
-                }
-
+                ctx.clearRect(fromX, fromY, diffX, size);
                 drawShape();
             }
 
@@ -115,12 +95,7 @@
         window.addEventListener("keydown", function(evt) {
             var letter = String.fromCharCode(evt.keyCode);
             var newPos;
-            if (letter === 'S') {
-                newPos = pos + 10;
-            }
-            if (letter === 'A') {
-                newPos = pos - 10;
-            }
+            newPos = pos + 10;
             moveImage(state++, ctx_a, pos, origPos, newPos, origPos, 100, 100);
             if (state === 5) {
                 pos = newPos;
