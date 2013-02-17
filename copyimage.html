@@ -17,11 +17,15 @@
         var ctx_shape = document.getElementById("shape").getContext("2d");
         var img = new Image();
         img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAMAAABHPGVmAAAABlBMVEUAAAD///+l2Z/dAAAAWUlEQVRo3u3YQQoAIAgEQO3/f7YXeAiiIsbrInPwspjRTXZBLW+MODAQCAQCgUAgkMiNHa7cBAKBQCAQCORyuVtPfO4gEAgEAoFAni13PncQCAQCgUAg/yATfaoGxysJ+mUAAAAASUVORK5CYII=";
-        ctx_shape.fillStyle = ctx_shape.createPattern(img, "no-repeat");
-        ctx_shape.save();
-        ctx_shape.translate(20, 20);
-        ctx_shape.fillRect(0, 0, 100, 100);
-        ctx_shape.restore();
+        img.onload = function() {
+            ctx_shape.fillStyle = ctx_shape.createPattern(img, "no-repeat");
+            ctx_shape.save();
+            ctx_shape.translate(20, 20);
+            ctx_shape.fillRect(0, 0, 100, 100);
+            ctx_shape.restore();
+
+            drawShape();
+        };
 
         var ctx_a = document.getElementById("a").getContext("2d");
 
@@ -29,8 +33,6 @@
             ctx_a.clearRect(0, 0, 200, 200);
             ctx_a.drawImage(ctx_shape.canvas, 0, 0);
         }
-
-        drawShape();
 
         function copyArea(ctx, oldX, oldY, newX, newY, w, h) {
             ctx.drawImage(ctx.canvas, oldX, oldY, w, h, newX, newY, w, h);
