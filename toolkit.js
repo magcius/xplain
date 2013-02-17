@@ -1,4 +1,5 @@
 (function(exports) {
+    "use strict";
 
     var Window = new Class({
         initialize: function() {

@@ -1,4 +1,5 @@
 (function(exports) {
+    "use strict";
 
     function Task(func, delay) {
         var id = 0;

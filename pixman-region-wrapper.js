@@ -1,4 +1,6 @@
 (function(exports) {
+    "use strict";
+
     function repeat(x, n) {
         var L = [];
         for (var i = 0; i < n; i++)

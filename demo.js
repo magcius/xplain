@@ -1,4 +1,5 @@
 (function(exports) {
+    "use strict";
 
     var BackgroundWindow = new Class({
         Extends: ImageWindow,

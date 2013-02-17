@@ -1,4 +1,5 @@
 (function(exports) {
+    "use strict";
 
     // Don't extend Window as this needs to be in the
     // WM client, not its own client.

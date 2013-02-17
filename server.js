@@ -1,4 +1,5 @@
 (function(exports) {
+    "use strict";
 
     function pathFromRegion(ctx, region) {
         region.iter_rectangles(function(rect) {
