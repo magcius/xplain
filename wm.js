@@ -124,7 +124,7 @@
         motion: function(event) {
             var newX = this._origWindowPos.x + event.rootX - this._origMousePos.x;
             var newY = this._origWindowPos.y + event.rootY - this._origMousePos.y;
-            this._server.configureWindow(this._wm, this.frameWindowId, { x: newX, y: newY });
+            this._updateGeometry({ x: newX, y: newY });
         },
         expose: function(wrapper) {
             // background color takes care of the base
