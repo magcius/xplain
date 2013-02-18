@@ -5,6 +5,16 @@
         return a !== undefined && a !== b;
     }
 
+    function isFloating(a) {
+        return a !== (a | 0);
+    }
+
+    function checkGeometry(a) {
+        if (isFloating(a))
+            throw new Error("sub-pixel geometry");
+        return a;
+    }
+
     // Don't extend Window as this needs to be in the
     // WM client, not its own client.
     var WindowFrame = new Class({
@@ -27,23 +37,23 @@
             var sizeUpdated = false;
 
             if (valueUpdated(clientGeometry.x, this._frameGeometry.x)) {
-                this._frameGeometry.x = clientGeometry.x;
+                this._frameGeometry.x = checkGeometry(clientGeometry.x);
                 positionUpdated = true;
             }
 
             if (valueUpdated(clientGeometry.y, this._frameGeometry.y)) {
-                this._frameGeometry.y = clientGeometry.y;
+                this._frameGeometry.y = checkGeometry(clientGeometry.y);
                 positionUpdated = true;
             }
 
             if (valueUpdated(clientGeometry.width, this._clientGeometry.width)) {
-                this._clientGeometry.width = clientGeometry.width;
+                this._clientGeometry.width = checkGeometry(clientGeometry.width);
                 this._frameGeometry.width = clientGeometry.width + border.left + border.right;
                 sizeUpdated = true;
             }
 
             if (valueUpdated(clientGeometry.height, this._clientGeometry.height)) {
-                this._clientGeometry.height = clientGeometry.height;
+                this._clientGeometry.height = checkGeometry(clientGeometry.height);
                 this._frameGeometry.height = clientGeometry.height + border.top + border.bottom;
                 sizeUpdated = true;
             }
