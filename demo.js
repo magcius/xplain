@@ -80,7 +80,7 @@
 
         function animate() {
             var offs = Math.sin(time) * amplitude;
-            var x = origX + offs;
+            var x = (origX + offs) | 0;
             window.moveResize(x, undefined, undefined, undefined);
             time += step;
             return true;
