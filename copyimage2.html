@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset=utf8>
+    <title>drawImage</title>
+    <style>
+    canvas { border: 1px solid #000; }
+    </style>
+</head>
+<body class="region-demo">
+    <h2>Mask Test</h2>
+    <canvas id="shape" width=200 height=200></canvas>
+    <script>
+    (function() {
+        "use strict";
+
+        var ctx_shape = document.getElementById("shape").getContext("2d");
+        var img = new Image();
+        img.src = "astrophy.png";
+        img.onload = function() {
+            ctx_shape.drawImage(img, 100, 100);
+            ctx_shape.drawImage(ctx_shape.canvas, 100, 100, img.width, img.height, 120, 120, img.width, img.height);
+        };
+
+    })();
+    </script>
+</body>
+</html>

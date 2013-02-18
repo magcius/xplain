@@ -9,23 +9,35 @@
             this._wm = wm;
             this._server = server;
             this.clientWindowId = windowId;
+
+            // Client geometry relative to the parent frame
+            this._clientGeometry = {};
+
+            // Frame geometry relative to the root
+            this._frameGeometry = {};
         },
 
-        _syncGeometry: function(geom, forceClientConfigure) {
-            // A real WM would cache this, as it would cause a round-trip.
-            var clientGeom = this._server.getGeometry(this._wm, this.clientWindowId);
-
+        _syncGeometry: function(clientGeometry) {
             var border = { top: 30, left: 5, right: 5, bottom: 5 };
 
             // The top-left of the frame is the top-left of the window, and we'll
-            // put the client 10px in. That means we should only touch the width
-            // and height.
-            this._server.configureWindow(this._wm, this.frameWindowId, { x: geom.x, y: geom.y,
-                                                                         width: geom.width + border.left + border.right,
-                                                                         height: geom.height + border.top + border.bottom });
+            // put the client 30px in.
+            this._frameGeometry.x = clientGeometry.x;
+            this._frameGeometry.y = clientGeometry.y;
+            this._frameGeometry.width = clientGeometry.width + border.left + border.right;
+            this._frameGeometry.height = clientGeometry.height + border.top + border.bottom;
 
-            if (forceClientConfigure || clientGeom.width != geom.width || clientGeom.height != geom.height) {
-                this._server.configureWindow(this._wm, this.clientWindowId, { x: border.left, y: border.top, width: geom.width, height: geom.height });
+            this._server.configureWindow(this._wm, this.frameWindowId, this._frameGeometry);
+
+            if (clientGeometry.width != this._clientGeometry.width ||
+                clientGeometry.height != this._clientGeometry.height) {
+
+                this._clientGeometry.x = border.left;
+                this._clientGeometry.y = border.top;
+                this._clientGeometry.width = clientGeometry.width;
+                this._clientGeometry.height = clientGeometry.height;
+
+                this._server.configureWindow(this._wm, this.clientWindowId, this._clientGeometry);
             }
 
             // Invalidate the frame that's already been partially painted.
@@ -44,7 +56,7 @@
             // Map the frame window.
             this._server.mapWindow(this._wm, this.frameWindowId);
 
-            this._syncGeometry(geom, true);
+            this._syncGeometry(geom);
         },
         destroy: function() {
             this._server.destroyWindow(this._wm, this.frameWindowId);
@@ -61,17 +73,15 @@
             // outer frame window. Note that the width/height are of the client
             // window.
 
-            var clientGeom = this._server.getGeometry(this._wm, this.clientWindowId);
-            var frameGeom = this._server.getGeometry(this._wm, this.frameWindowId);
             var geom = {};
 
-            geom.x = event.x === undefined ? frameGeom.x : event.x;
-            geom.y = event.y === undefined ? frameGeom.y : event.y;
-            geom.width = event.width === undefined ? clientGeom.width : event.width;
-            geom.height = event.height === undefined ? clientGeom.height : event.height;
+            geom.x = event.x === undefined ? this._frameGeometry.x : event.x;
+            geom.y = event.y === undefined ? this._frameGeometry.y : event.y;
+            geom.width = event.width === undefined ? this._clientGeometry.width : event.width;
+            geom.height = event.height === undefined ? this._clientGeometry.height : event.height;
 
             // We don't generate synthetic events quite yet.
-            this._syncGeometry(geom, false);
+            this._syncGeometry(geom);
 
             if (event.detail !== undefined)
                 this._configureRequestStack(event);
