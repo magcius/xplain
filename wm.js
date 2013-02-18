@@ -1,6 +1,10 @@
 (function(exports) {
     "use strict";
 
+    function valueUpdated(a, b) {
+        return a !== undefined && a !== b;
+    }
+
     // Don't extend Window as this needs to be in the
     // WM client, not its own client.
     var WindowFrame = new Class({
@@ -19,29 +23,43 @@
 
         _syncGeometry: function(clientGeometry) {
             var border = { top: 30, left: 5, right: 5, bottom: 5 };
+            var positionUpdated = false;
+            var sizeUpdated = false;
 
-            // The top-left of the frame is the top-left of the window, and we'll
-            // put the client 30px in.
-            this._frameGeometry.x = clientGeometry.x;
-            this._frameGeometry.y = clientGeometry.y;
-            this._frameGeometry.width = clientGeometry.width + border.left + border.right;
-            this._frameGeometry.height = clientGeometry.height + border.top + border.bottom;
-
-            this._server.configureWindow(this._wm, this.frameWindowId, this._frameGeometry);
-
-            if (clientGeometry.width != this._clientGeometry.width ||
-                clientGeometry.height != this._clientGeometry.height) {
-
-                this._clientGeometry.x = border.left;
-                this._clientGeometry.y = border.top;
-                this._clientGeometry.width = clientGeometry.width;
-                this._clientGeometry.height = clientGeometry.height;
-
-                this._server.configureWindow(this._wm, this.clientWindowId, this._clientGeometry);
+            if (valueUpdated(clientGeometry.x, this._frameGeometry.x)) {
+                this._frameGeometry.x = clientGeometry.x;
+                positionUpdated = true;
             }
 
+            if (valueUpdated(clientGeometry.y, this._frameGeometry.y)) {
+                this._frameGeometry.y = clientGeometry.y;
+                positionUpdated = true;
+            }
+
+            if (valueUpdated(clientGeometry.width, this._clientGeometry.width)) {
+                this._clientGeometry.width = clientGeometry.width;
+                this._frameGeometry.width = clientGeometry.width + border.left + border.right;
+                sizeUpdated = true;
+            }
+
+            if (valueUpdated(clientGeometry.height, this._clientGeometry.height)) {
+                this._clientGeometry.height = clientGeometry.height;
+                this._frameGeometry.height = clientGeometry.height + border.top + border.bottom;
+                sizeUpdated = true;
+            }
+
+            if (positionUpdated || sizeUpdated)
+                this._server.configureWindow(this._wm, this.frameWindowId, this._frameGeometry);
+
+            this._clientGeometry.x = border.left;
+            this._clientGeometry.y = border.top;
+
+            if (sizeUpdated)
+                this._server.configureWindow(this._wm, this.clientWindowId, this._clientGeometry);
+
             // Invalidate the frame that's already been partially painted.
-            this._server.invalidateWindow(this._wm, this.frameWindowId);
+            if (sizeUpdated)
+                this._server.invalidateWindow(this._wm, this.frameWindowId);
         },
 
         construct: function() {
@@ -73,15 +91,8 @@
             // outer frame window. Note that the width/height are of the client
             // window.
 
-            var geom = {};
-
-            geom.x = event.x === undefined ? this._frameGeometry.x : event.x;
-            geom.y = event.y === undefined ? this._frameGeometry.y : event.y;
-            geom.width = event.width === undefined ? this._clientGeometry.width : event.width;
-            geom.height = event.height === undefined ? this._clientGeometry.height : event.height;
-
             // We don't generate synthetic events quite yet.
-            this._syncGeometry(geom);
+            this._syncGeometry(event);
 
             if (event.detail !== undefined)
                 this._configureRequestStack(event);
