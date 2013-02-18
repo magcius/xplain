@@ -62,6 +62,16 @@
             oldY = 0;
         }
 
+        var mX = Math.max(oldX, newX);
+        if (mX + w > ctx.canvas.width) {
+            w = ctx.canvas.width - mX;
+        }
+
+        var mY = Math.max(oldY, newY);
+        if (newY + h > ctx.canvas.height) {
+            h = ctx.canvas.height - mY;
+        }
+
         ctx.drawImage(ctx.canvas, oldX, oldY, w, h, newX, newY, w, h);
     }
 
