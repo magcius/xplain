@@ -21,7 +21,7 @@
             this._frameGeometry = {};
         },
 
-        _syncGeometry: function(clientGeometry) {
+        _updateGeometry: function(clientGeometry) {
             var border = { top: 30, left: 5, right: 5, bottom: 5 };
             var positionUpdated = false;
             var sizeUpdated = false;
@@ -74,7 +74,7 @@
             // Map the frame window.
             this._server.mapWindow(this._wm, this.frameWindowId);
 
-            this._syncGeometry(geom);
+            this._updateGeometry(geom);
         },
         destroy: function() {
             this._server.destroyWindow(this._wm, this.frameWindowId);
@@ -92,7 +92,7 @@
             // window.
 
             // We don't generate synthetic events quite yet.
-            this._syncGeometry(event);
+            this._updateGeometry(event);
 
             if (event.detail !== undefined)
                 this._configureRequestStack(event);
