@@ -74,7 +74,7 @@
         if (mY >= ctx.canvas.height)
             return;
 
-        if (newY + h > ctx.canvas.height) {
+        if (mY + h > ctx.canvas.height) {
             h = ctx.canvas.height - mY;
         }
 
