@@ -66,17 +66,15 @@
         if (mX >= ctx.canvas.width)
             return;
 
-        if (mX + w > ctx.canvas.width) {
+        if (mX + w > ctx.canvas.width)
             w = ctx.canvas.width - mX;
-        }
 
         var mY = Math.max(oldY, newY);
         if (mY >= ctx.canvas.height)
             return;
 
-        if (mY + h > ctx.canvas.height) {
+        if (mY + h > ctx.canvas.height)
             h = ctx.canvas.height - mY;
-        }
 
         ctx.drawImage(ctx.canvas, oldX, oldY, w, h, newX, newY, w, h);
     }
