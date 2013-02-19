@@ -63,11 +63,17 @@
         }
 
         var mX = Math.max(oldX, newX);
+        if (mX >= ctx.canvas.width)
+            return;
+
         if (mX + w > ctx.canvas.width) {
             w = ctx.canvas.width - mX;
         }
 
         var mY = Math.max(oldY, newY);
+        if (mY >= ctx.canvas.height)
+            return;
+
         if (newY + h > ctx.canvas.height) {
             h = ctx.canvas.height - mY;
         }
