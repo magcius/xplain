@@ -134,12 +134,6 @@
             {name: "_rectangles", args: []},
         ]
     });
-    Region.from_rectangle = function(x, y, w, h) {
-        var r = Object.create(Region.prototype);
-        r.__construct__();
-        r.init_rect(x, y, w, h);
-        return r;
-    };
     Region.prototype.iter_rectangles = function(callback) {
         var ptr = this._rectangles();
         var size = Box.size;
