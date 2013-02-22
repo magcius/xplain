@@ -132,6 +132,7 @@
             {name: "n_rects", args: []},
             {name: "not_empty", args: []},
             {name: "_rectangles", args: []},
+            {name: "_extents", args: []},
         ]
     });
     Region.prototype.iter_rectangles = function(callback) {
@@ -144,6 +145,9 @@
     };
     Region.prototype.get_rectangle = function(idx) {
         return new Box(this._rectangles() + Box.size*idx);
+    };
+    Region.prototype.extents = function() {
+        return new Box(this._extents());
     };
     Region.prototype.is_empty = function() {
         return !this.not_empty();

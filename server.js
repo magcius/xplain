@@ -942,7 +942,7 @@
         },
 
         // This function copies the front buffer around to move/resize windows.
-        _manipulateGraphicsForWindowMoveResize: function(oldRegion, newRegion, oldX, oldY, newX, newY, oldW, oldH) {
+        _manipulateGraphicsForWindowMoveResize: function(oldRegion, newRegion) {
             // This is a bit fancy. We need to accomplish a few things:
             //
             //   1. If the area on top of the window was damaged before
@@ -966,6 +966,13 @@
             // 1., 2., and 3. are documented where the corresponding code is done.
             // 4. is done by making sure we call _calculateEffectiveRegionForWindow,
             //    which excludes the region where windows visually obscure the window.
+
+            var oldExtents = oldRegion.extents();
+            var newExtents = newRegion.extents();
+
+            var oldX = oldExtents.x, oldY = oldExtents.y;
+            var oldW = oldExtents.width, oldH = oldExtents.height;
+            var newX = newExtents.x, newY = newExtents.y;
 
             var damagedRegion = new Region();
 
@@ -1002,7 +1009,7 @@
             this._debugDrawRegion(damagedRegion, 'green');
 
             // Copy the old image contents over, masked to the region.
-            if (positionChanged) {
+            if (oldRegion.not_empty() && positionChanged) {
                 var ctx = this._ctx;
                 ctx.beginPath();
                 ctx.save();
@@ -1027,9 +1034,6 @@
             }
 
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            var oldTxform = serverWindow.calculateAbsoluteOffset(true);
-            var oldX = oldTxform.x, oldY = oldTxform.y;
-            var oldW = serverWindow.width, oldH = serverWindow.height;
 
             // Reconfigure the window -- this will modify the shape region.
             if (!serverWindow.configureWindow(client, props)) {
@@ -1040,10 +1044,8 @@
             }
 
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            var newTxform = serverWindow.calculateAbsoluteOffset(true);
-            var newX = newTxform.x, newY = newTxform.y;
 
-            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion, oldX, oldY, newX, newY, oldW, oldH);
+            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion);
         },
 
         _grabPointer: function(serverClient, grabWindow, ownerEvents, events, cursor) {
