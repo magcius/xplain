@@ -987,10 +987,13 @@
 
             damagedRegion.clear();
 
+            var positionChanged = newX != oldX || newY != oldY;
+
             // If X/Y change, we copy the old area, so we need to translate into
             // the coordinate space of the new window's position to know what needs
             // to be redrawn after the copy.
-            oldRegion.translate(newX - oldX, newY - oldY);
+            if (positionChanged)
+                oldRegion.translate(newX - oldX, newY - oldY);
 
             // 3. Pixels need to be exposed on the window in places where the
             //    new region is, but the old region isn't.
@@ -999,14 +1002,16 @@
             this._debugDrawRegion(damagedRegion, 'green');
 
             // Copy the old image contents over, masked to the region.
-            var ctx = this._ctx;
-            ctx.beginPath();
-            ctx.save();
-            pathFromRegion(ctx, newRegion);
-            ctx.clip();
-            copyArea(ctx, oldX, oldY, newX, newY, oldW, oldH);
-            ctx.restore();
-            this._queueRedraw();
+            if (positionChanged) {
+                var ctx = this._ctx;
+                ctx.beginPath();
+                ctx.save();
+                pathFromRegion(ctx, newRegion);
+                ctx.clip();
+                copyArea(ctx, oldX, oldY, newX, newY, oldW, oldH);
+                ctx.restore();
+                this._queueRedraw();
+            }
 
             oldRegion.finalize();
             newRegion.finalize();
