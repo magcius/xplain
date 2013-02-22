@@ -128,7 +128,6 @@
             {name: "intersect", args: ["r1", "r2"]},
             {name: "intersect_rect", args: ["source", "x", "y", "width", "height"]},
             {name: "subtract", args: ["r1", "r2"]},
-            {name: "subtract_rect", args: ["source", "x", "y", "width", "height"]},
             {name: "n_rects", args: []},
             {name: "not_empty", args: []},
             {name: "_rectangles", args: []},
