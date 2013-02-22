@@ -147,7 +147,7 @@
             this._damagedRegion = new Region();
 
             // The region of the screen that the window occupies, in parent coordinates.
-            this.shapeRegion = new Region();
+            this.boundingRegion = new Region();
 
             this._ctxWrapper = new ContextWrapper(this, ctx);
 
@@ -164,8 +164,8 @@
             this.height = 1;
         },
         finalize: function() {
-            this.shapeRegion.finalize();
-            this.shapeRegion = null;
+            this.boundingRegion.finalize();
+            this.boundingRegion = null;
 
             this._damagedRegion.finalize();
             this._damagedRegion = null;
@@ -188,10 +188,10 @@
             });
             return { x: x, y: y };
         },
-        calculateTransformedShapeRegion: function() {
+        calculateTransformedBoundingRegion: function() {
             var region = new Region();
             var txform = this.calculateAbsoluteOffset(false);
-            region.copy(this.shapeRegion);
+            region.copy(this.boundingRegion);
             region.translate(txform.x, txform.y);
             return region;
         },
@@ -354,8 +354,8 @@
                 if (props.height !== undefined)
                     this.height = props.height | 0;
 
-                this.shapeRegion.clear();
-                this.shapeRegion.init_rect(this.x, this.y, this.width, this.height);
+                this.boundingRegion.clear();
+                this.boundingRegion.init_rect(this.x, this.y, this.width, this.height);
 
                 positionElement(this.inputWindow, this.x, this.y, this.width, this.height);
 
@@ -667,9 +667,9 @@
 
         _subtractAboveWindowsFromRegion: function(serverWindow, region) {
             this._iterWindowsAboveWindow(serverWindow, function(aboveWindow) {
-                var transformedShapeRegion = aboveWindow.calculateTransformedShapeRegion();
-                region.subtract(region, transformedShapeRegion);
-                transformedShapeRegion.finalize();
+                var transformedBoundingRegion = aboveWindow.calculateTransformedBoundingRegion();
+                region.subtract(region, transformedBoundingRegion);
+                transformedBoundingRegion.finalize();
             });
         },
 
@@ -682,7 +682,7 @@
         // the window's shape region clipped to the areas that are
         // visible.
         _calculateEffectiveRegionForWindow: function(serverWindow) {
-            var region = serverWindow.calculateTransformedShapeRegion();
+            var region = serverWindow.calculateTransformedBoundingRegion();
             this._clipRegionToVisibleCoords(region);
             this._subtractAboveWindowsFromRegion(serverWindow, region);
             return region;
@@ -719,7 +719,7 @@
                 calculatedDamageRegion.translate(serverWindow.x, serverWindow.y);
 
                 intersection.clear();
-                intersection.intersect(calculatedDamageRegion, serverWindow.shapeRegion);
+                intersection.intersect(calculatedDamageRegion, serverWindow.boundingRegion);
 
                 if (intersection.not_empty()) {
                     calculatedDamageRegion.subtract(calculatedDamageRegion, intersection);
