@@ -190,7 +190,7 @@
         },
         calculateTransformedBoundingRegion: function() {
             var region = new Region();
-            var txform = this.calculateAbsoluteOffset(false);
+            var txform = this.calculateAbsoluteOffset(true);
             region.copy(this.boundingRegion);
             region.translate(txform.x, txform.y);
             return region;
@@ -355,7 +355,7 @@
                     this.height = props.height | 0;
 
                 this.boundingRegion.clear();
-                this.boundingRegion.init_rect(this.x, this.y, this.width, this.height);
+                this.boundingRegion.init_rect(0, 0, this.width, this.height);
 
                 positionElement(this.inputWindow, this.x, this.y, this.width, this.height);
 
@@ -712,24 +712,20 @@
                 if (!serverWindow.mapped)
                     return;
 
-                // When we iterate over children, transform the damage region into the
-                // child's parent space, which is the coordinate space of the shape region.
+                // Transform into the child's space.
                 calculatedDamageRegion.translate(-serverWindow.x, -serverWindow.y);
+
                 serverWindow.children.forEach(iterateWindow);
-                calculatedDamageRegion.translate(serverWindow.x, serverWindow.y);
 
                 intersection.clear();
                 intersection.intersect(calculatedDamageRegion, serverWindow.boundingRegion);
 
                 if (intersection.not_empty()) {
                     calculatedDamageRegion.subtract(calculatedDamageRegion, intersection);
-
-                    // The damage region is in window space, so we need to translate
-                    // from parent space to window space. Don't bother translating
-                    // back as the intersection will just be cleared next iteration.
-                    intersection.translate(-serverWindow.x, -serverWindow.y);
                     serverWindow.damage(intersection);
                 }
+
+                calculatedDamageRegion.translate(serverWindow.x, serverWindow.y);
             }
 
             iterateWindow(this._rootWindow);
