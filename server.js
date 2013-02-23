@@ -699,7 +699,6 @@
         // visible.
         _calculateEffectiveRegionForWindow: function(serverWindow) {
             var region = serverWindow.calculateTransformedBoundingRegion();
-            this._clipRegionToVisibleCoords(region);
             this._subtractAboveWindowsFromRegion(serverWindow, region);
             return region;
         },
@@ -988,6 +987,9 @@
 
             var damagedRegion = new Region();
 
+            this._clipRegionToVisibleCoords(oldRegion);
+            this._clipRegionToVisibleCoords(newRegion);
+
             // 1. (We need to do this first, as the other steps manipulate
             //     oldRegion and the global damaged region in ways that would
             //     cause us to damage more than necessary.)
@@ -1081,6 +1083,7 @@
                 return;
 
             var region = this._calculateEffectiveRegionForWindow(serverWindow);
+            this._clipRegionToVisibleCoords(region);
             this.damageRegion(region);
             region.finalize();
         },
