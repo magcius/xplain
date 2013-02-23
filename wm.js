@@ -70,6 +70,44 @@
             // Invalidate the frame that's already been partially painted.
             if (sizeUpdated)
                 this._server.invalidateWindow(this._wm, this.frameWindowId);
+
+            var shapeRegion = this._constructShapeRegion(this._frameGeometry);
+            this._server.setWindowShapeRegion(this._wm, this.frameWindowId, "Bounding", shapeRegion);
+            shapeRegion.finalize();
+        },
+
+        _constructShapeRegion: function(geom) {
+            var shapeRegion = new Region();
+            var cornerRegion = this._constructCornerRegion(geom);
+            shapeRegion.init_rect(0, 0, geom.width, geom.height);
+            shapeRegion.subtract(shapeRegion, cornerRegion);
+            cornerRegion.finalize();
+            return shapeRegion;
+        },
+
+        _constructCornerRegion: function(geom) {
+            var radius = 10;
+
+            var cornerRegion = new Region();
+
+            function widthForRadiusSegment(i) {
+                var r = radius-i-0.5;
+                return (0.5 + radius - Math.sqrt(radius*radius - r*r)) | 0;
+            }
+
+            // Top left corner
+            for (var i = 0; i < radius; i++) {
+                var width = widthForRadiusSegment(i);
+                cornerRegion.union_rect(cornerRegion, 0, i, width, 1);
+            }
+
+            // Top right corner
+            for (var i = 0; i < radius; i++) {
+                var width = widthForRadiusSegment(i);
+                cornerRegion.union_rect(cornerRegion, geom.width - width, i, width, 1);
+            }
+
+            return cornerRegion;
         },
 
         construct: function() {

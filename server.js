@@ -148,6 +148,7 @@
 
             // The region of the screen that the window occupies, in parent coordinates.
             this.boundingRegion = new Region();
+            this._hasCustomBoundingRegion = false;
 
             this._ctxWrapper = new ContextWrapper(this, ctx);
 
@@ -351,8 +352,9 @@
                 if (props.height !== undefined)
                     this.height = props.height | 0;
 
-                this.boundingRegion.clear();
-                this.boundingRegion.init_rect(0, 0, this.width, this.height);
+                // Update the bounding region if we didn't already have a custom one.
+                if (!this._hasCustomBoundingRegion)
+                    this.setWindowShapeRegion("Bounding", null);
 
                 positionElement(this.inputWindow, this.x, this.y, this.width, this.height);
 
@@ -376,6 +378,20 @@
         },
         getGeometry: function() {
             return { x: this.x, y: this.y, width: this.width, height: this.height };
+        },
+
+        setWindowShapeRegion: function(shapeType, region) {
+            if (shapeType === "Bounding") {
+                this.boundingRegion.clear();
+
+                if (region) {
+                    this.boundingRegion.copy(region);
+                    this._hasCustomBoundingRegion = true;
+                } else {
+                    this.boundingRegion.init_rect(0, 0, this.width, this.height);
+                    this._hasCustomBoundingRegion = false;
+                }
+            }
         },
     });
 
@@ -510,6 +526,9 @@
         // by letting someone use an existing expose handler.
         // This is the model used by GDK internally.
         'invalidateWindow',
+
+        // SHAPE / XFixes
+        'setWindowShapeRegion',
     ];
 
     publicMethods.forEach(function(methodName) {
@@ -1196,6 +1215,15 @@
                 return;
 
             this._ungrabPointer();
+        },
+
+        setWindowShapeRegion: function(client, windowId, shapeType, region) {
+            var serverWindow = this._windowsById[windowId];
+
+            var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+            serverWindow.setWindowShapeRegion(shapeType, region);
+            var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion);
         },
     });
 
