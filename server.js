@@ -170,19 +170,16 @@
             this._damagedRegion.finalize();
             this._damagedRegion = null;
         },
-        _iterParents: function(includeSelf, callback) {
+        _iterParents: function(callback) {
             var serverWindow = this;
-            if (!includeSelf)
-                serverWindow = serverWindow.parentServerWindow;
-
             while (serverWindow != null) {
                 callback(serverWindow);
                 serverWindow = serverWindow.parentServerWindow;
             }
         },
-        calculateAbsoluteOffset: function(includeSelf) {
+        calculateAbsoluteOffset: function() {
             var x = 0, y = 0;
-            this._iterParents(includeSelf, function(serverWindow) {
+            this._iterParents(function(serverWindow) {
                 x += serverWindow.x;
                 y += serverWindow.y;
             });
@@ -190,13 +187,13 @@
         },
         calculateTransformedBoundingRegion: function() {
             var region = new Region();
-            var txform = this.calculateAbsoluteOffset(true);
+            var txform = this.calculateAbsoluteOffset();
             region.copy(this.boundingRegion);
             region.translate(txform.x, txform.y);
             return region;
         },
         prepareContext: function(ctx) {
-            var txform = this.calculateAbsoluteOffset(true);
+            var txform = this.calculateAbsoluteOffset();
             ctx.translate(txform.x, txform.y);
 
             var region = this._damagedRegion;
@@ -206,7 +203,7 @@
         clearDamage: function() {
             // Don't bother trashing our region here as
             // we'll clear it below.
-            var txform = this.calculateAbsoluteOffset(true);
+            var txform = this.calculateAbsoluteOffset();
             this._damagedRegion.translate(txform.x, txform.y);
             this._server.subtractDamage(this._damagedRegion);
             this._damagedRegion.clear();
@@ -1144,11 +1141,11 @@
             var destServerWindow = this._windowsById[destWindowId];
 
             var offs;
-            offs = srcServerWindow.calculateAbsoluteOffset(true);
+            offs = srcServerWindow.calculateAbsoluteOffset();
             x += offs.x;
             y += offs.y;
 
-            offs = destServerWindow.calculateAbsoluteOffset(true);
+            offs = destServerWindow.calculateAbsoluteOffset();
             x -= offs.x;
             y -= offs.y;
 
