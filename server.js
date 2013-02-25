@@ -213,7 +213,7 @@
             ctx.fillStyle = this._backgroundColor;
             ctx.fillRect(0, 0, this.width, this.height);
         },
-        damage: function(region, ctx) {
+        damage: function(region) {
             this._damagedRegion.union(this._damagedRegion, region);
 
             this._ctxWrapper.drawWithContext(this._drawBackground.bind(this));
