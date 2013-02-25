@@ -1032,8 +1032,6 @@
                 ctx.restore();
             }
 
-            oldRegion.finalize();
-            newRegion.finalize();
             damagedRegion.finalize();
 
             this._queueRedraw();
@@ -1060,6 +1058,9 @@
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
 
             this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion);
+
+            oldRegion.finalize();
+            newRegion.finalize();
         },
 
         _grabPointer: function(serverClient, grabWindow, ownerEvents, events, cursor) {
@@ -1227,6 +1228,9 @@
             serverWindow.setWindowShapeRegion(shapeType, region);
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion);
+
+            oldRegion.finalize();
+            newRegion.finalize();
         },
     });
 
