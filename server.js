@@ -829,7 +829,7 @@
             var rootCoords = getEventCoordsInDomElementSpace(domEvent, this._container);
             var winCoords = getEventCoordsInDomElementSpace(domEvent, serverWindow.inputWindow);
 
-            var event = { rootWindowId: this._rootWindow.windowId,
+            var event = { rootWindowId: this.rootWindowId,
                           windowId: serverWindow.windowId,
                           rootX: rootCoords.x,
                           rootY: rootCoords.y,
