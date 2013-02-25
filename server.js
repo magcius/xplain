@@ -217,9 +217,10 @@
             this._damagedRegion.union(this._damagedRegion, region);
 
             this._ctxWrapper.drawWithContext(this._drawBackground.bind(this));
-            this._server.sendEvent({ type: "Expose",
-                                     windowId: this.windowId,
-                                     ctx: this._ctxWrapper });
+            if (!this._server.sendEvent({ type: "Expose",
+                                          windowId: this.windowId,
+                                          ctx: this._ctxWrapper }))
+                this.clearDamage();
         },
         _syncPointerEvents: function() {
             var shouldHavePointerEvents = this.mapped && this._hasInput;
