@@ -114,6 +114,9 @@
             var geom = this._server.getGeometry(this._wm, this.clientWindowId);
 
             this.frameWindowId = this._server.createWindow(this._wm);
+            this._wm.register(this.clientWindowId, this);
+            this._wm.register(this.frameWindowId, this);
+
             this._server.selectInput(this._wm, this.frameWindowId, ["Expose", "ButtonPress"]);
             this._server.selectInput(this._wm, this.clientWindowId, ["ButtonPress"]);
             this._server.changeAttributes(this._wm, this.frameWindowId, { hasInput: true, backgroundColor: 'red' }); // for now
@@ -257,12 +260,12 @@
             // Reparent the original window and map the frame.
             frame.construct();
 
-            this._windowFrames[frame.frameWindowId] = frame;
-            this._windowFrames[frame.clientWindowId] = frame;
-
             // Map the original window, now that we've reparented it
             // back into the frame.
             this._server.mapWindow(this, event.windowId);
+        },
+        register: function(windowId, frame) {
+            this._windowFrames[windowId] = frame;
         },
     });
 
