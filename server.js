@@ -1030,12 +1030,13 @@
                 ctx.clip();
                 copyArea(ctx, oldX, oldY, newX, newY, oldW, oldH);
                 ctx.restore();
-                this._queueRedraw();
             }
 
             oldRegion.finalize();
             newRegion.finalize();
             damagedRegion.finalize();
+
+            this._queueRedraw();
         },
 
         _configureWindow: function(client, serverWindow, props) {
