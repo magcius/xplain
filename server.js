@@ -583,8 +583,7 @@
 
             // This needs to be done after we set up everything else
             // as it uses the standard redraw and windowing machinery.
-            this._rootWindow = this._createRootWindow();
-            this.rootWindowId = this._rootWindow.windowId;
+            this._createRootWindow();
             this._container.appendChild(this._rootWindow.inputWindow);
 
             this._cursorStyleSheet = newStyleSheet();
@@ -613,12 +612,12 @@
         },
 
         _createRootWindow: function() {
-            var rootWindow = this._createWindowInternal();
-            rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
-            rootWindow.parentServerWindow = null;
-            this._configureWindow(this, rootWindow, { x: 0, y: 0, width: this.width, height: this.height });
-            rootWindow.map();
-            return rootWindow;
+            this._rootWindow = this._createWindowInternal();
+            this.rootWindowId = this._rootWindow.windowId;
+            this._rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
+            this._rootWindow.parentServerWindow = null;
+            this._configureWindow(this, this._rootWindow, { x: 0, y: 0, width: this.width, height: this.height });
+            this._rootWindow.map();
         },
 
         setDebugEnabled: function(value) {
