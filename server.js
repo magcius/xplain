@@ -729,6 +729,7 @@
                 // Transform into the child's space.
                 calculatedDamageRegion.translate(-serverWindow.x, -serverWindow.y);
 
+                // Child windows need to be damaged first.
                 serverWindow.children.forEach(iterateWindow);
 
                 intersection.clear();
