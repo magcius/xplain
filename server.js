@@ -14,11 +14,6 @@
         return sheet;
     }
 
-    function setCursorStylesheet(sheet, cursor) {
-        var cssText =  '.xserver.js .inputWindow { cursor: ' + cursor + ' !important; }';
-        sheet.innerHTML = cssText;
-    }
-
     function sizeElement(elem, w, h) {
         elem.style.width = w + "px";
         elem.style.height = h + "px";
@@ -131,10 +126,6 @@
             this._server = server;
             this.windowId = windowId;
 
-            this.inputWindow = document.createElement("div");
-            this.inputWindow.classList.add("inputWindow");
-            this.inputWindow._serverWindow = this;
-
             this._backgroundColor = DEFAULT_BACKGROUND_COLOR;
 
             // The region of the window that needs to be redrawn, in window coordinates.
@@ -151,6 +142,7 @@
             // All child windows, sorted with the top-most window *first*.
             this.children = [];
 
+            this.cursor = '';
             this.mapped = false;
 
             this.x = 0;
@@ -216,17 +208,9 @@
                                           ctx: this._ctxWrapper }))
                 this.clearDamage();
         },
-        _syncPointerEvents: function() {
-            var shouldHavePointerEvents = this.mapped && this._hasInput;
-            if (shouldHavePointerEvents)
-                this.inputWindow.style.pointerEvents = 'auto';
-            else
-                this.inputWindow.style.pointerEvents = 'none';
-        },
         changeAttributes: function(attributes) {
-            if (attributes.hasInput !== undefined && this._hasInput != attributes.hasInput) {
-                this._hasInput = !!attributes.hasInput;
-                this._syncPointerEvents();
+            if (attributes.hasInput !== undefined && this.hasInput != attributes.hasInput) {
+                this.hasInput = !!attributes.hasInput;
             }
 
             if (attributes.backgroundColor !== undefined && this._backgroundColor != attributes.backgroundColor) {
@@ -247,7 +231,8 @@
                                      name: name, value: value });
         },
         defineCursor: function(cursor) {
-            this.inputWindow.style.cursor = cursor;
+            this.cursor = cursor;
+            this._server.syncCursor();
         },
         map: function(client) {
             if (this.mapped)
@@ -266,10 +251,10 @@
                 event.type = "MapNotify";
 
                 this.mapped = true;
-                this._syncPointerEvents();
                 this._server.sendEvent({ type: "MapNotify",
                                          windowId: this.windowId });
                 this._server.damageWindow(this);
+                this._server.syncCurrentWindow();
             }
         },
         unmap: function() {
@@ -278,20 +263,36 @@
 
             this._server.damageWindow(this);
             this.mapped = false;
-            this._syncPointerEvents();
             this._server.sendEvent({ type: "UnmapNotify",
                                      windowId: this.windowId });
+            this._server.syncCurrentWindow();
         },
         unparentWindow: function() {
             this._server.damageWindow(this);
-            this.parentServerWindow.inputWindow.removeChild(this.inputWindow);
             this.parentServerWindow.children.erase(this);
+            this._server.syncCurrentWindow();
         },
         parentWindow: function(parentServerWindow) {
             this.parentServerWindow = parentServerWindow;
             this.parentServerWindow.children.unshift(this);
-            this.parentServerWindow.inputWindow.appendChild(this.inputWindow);
             this._server.damageWindow(this);
+            this._server.syncCurrentWindow();
+        },
+
+        findDeepestChildAtPoint: function(x, y) {
+            x -= this.x;
+            y -= this.y;
+
+            if (!this.boundingRegion.contains_point(x, y))
+                return null;
+
+            for (var i = 0; i < this.children.length; i++) {
+                var child = this.children[i];
+                var deepestChild = child.findDeepestChildAtPoint(x, y);
+                if (deepestChild)
+                    return deepestChild;
+            }
+            return this;
         },
 
         _siblingIndex: function(sibling) {
@@ -301,26 +302,21 @@
         // sibling and mode.
         _insertIntoStack: function(sibling, mode) {
             var parent = this.parentServerWindow;
-            parent.inputWindow.removeChild(this.inputWindow);
             parent.children.erase(this);
             switch (mode) {
             case "Above":
                 if (sibling) {
                     var siblingIndex = this._siblingIndex(sibling);
-                    parent.inputWindow.insertBefore(this.inputWindow, sibling.inputWindow);
                     parent.children.splice(siblingIndex, 0, this);
                 } else {
-                    parent.inputWindow.insertBefore(this.inputWindow, parent.firstChild);
                     parent.children.unshift(this);
                 }
                 break;
             case "Below":
                 if (sibling) {
                     var siblingIndex = this._siblingIndex(sibling);
-                    parent.inputWindow.insertAfter(this.inputWindow, sibling.inputWindow);
                     parent.children.splice(siblingIndex + 1, 0, this);
                 } else {
-                    parent.inputWindow.insertAfter(this.inputWidow, parent.lastChild);
                     parent.children.push(this);
                 }
                 break;
@@ -350,8 +346,6 @@
                 // Update the bounding region if we didn't already have a custom one.
                 if (!this._hasCustomBoundingRegion)
                     this.setWindowShapeRegion("Bounding", null);
-
-                positionElement(this.inputWindow, this.x, this.y, this.width, this.height);
 
                 if (props.stackMode)
                     this._insertIntoStack(this._server.getServerWindow(props.sibling), props.stackMode);
@@ -441,7 +435,7 @@
     var ServerGrabClient = new Class({
         Extends: ServerClient,
 
-        initialize: function(server, serverClient, grabWindow, ownerEvents, events) {
+        initialize: function(server, serverClient, grabWindow, ownerEvents, events, cursor) {
             // this.client is the client which has sendEvent and friends.
             // this.serverClient is the serverClient for client that we're
             // wrapping, which we use isInterestedInEvent for the ownerEvents
@@ -453,6 +447,7 @@
 
             this.parent(server, client);
             this.serverClient = serverClient;
+            this.cursor = cursor;
 
             this.isImplicitGrab = serverClient === null;
 
@@ -579,7 +574,6 @@
             // This needs to be done after we set up everything else
             // as it uses the standard redraw and windowing machinery.
             this._createRootWindow();
-            this._container.appendChild(this._rootWindow.inputWindow);
 
             this._cursorStyleSheet = newStyleSheet();
 
@@ -587,6 +581,10 @@
             this.queueFullRedraw();
 
             this.publicServer = new PublicServer(this);
+
+            this._cursorX = -1;
+            this._cursorY = -1;
+            this._currentServerWindow = null;
         },
 
         _setupDOM: function() {
@@ -710,6 +708,19 @@
             return region;
         },
 
+        syncCursor: function() {
+            var cursor;
+
+            if (this._grabClient && this._grabClient.cursor)
+                cursor = this._grabClient.cursor;
+            else if (this._currentServerWindow)
+                cursor = this._currentServerWindow.cursor;
+            else
+                cursor = '';
+
+            this._container.style.cursor = cursor;
+        },
+
         _redraw: function() {
             // The damaged region is global, not per-window. This function
             // walks all windows, computing the intersection of the global
@@ -794,38 +805,37 @@
         },
 
         _setupInputHandlers: function() {
-            this._container.addEventListener("mousemove", this._handleInputSimple.bind(this));
-
-            // Implicit grabs need special support.
+            this._container.addEventListener("mousemove", this._handleInputMouseMove.bind(this));
             this._container.addEventListener("mousedown", this._handleInputButtonPress.bind(this));
             this._container.addEventListener("mouseup", this._handleInputButtonRelease.bind(this));
-
-            // As a crossing event will be generated for both mouseover
-            // and mouseout, simply use mouseenter. Leaving the stage
-            // won't quite work, but we can special case that later.
-            this._container.addEventListener("mouseover", this._handleInputEnterLeave.bind(this));
         },
 
-        getWindowIdFromDOMNode: function(node) {
-            if (!node._serverWindow)
-                return 0;
+        syncCurrentWindow: function() {
+            var serverWindow = this._rootWindow.findDeepestChildAtPoint(this._cursorX, this._cursorY);
+            var event = { rootWindowId: this.rootWindowId,
+                          rootX: this._cursorX,
+                          rootY: this._cursorY };
 
-            return node._serverWindow.windowId;
-        },
-        _getServerWindowFromDOMEvent: function(domEvent) {
-            var domInputWindow = domEvent.target;
-            var serverWindow = domInputWindow._serverWindow;
-            if (!serverWindow)
-                return null;
-
-            return serverWindow;
+            if (serverWindow != this._currentServerWindow) {
+                this._handleInputEnterLeave(event, this._currentServerWindow, serverWindow);
+                this._currentServerWindow = serverWindow;
+                this.syncCursor();
+            }
         },
         _handleInputBase: function(domEvent) {
             // X does not have event bubbling, so stop it now.
             domEvent.preventDefault();
             domEvent.stopPropagation();
 
-            var serverWindow = this._getServerWindowFromDOMEvent(domEvent);
+            var box = this._container.getBoundingClientRect();
+            var rootCoords = { x: domEvent.clientX - box.left,
+                               y: domEvent.clientY - box.top };
+            this._cursorX = rootCoords.x;
+            this._cursorY = rootCoords.y;
+
+            this.syncCurrentWindow();
+
+            var serverWindow = this._currentServerWindow;
 
             // If we have a grab, all events go to the grab window.
             // XXX - are windowId and the coordinates on the event the same?
@@ -834,15 +844,12 @@
             else if (!serverWindow)
                 return null;
 
-            var box = this._container.getBoundingClientRect();
-            var rootCoords = { x: domEvent.clientX - box.left,
-                               y: domEvent.clientY - box.top };
             var winCoords = this._translateCoordinates(this._rootWindow, serverWindow, rootCoords.x, rootCoords.y);
 
             var event = { rootWindowId: this.rootWindowId,
+                          rootX: this._cursorX,
+                          rootY: this._cursorY,
                           windowId: serverWindow.windowId,
-                          rootX: rootCoords.x,
-                          rootY: rootCoords.y,
                           winX: winCoords.x,
                           winY: winCoords.y };
             return event;
@@ -863,16 +870,19 @@
             }
 
             this.sendEvent(event);
+            return event;
+        },
+        _handleInputMouseMove: function(domEvent) {
+            this._handleInputSimple(domEvent);
         },
         _handleInputButtonPress: function(domEvent) {
-            this._handleInputSimple(domEvent);
+            var event = this._handleInputSimple(domEvent);
 
             // If there's no active explicit pointer grab, take an implicit one.
             // Do this after event delivery for a slight perf gain in case a
             // client takes their own grab.
             if (this._grabClient === null) {
-                var serverWindow = this._getServerWindowFromDOMEvent(domEvent);
-                this._grabPointer(null, serverWindow, false, [], serverWindow.inputWindow.style.cursor);
+                this._grabPointer(null, this._currentServerWindow, false, []);
             }
         },
         _handleInputButtonRelease: function(domEvent) {
@@ -882,37 +892,14 @@
             if (this._grabClient && this._grabClient.isImplicitGrab)
                 this._ungrabPointer(null);
         },
-        _handleInputEnterLeave: function(domEvent) {
-            var eventBase = this._handleInputBase(domEvent);
-            if (!eventBase)
-                return;
-
-            var fromElem, toElem;
-
-            if (domEvent.type === 'mouseover') {
-                fromElem = domEvent.fromElement || domEvent.relatedTarget;
-                toElem = domEvent.target;
-            } else if (domEvent.type === 'mouseout') {
-                fomElem = domEvent.target;
-                toElem = domEvent.toElement || domEvent.relatedTarget;
-            }
-
-            // It's possible for fromElem to be null in the case where
-            // we're going from browser chrome to the container element.
-            // In this case, we don't want to generate an Enter on the
-            // root window, so quit early.
-            if (!fromElem)
-                return;
-
-            var fromWin = fromElem._serverWindow;
-            var toWin = toElem._serverWindow;
-            if (!fromWin || !toWin)
-                return;
-
+        _handleInputEnterLeave: function(eventBase, fromWin, toWin) {
             // Adapted from Xorg server, a pre-MPX version of dix/enterleave.c
             // Under MIT license
 
             var server = this;
+
+            if (!fromWin)
+                fromWin = this._rootWindow;
 
             // TODO: NotifyGrab/NotifyUngrab
             function EnterLeaveEvent(type, detail, window, child) {
@@ -1070,15 +1057,17 @@
 
             oldRegion.finalize();
             newRegion.finalize();
+
+            this.syncCurrentWindow();
         },
 
         _grabPointer: function(serverClient, grabWindow, ownerEvents, events, cursor) {
-            this._grabClient = new ServerGrabClient(this, serverClient, grabWindow, ownerEvents, events);
-            setCursorStylesheet(this._cursorStyleSheet, cursor);
+            this._grabClient = new ServerGrabClient(this, serverClient, grabWindow, ownerEvents, events, cursor);
+            this.syncCursor();
         },
         _ungrabPointer: function() {
             this._grabClient = null;
-            setCursorStylesheet(this._cursorStyleSheet, '');
+            this.syncCursor();
         },
 
         // Used by _createRootWindow and createWindow.

@@ -130,6 +130,7 @@
             {name: "subtract", args: ["r1", "r2"]},
             {name: "n_rects", args: []},
             {name: "not_empty", args: []},
+            {name: "contains_point", args: ["x", "y"]},
             {name: "_rectangles", args: []},
             {name: "_extents", args: []},
         ]
