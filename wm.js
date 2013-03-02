@@ -15,6 +15,51 @@
         return a;
     }
 
+    function roundedRectRegion(geom, corners) {
+        var shapeRegion = new Region();
+        shapeRegion.init_rect(0, 0, geom.width, geom.height);
+
+        var cornerRegion = new Region();
+
+        function widthForRadiusSegment(radius, i) {
+            var r = radius-i-0.5;
+            return (0.5 + radius - Math.sqrt(radius*radius - r*r)) | 0;
+        }
+
+        if (corners.topRight) {
+            for (var i = 0; i < corners.topLeft; i++) {
+                var width = widthForRadiusSegment(corners.topLeft, i);
+                cornerRegion.union_rect(cornerRegion, 0, i, width, 1);
+            }
+        }
+
+        if (corners.topRight) {
+            for (var i = 0; i < corners.topRight; i++) {
+                var width = widthForRadiusSegment(corners.topRight, i);
+                cornerRegion.union_rect(cornerRegion, geom.width - width, i, width, 1);
+            }
+        }
+
+        if (corners.bottomLeft) {
+            for (var i = 0; i < corners.bottomLeft; i++) {
+                var width = widthForRadiusSegment(corners.bottomLeft, i);
+                cornerRegion.union_rect(cornerRegion, 0, geom.height - i, width, 1);
+            }
+        }
+
+        if (corners.bottomRight) {
+            for (var i = 0; i < corners.bottomRight; i++) {
+                var width = widthForRadiusSegment(corners.bottomRight, i);
+                cornerRegion.union_rect(cornerRegion, geom.width - width, geom.height - i, width, 1);
+            }
+        }
+
+        shapeRegion.subtract(shapeRegion, cornerRegion);
+        cornerRegion.finalize();
+
+        return shapeRegion;
+    }
+
     // Don't extend Window as this needs to be in the
     // WM client, not its own client.
     var WindowFrame = new Class({
@@ -77,37 +122,7 @@
         },
 
         _constructShapeRegion: function(geom) {
-            var shapeRegion = new Region();
-            var cornerRegion = this._constructCornerRegion(geom);
-            shapeRegion.init_rect(0, 0, geom.width, geom.height);
-            shapeRegion.subtract(shapeRegion, cornerRegion);
-            cornerRegion.finalize();
-            return shapeRegion;
-        },
-
-        _constructCornerRegion: function(geom) {
-            var radius = 10;
-
-            var cornerRegion = new Region();
-
-            function widthForRadiusSegment(i) {
-                var r = radius-i-0.5;
-                return (0.5 + radius - Math.sqrt(radius*radius - r*r)) | 0;
-            }
-
-            // Top left corner
-            for (var i = 0; i < radius; i++) {
-                var width = widthForRadiusSegment(i);
-                cornerRegion.union_rect(cornerRegion, 0, i, width, 1);
-            }
-
-            // Top right corner
-            for (var i = 0; i < radius; i++) {
-                var width = widthForRadiusSegment(i);
-                cornerRegion.union_rect(cornerRegion, geom.width - width, i, width, 1);
-            }
-
-            return cornerRegion;
+            return roundedRectRegion(geom, { topLeft: 10, topRight: 10 });
         },
 
         construct: function() {
