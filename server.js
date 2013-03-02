@@ -1227,9 +1227,14 @@
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             serverWindow.setWindowShapeRegion(shapeType, region);
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion,
-                                                        serverWindow.x, serverWindow.y,
-                                                        serverWindow.x, serverWindow.y);
+
+            var damagedRegion = new Region();
+            damagedRegion.subtract(oldRegion, newRegion);
+            this._damagedRegion.union(this._damagedRegion, damagedRegion);
+            damagedRegion.subtract(newRegion, oldRegion);
+            this._damagedRegion.union(this._damagedRegion, damagedRegion);
+
+            this._queueRedraw();
 
             oldRegion.finalize();
             newRegion.finalize();
