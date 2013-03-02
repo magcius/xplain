@@ -31,12 +31,6 @@
         sizeElement(elem, w, h);
     }
 
-    function getEventCoordsInDomElementSpace(event, elem) {
-        var box = elem.getBoundingClientRect();
-        return { x: event.clientX - box.left,
-                 y: event.clientY - box.top };
-    }
-
     function copyArea(ctx, oldX, oldY, newX, newY, w, h) {
         if (newX < 0) {
             w += newX;
@@ -669,6 +663,19 @@
             fullRegion.finalize();
         },
 
+        _translateCoordinates: function(srcServerWindow, destServerWindow, x, y) {
+            var offs;
+            offs = srcServerWindow.calculateAbsoluteOffset();
+            x += offs.x;
+            y += offs.y;
+
+            offs = destServerWindow.calculateAbsoluteOffset();
+            x -= offs.x;
+            y -= offs.y;
+
+            return { x: x, y: y };
+        },
+
         _iterWindowsAboveWindow: function(serverWindow, callback) {
             while (serverWindow != null && serverWindow.parentServerWindow != null) {
                 var parent = serverWindow.parentServerWindow;
@@ -827,8 +834,10 @@
             else if (!serverWindow)
                 return null;
 
-            var rootCoords = getEventCoordsInDomElementSpace(domEvent, this._container);
-            var winCoords = getEventCoordsInDomElementSpace(domEvent, serverWindow.inputWindow);
+            var box = this._container.getBoundingClientRect();
+            var rootCoords = { x: domEvent.clientX - box.left,
+                               y: domEvent.clientY - box.top };
+            var winCoords = this._translateCoordinates(this._rootWindow, serverWindow, rootCoords.x, rootCoords.y);
 
             var event = { rootWindowId: this.rootWindowId,
                           windowId: serverWindow.windowId,
@@ -1162,17 +1171,7 @@
         translateCoordinates: function(client, srcWindowId, destWindowId, x, y) {
             var srcServerWindow = this._windowsById[srcWindowId];
             var destServerWindow = this._windowsById[destWindowId];
-
-            var offs;
-            offs = srcServerWindow.calculateAbsoluteOffset();
-            x += offs.x;
-            y += offs.y;
-
-            offs = destServerWindow.calculateAbsoluteOffset();
-            x -= offs.x;
-            y -= offs.y;
-
-            return { x: x, y: y };
+            return this._translateCoordinates(srcServerWindow, destServerWindow, x, y);
         },
         changeAttributes: function(client, windowId, attributes) {
             var serverWindow = this._windowsById[windowId];
