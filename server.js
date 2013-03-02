@@ -954,7 +954,7 @@
         },
 
         // This function copies the front buffer around to move/resize windows.
-        _manipulateGraphicsForWindowMoveResize: function(oldRegion, newRegion) {
+        _manipulateGraphicsForWindowMoveResize: function(oldRegion, newRegion, oldX, oldY, newX, newY) {
             // This is a bit fancy. We need to accomplish a few things:
             //
             //   1. If the area on top of the window was damaged before
@@ -980,11 +980,7 @@
             //    which excludes the region where windows visually obscure the window.
 
             var oldExtents = oldRegion.extents();
-            var newExtents = newRegion.extents();
-
-            var oldX = oldExtents.x, oldY = oldExtents.y;
             var oldW = oldExtents.width, oldH = oldExtents.height;
-            var newX = newExtents.x, newY = newExtents.y;
 
             var damagedRegion = new Region();
 
@@ -1048,6 +1044,7 @@
             }
 
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+            var oldX = serverWindow.x, oldY = serverWindow.y;
 
             // Reconfigure the window -- this will modify the shape region.
             if (!serverWindow.configureWindow(client, props)) {
@@ -1058,8 +1055,9 @@
             }
 
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+            var newX = serverWindow.x, newY = serverWindow.y;
 
-            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion);
+            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion, oldX, oldY, newX, newY);
 
             oldRegion.finalize();
             newRegion.finalize();
@@ -1229,7 +1227,9 @@
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             serverWindow.setWindowShapeRegion(shapeType, region);
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion);
+            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion,
+                                                        serverWindow.x, serverWindow.y,
+                                                        serverWindow.x, serverWindow.y);
 
             oldRegion.finalize();
             newRegion.finalize();
