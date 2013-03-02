@@ -131,7 +131,7 @@
             // The region of the window that needs to be redrawn, in window coordinates.
             this._damagedRegion = new Region();
 
-            // The region of the screen that the window occupies, in parent coordinates.
+            // The bounding region, as defined by the SHAPE extension, in window coordinates.
             this.boundingRegion = new Region();
             this._hasCustomBoundingRegion = false;
 
