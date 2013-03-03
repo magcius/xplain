@@ -159,36 +159,36 @@
             if (event.detail !== undefined)
                 this._configureRequestStack(event);
         },
-        handleEvent: function(event) {
+        _handleFrameEvent: function(event) {
             switch (event.type) {
             case "ButtonPress":
-                return this.buttonPress(event);
+                return this._frameButtonPress(event);
             case "ButtonRelease":
-                return this.buttonRelease(event);
+                return this._frameButtonRelease(event);
             case "Motion":
-                return this.motion(event);
+                return this._frameMotion(event);
             case "Expose":
-                return this.expose(event.ctx);
+                return this._frameExpose(event.ctx);
             }
         },
-        buttonPress: function(event) {
+        _frameButtonPress: function(event) {
             this._origMousePos = { x: event.rootX, y: event.rootY };
             var frameCoords = this._server.getGeometry(this, this.frameWindowId);
             this._origWindowPos = { x: frameCoords.x, y: frameCoords.y };
             this._server.grabPointer(this._wm, this.frameWindowId, true, ["ButtonRelease", "Motion"], "-moz-grabbing");
         },
-        buttonRelease: function(event) {
+        _frameButtonRelease: function(event) {
             this._server.ungrabPointer(this._wm, this.frameWindowId);
 
             this._origMousePos = null;
             this._origWindowPos = null;
         },
-        motion: function(event) {
+        _frameMotion: function(event) {
             var newX = this._origWindowPos.x + event.rootX - this._origMousePos.x;
             var newY = this._origWindowPos.y + event.rootY - this._origMousePos.y;
             this._updateGeometry({ x: newX, y: newY });
         },
-        expose: function(wrapper) {
+        _frameExpose: function(wrapper) {
             // background color takes care of the base
 
             // Draw title.
@@ -204,6 +204,10 @@
             }
 
             wrapper.clearDamage();
+        },
+        handleEvent: function(event) {
+            if (event.windowId == this.frameWindowId)
+                return this._handleFrameEvent(event);
         },
     });
 
