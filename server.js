@@ -1217,6 +1217,7 @@
             damagedRegion.subtract(newRegion, oldRegion);
             this.damageRegion(damagedRegion);
 
+            damagedRegion.finalize();
             oldRegion.finalize();
             newRegion.finalize();
         },
