@@ -418,7 +418,12 @@
             return false;
         },
         sendEvent: function(event) {
-            this.client.handleEvent(event);
+            if (this.isInterestedInEvent(event)) {
+                this.client.handleEvent(event);
+                return true;
+            } else {
+                return false;
+            }
         },
         selectInput: function(windowId, eventTypes) {
             var listeningFor = this._eventWindows[windowId];
@@ -796,10 +801,9 @@
                     if (!serverWindow.filterEvent(event))
                         continue;
 
-                    if (!serverClient.isInterestedInEvent(event))
+                    if (!serverClient.sendEvent(event))
                         continue;
 
-                    serverClient.sendEvent(event);
                     foundOneClient = true;
                 }
                 return foundOneClient;
