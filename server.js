@@ -221,8 +221,8 @@
                 this._backgroundColor = attributes.backgroundColor || DEFAULT_BACKGROUND_COLOR;
             }
 
-            if (valueUpdated(attributes.overrideRedirect, this.overrideRedirect)) {
-                this.overrideRedirect = attributes.overrideRedirect;
+            if (valueUpdated(attributes.overrideRedirect, this._overrideRedirect)) {
+                this._overrideRedirect = attributes.overrideRedirect;
             }
 
             if (valueUpdated(attributes.cursor, this.cursor)) {
@@ -370,7 +370,7 @@
         filterEvent: function(event) {
             // If we're an override redirect window and the event is a MapRequest
             // or a ConfigureRequest, make sure it doesn't go to any selected clients.
-            if (this.overrideRedirect && isEventSubstructureRedirect(event))
+            if (this._overrideRedirect && isEventSubstructureRedirect(event))
                 return false;
             return true;
         },
