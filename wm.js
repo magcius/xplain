@@ -103,18 +103,19 @@
                 sizeUpdated = true;
             }
 
-            if (positionUpdated || sizeUpdated)
-                this._server.configureWindow(this._wm, this.frameWindowId, this._frameGeometry);
-
             this._clientGeometry.x = border.left;
             this._clientGeometry.y = border.top;
 
-            if (sizeUpdated)
+            if (positionUpdated || sizeUpdated)
+                this._server.configureWindow(this._wm, this.frameWindowId, this._frameGeometry);
+
+            if (sizeUpdated) {
+                // Update the client window
                 this._server.configureWindow(this._wm, this.clientWindowId, this._clientGeometry);
 
-            // Invalidate the frame that's already been partially painted.
-            if (sizeUpdated)
+                // Invalidate the frame that's already been partially painted.
                 this._server.invalidateWindow(this._wm, this.frameWindowId);
+            }
 
             var shapeRegion = roundedRectRegion(this._frameGeometry, { topLeft: 10, topRight: 10 });
             this._server.setWindowShapeRegion(this._wm, this.frameWindowId, "Bounding", shapeRegion);
