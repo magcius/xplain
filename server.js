@@ -745,6 +745,9 @@
                 if (!serverWindow.mapped)
                     return;
 
+                if (calculatedDamageRegion.is_empty())
+                    return;
+
                 // Transform into the child's space.
                 calculatedDamageRegion.translate(-serverWindow.x, -serverWindow.y);
 
