@@ -751,7 +751,6 @@
                 // Child windows need to be damaged first.
                 serverWindow.children.forEach(iterateWindow);
 
-                intersection.clear();
                 intersection.intersect(calculatedDamageRegion, serverWindow.boundingRegion);
 
                 if (intersection.not_empty()) {
@@ -998,8 +997,6 @@
             damagedRegion.subtract(oldRegion, newRegion);
             this.damageRegion(damagedRegion);
             this._debugDrawRegion(damagedRegion, 'yellow');
-
-            damagedRegion.clear();
 
             var positionChanged = newX != oldX || newY != oldY;
 
