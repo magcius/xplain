@@ -124,16 +124,15 @@
         construct: function() {
             var geom = this._server.getGeometry(this._wm, this.clientWindowId);
 
-            this.frameWindowId = this._server.createWindow(this._wm);
             this._wm.register(this.clientWindowId, this);
-            this._wm.register(this.frameWindowId, this);
-
-            this._server.selectInput(this._wm, this.frameWindowId, ["Expose", "ButtonPress"]);
             this._server.selectInput(this._wm, this.clientWindowId, ["ButtonPress"]);
-            this._server.changeAttributes(this._wm, this.frameWindowId, { hasInput: true, backgroundColor: 'red' }); // for now
-            this._server.reparentWindow(this._wm, this.clientWindowId, this.frameWindowId);
 
-            // Map the frame window.
+            this.frameWindowId = this._server.createWindow(this._wm);
+            this._wm.register(this.frameWindowId, this);
+            this._server.selectInput(this._wm, this.frameWindowId, ["Expose", "ButtonPress"]);
+            this._server.changeAttributes(this._wm, this.frameWindowId, { hasInput: true, backgroundColor: 'red' }); // for now
+
+            this._server.reparentWindow(this._wm, this.clientWindowId, this.frameWindowId);
             this._server.mapWindow(this._wm, this.frameWindowId);
 
             this._updateGeometry(geom);
