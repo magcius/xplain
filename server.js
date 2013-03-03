@@ -224,6 +224,11 @@
             if (valueUpdated(attributes.overrideRedirect, this.overrideRedirect)) {
                 this.overrideRedirect = attributes.overrideRedirect;
             }
+
+            if (valueUpdated(attributes.cursor, this.cursor)) {
+                this.cursor = attributes.cursor;
+                this._server.syncCursor();
+            }
         },
         getProperty: function(name, value) {
             return this._properties[name];
@@ -233,10 +238,6 @@
             this._server.sendEvent({ type: "PropertyChanged",
                                      windowId: this.windowId,
                                      name: name, value: value });
-        },
-        defineCursor: function(cursor) {
-            this.cursor = cursor;
-            this._server.syncCursor();
         },
         map: function(client) {
             if (this.mapped)
@@ -514,7 +515,6 @@
         'changeAttributes',
         'getProperty',
         'changeProperty',
-        'defineCursor',
         'grabPointer',
         'ungrabPointer',
 
@@ -1174,10 +1174,6 @@
         changeProperty: function(client, windowId, name, value) {
             var serverWindow = this._windowsById[windowId];
             serverWindow.changeProperty(name, value);
-        },
-        defineCursor: function(client, windowId, cursor) {
-            var serverWindow = this._windowsById[windowId];
-            serverWindow.defineCursor(cursor);
         },
         invalidateWindow: function(client, windowId) {
             var serverWindow = this._windowsById[windowId];

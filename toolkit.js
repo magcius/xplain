@@ -108,8 +108,7 @@
         connect: function(server) {
             this.parent(server);
             this._server.selectInput(this, this._windowId, ["Enter", "Leave", "ButtonPress", "ButtonRelease"]);
-            this._server.defineCursor(this, this._windowId, "pointer");
-            this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
+            this._server.changeAttributes(this, this._windowId, { overrideRedirect: true, cursor: "pointer" });
             this._syncButtonState();
         },
         _getState: function() {
