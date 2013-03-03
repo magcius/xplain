@@ -43,14 +43,14 @@
         if (corners.bottomLeft) {
             for (var i = 0; i < corners.bottomLeft; i++) {
                 var width = widthForRadiusSegment(corners.bottomLeft, i);
-                cornerRegion.union_rect(cornerRegion, 0, geom.height - i, width, 1);
+                cornerRegion.union_rect(cornerRegion, 0, geom.height - i - 1, width, 1);
             }
         }
 
         if (corners.bottomRight) {
             for (var i = 0; i < corners.bottomRight; i++) {
                 var width = widthForRadiusSegment(corners.bottomRight, i);
-                cornerRegion.union_rect(cornerRegion, geom.width - width, geom.height - i, width, 1);
+                cornerRegion.union_rect(cornerRegion, geom.width - width, geom.height - i - 1, width, 1);
             }
         }
 
@@ -113,6 +113,9 @@
                 // Update the client window
                 this._server.configureWindow(this._wm, this.clientWindowId, this._clientGeometry);
 
+                this._server.configureWindow(this._wm, this.closeWindowId, { x: border.left + this._clientGeometry.width - 20,
+                                                                             y: 8 });
+
                 // Invalidate the frame that's already been partially painted.
                 this._server.invalidateWindow(this._wm, this.frameWindowId);
             }
@@ -120,6 +123,23 @@
             var shapeRegion = roundedRectRegion(this._frameGeometry, { topLeft: 10, topRight: 10 });
             this._server.setWindowShapeRegion(this._wm, this.frameWindowId, "Bounding", shapeRegion);
             shapeRegion.finalize();
+        },
+
+        _makeButton: function() {
+            var buttonWindowId = this._server.createWindow(this._wm);
+            this._wm.register(buttonWindowId, this);
+            this._server.selectInput(this._wm, buttonWindowId, ["ButtonRelease"]);
+            this._server.changeAttributes(this._wm, buttonWindowId, { hasInput: true, cursor: "pointer" });
+            var size = 15;
+            var geom = { width: size, height: size };
+            this._server.configureWindow(this._wm, buttonWindowId, geom);
+            var radius = size / 2;
+            var corners = { topLeft: radius, topRight: radius, bottomLeft: radius, bottomRight: radius };
+            var shapeRegion = roundedRectRegion(geom, corners);
+            this._server.setWindowShapeRegion(this._wm, buttonWindowId, "Bounding", shapeRegion);
+            this._server.reparentWindow(this._wm, buttonWindowId, this.frameWindowId);
+            this._server.mapWindow(this._wm, buttonWindowId);
+            return buttonWindowId;
         },
 
         construct: function() {
@@ -131,7 +151,10 @@
             this.frameWindowId = this._server.createWindow(this._wm);
             this._wm.register(this.frameWindowId, this);
             this._server.selectInput(this._wm, this.frameWindowId, ["Expose", "ButtonPress"]);
-            this._server.changeAttributes(this._wm, this.frameWindowId, { hasInput: true, backgroundColor: 'red' }); // for now
+            this._server.changeAttributes(this._wm, this.frameWindowId, { hasInput: true, backgroundColor: 'orange' });
+
+            this.closeWindowId = this._makeButton();
+            this._server.changeAttributes(this._wm, this.closeWindowId, { backgroundColor: 'red' });
 
             this._server.reparentWindow(this._wm, this.clientWindowId, this.frameWindowId);
             this._server.mapWindow(this._wm, this.frameWindowId);
@@ -205,7 +228,13 @@
 
             wrapper.clearDamage();
         },
+        _handleButtonEvent: function(event) {
+            if (event.windowId == this.closeWindowId && event.type == "ButtonRelease")
+                this._server.destroyWindow(this._wm, this.clientWindowId);
+        },
         handleEvent: function(event) {
+            if (event.windowId == this.closeWindowId)
+                return this._handleButtonEvent(event);
             if (event.windowId == this.frameWindowId)
                 return this._handleFrameEvent(event);
         },

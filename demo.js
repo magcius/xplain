@@ -102,15 +102,6 @@
 
         var button;
 
-        button = new SimpleButton('#ff0000', '#ff6666');
-        button.connect(server);
-        button.moveResize(700, 10, 20, 20);
-        button.reparent(w);
-        button.map();
-        button.clickCallback = function(event) {
-            w.destroy();
-        };
-
         var buttonX = 10;
         function setupButton(button) {
             button.connect(server);
