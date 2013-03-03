@@ -99,6 +99,10 @@
         return false;
     }
 
+    function valueUpdated(a, b) {
+        return a !== undefined && a !== b;
+    }
+
     var ContextWrapper = new Class({
         initialize: function(serverWindow, ctx) {
             this._serverWindow = serverWindow;
@@ -209,15 +213,15 @@
                 this.clearDamage();
         },
         changeAttributes: function(attributes) {
-            if (attributes.hasInput !== undefined && this.hasInput != attributes.hasInput) {
+            if (valueUpdated(attributes.hasInput, this.hasInput)) {
                 this.hasInput = !!attributes.hasInput;
             }
 
-            if (attributes.backgroundColor !== undefined && this._backgroundColor != attributes.backgroundColor) {
+            if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
                 this._backgroundColor = attributes.backgroundColor || DEFAULT_BACKGROUND_COLOR;
             }
 
-            if (attributes.overrideRedirect !== undefined && this.overrideRedirect != attributes.overrideRedirect) {
+            if (valueUpdated(attributes.overrideRedirect, this.overrideRedirect)) {
                 this.overrideRedirect = attributes.overrideRedirect;
             }
         },
