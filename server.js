@@ -991,12 +991,12 @@
             damagedRegion.intersect(this._damagedRegion, oldRegion);
             damagedRegion.translate(newX - oldX, newY - oldY);
             this._clipRegionToVisibleCoords(damagedRegion);
-            this._damagedRegion.union(this._damagedRegion, damagedRegion);
+            this.damageRegion(damagedRegion);
 
             // 2. Pixels need to be exposed under the window in places where the
             //    old region is, but the new region isn't.
             damagedRegion.subtract(oldRegion, newRegion);
-            this._damagedRegion.union(this._damagedRegion, damagedRegion);
+            this.damageRegion(damagedRegion);
             this._debugDrawRegion(damagedRegion, 'yellow');
 
             damagedRegion.clear();
@@ -1012,7 +1012,7 @@
             // 3. Pixels need to be exposed on the window in places where the
             //    new region is, but the old region isn't.
             damagedRegion.subtract(newRegion, oldRegion);
-            this._damagedRegion.union(this._damagedRegion, damagedRegion);
+            this.damageRegion(damagedRegion);
             this._debugDrawRegion(damagedRegion, 'green');
 
             // Copy the old image contents over, masked to the region.
@@ -1027,8 +1027,6 @@
             }
 
             damagedRegion.finalize();
-
-            this._queueRedraw();
         },
 
         _configureWindow: function(client, serverWindow, props) {
@@ -1218,11 +1216,9 @@
 
             var damagedRegion = new Region();
             damagedRegion.subtract(oldRegion, newRegion);
-            this._damagedRegion.union(this._damagedRegion, damagedRegion);
+            this.damageRegion(damagedRegion);
             damagedRegion.subtract(newRegion, oldRegion);
-            this._damagedRegion.union(this._damagedRegion, damagedRegion);
-
-            this._queueRedraw();
+            this.damageRegion(damagedRegion);
 
             oldRegion.finalize();
             newRegion.finalize();
