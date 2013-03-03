@@ -67,7 +67,7 @@
         initialize: function(wm, server, windowId) {
             this._wm = wm;
             this._server = server;
-            this.clientWindowId = windowId;
+            this._clientWindowId = windowId;
 
             // Client geometry relative to the parent frame
             this._clientGeometry = {};
@@ -111,10 +111,10 @@
 
             if (sizeUpdated) {
                 // Update the client window
-                this._server.configureWindow(this._wm, this.clientWindowId, this._clientGeometry);
+                this._server.configureWindow(this._wm, this._clientWindowId, this._clientGeometry);
 
-                this._server.configureWindow(this._wm, this.closeWindowId, { x: border.left + this._clientGeometry.width - 20,
-                                                                             y: 8 });
+                this._server.configureWindow(this._wm, this._closeWindowId, { x: border.left + this._clientGeometry.width - 20,
+                                                                              y: 8 });
 
                 // Invalidate the frame that's already been partially painted.
                 this._server.invalidateWindow(this._wm, this.frameWindowId);
@@ -143,20 +143,20 @@
         },
 
         construct: function() {
-            var geom = this._server.getGeometry(this._wm, this.clientWindowId);
+            var geom = this._server.getGeometry(this._wm, this._clientWindowId);
 
-            this._wm.register(this.clientWindowId, this);
-            this._server.selectInput(this._wm, this.clientWindowId, ["ButtonPress"]);
+            this._wm.register(this._clientWindowId, this);
+            this._server.selectInput(this._wm, this._clientWindowId, ["ButtonPress"]);
 
             this.frameWindowId = this._server.createWindow(this._wm);
             this._wm.register(this.frameWindowId, this);
             this._server.selectInput(this._wm, this.frameWindowId, ["Expose", "ButtonPress"]);
             this._server.changeAttributes(this._wm, this.frameWindowId, { hasInput: true, backgroundColor: 'orange' });
 
-            this.closeWindowId = this._makeButton();
-            this._server.changeAttributes(this._wm, this.closeWindowId, { backgroundColor: 'red' });
+            this._closeWindowId = this._makeButton();
+            this._server.changeAttributes(this._wm, this._closeWindowId, { backgroundColor: 'red' });
 
-            this._server.reparentWindow(this._wm, this.clientWindowId, this.frameWindowId);
+            this._server.reparentWindow(this._wm, this._clientWindowId, this.frameWindowId);
             this._server.mapWindow(this._wm, this.frameWindowId);
 
             this._updateGeometry(geom);
@@ -215,9 +215,9 @@
             // background color takes care of the base
 
             // Draw title.
-            var title = this._server.getProperty(this._wm, this.clientWindowId, "WM_NAME");
+            var title = this._server.getProperty(this._wm, this._clientWindowId, "WM_NAME");
             if (title) {
-                var geom = this._server.getGeometry(this._wm, this.clientWindowId);
+                var geom = this._server.getGeometry(this._wm, this._clientWindowId);
                 wrapper.drawWithContext(function(ctx) {
                     ctx.fillStyle = '#000';
                     ctx.textAlign = 'center';
@@ -229,11 +229,11 @@
             wrapper.clearDamage();
         },
         _handleButtonEvent: function(event) {
-            if (event.windowId == this.closeWindowId && event.type == "ButtonRelease")
-                this._server.destroyWindow(this._wm, this.clientWindowId);
+            if (event.windowId == this._closeWindowId && event.type == "ButtonRelease")
+                this._server.destroyWindow(this._wm, this._clientWindowId);
         },
         handleEvent: function(event) {
-            if (event.windowId == this.closeWindowId)
+            if (event.windowId == this._closeWindowId)
                 return this._handleButtonEvent(event);
             if (event.windowId == this.frameWindowId)
                 return this._handleFrameEvent(event);
