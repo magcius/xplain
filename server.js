@@ -458,32 +458,29 @@
 
             this.grabWindow = grabWindow;
 
-            // events is an additional list of event types on grabWindowId to
-            // be used during the grab.
-            // If ownerEvents is false, only events inside this events list
-            // are delivered to the grab window.
-            // If ownerEvents is true, both events inside this events list
-            // and any selected events that are defined on grabWindowId are
-            // respected.
             this._events = events;
             this._ownerEvents = ownerEvents;
         },
-        isInterestedInEvent: function(event) {
+        sendEvent: function(event) {
             // Implicit grab -- we should never get here.
             if (!this.serverClient)
                 throw new Error("Server grab -- should be unreachable");
 
-            // This can happen for Enter/Leave events.
-            if (event.windowId !== this.grabWindow.windowId)
-                return false;
-
-            // Since we are guaranteed that the event is on the grab window,
-            // we can simply ask the grabbing client if it wants to take this
-            // event for the ownerEvents implementation.
+            // If ownerEvents is true, that means that any events that would
+            // normally be reported to the client are reported, without any
+            // modification. So, if a client with two windows, window A and
+            // window B, and takes a grab on window A, events should still be
+            // delivered for window B if they come in.
             if (this._ownerEvents && this.serverClient.isInterestedInEvent(event))
-                return true;
+                this.client.handleEvent(event);
 
-            return this._events.indexOf(event.type) >= 0;
+            // Else, if we should report this event, report it with respect
+            // to the grab window.
+            if (this._events.indexOf(event.type) >= 0) {
+                var newEvent = Object.create(event);
+                newEvent.windowId = this.grabWindow.windowId;
+                this.client.handleEvent(newEvent);
+            }
         },
         selectInput: function() {
             throw new Error("selectInput() called on the fake grab client. Should not happen.");
@@ -845,9 +842,7 @@
 
             // If we have a grab, all events go to the grab window.
             // XXX - are windowId and the coordinates on the event the same?
-            if (this._grabClient)
-                serverWindow = this._grabClient.grabWindow;
-            else if (!serverWindow)
+            if (!serverWindow)
                 return null;
 
             var winCoords = this._translateCoordinates(this._rootWindow, serverWindow, rootCoords.x, rootCoords.y);
