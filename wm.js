@@ -116,13 +116,9 @@
             if (sizeUpdated)
                 this._server.invalidateWindow(this._wm, this.frameWindowId);
 
-            var shapeRegion = this._constructShapeRegion(this._frameGeometry);
+            var shapeRegion = roundedRectRegion(this._frameGeometry, { topLeft: 10, topRight: 10 });
             this._server.setWindowShapeRegion(this._wm, this.frameWindowId, "Bounding", shapeRegion);
             shapeRegion.finalize();
-        },
-
-        _constructShapeRegion: function(geom) {
-            return roundedRectRegion(geom, { topLeft: 10, topRight: 10 });
         },
 
         construct: function() {
