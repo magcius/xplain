@@ -1045,7 +1045,7 @@
             }
 
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            var oldX = serverWindow.x, oldY = serverWindow.y;
+            var oldPos = serverWindow.calculateAbsoluteOffset();
 
             // Reconfigure the window -- this will modify the shape region.
             if (!serverWindow.configureWindow(client, props)) {
@@ -1056,9 +1056,9 @@
             }
 
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            var newX = serverWindow.x, newY = serverWindow.y;
+            var newPos = serverWindow.calculateAbsoluteOffset();
 
-            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion, oldX, oldY, newX, newY);
+            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion, oldPos.x, oldPos.y, newPos.x, newPos.y);
 
             oldRegion.finalize();
             newRegion.finalize();
