@@ -88,9 +88,7 @@
         };
 
         proto.finalize = function() {
-            _free(this.$internal);
-            // it seems emscripten has issues with _free right now
-            // this[free].apply(this, arguments);
+            this[free].apply(this, arguments);
         };
 
         return constructor;
