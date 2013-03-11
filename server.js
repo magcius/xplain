@@ -932,19 +932,19 @@
             }
 
             if (isWindowDescendentOf(fromWin, toWin)) {
-                EnterLeaveEvent("Leave", "NotifyInterior", fromWin, null);
-                EnterNotifies(fromWin, toWin, "NotifyVirtual");
-                EnterLeaveEvent("Enter", "NotifyAncestor", toWin, null);
+                EnterLeaveEvent("Leave", "Interior", fromWin, null);
+                EnterNotifies(fromWin, toWin, "Virtual");
+                EnterLeaveEvent("Enter", "Ancestor", toWin, null);
             } else if (isWindowDescendentOf(toWin, fromWin)) {
-                EnterLeaveEvent("Leave", "NotifyAncestor", fromWin, null);
-                LeaveNotifies(fromWin, toWin, "NotifyVirtual");
-                EnterLeaveEvent("Enter", "NotifyInferior", toWin, null);
+                EnterLeaveEvent("Leave", "Ancestor", fromWin, null);
+                LeaveNotifies(fromWin, toWin, "Virtual");
+                EnterLeaveEvent("Enter", "Inferior", toWin, null);
             } else {
                 var common = commonAncestor(toWin, fromWin);
-                EnterLeaveEvent("Leave", "NotifyNonlinear", fromWin, null);
-                LeaveNotifies(fromWin, common, "NotifyNonlinearVirtual");
-                EnterNotifies(common, toWin, "NotifyNonlinearVirtual");
-                EnterLeaveEvent("Enter", "NotifyNonlinear", toWin, null);
+                EnterLeaveEvent("Leave", "Nonlinear", fromWin, null);
+                LeaveNotifies(fromWin, common, "NonlinearVirtual");
+                EnterNotifies(common, toWin, "NonlinearVirtual");
+                EnterLeaveEvent("Enter", "Nonlinear", toWin, null);
             }
         },
 
