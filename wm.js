@@ -129,7 +129,7 @@
             var buttonWindowId = this._server.createWindow(this._wm);
             this._wm.register(buttonWindowId, this);
             this._server.selectInput(this._wm, buttonWindowId, ["ButtonRelease"]);
-            this._server.changeAttributes(this._wm, buttonWindowId, { hasInput: true, cursor: "pointer" });
+            this._server.changeAttributes(this._wm, buttonWindowId, { cursor: "pointer" });
             var size = 15;
             var geom = { width: size, height: size };
             this._server.configureWindow(this._wm, buttonWindowId, geom);

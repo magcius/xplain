@@ -213,10 +213,6 @@
                 this.clearDamage();
         },
         changeAttributes: function(attributes) {
-            if (valueUpdated(attributes.hasInput, this._hasInput)) {
-                this._hasInput = !!attributes.hasInput;
-            }
-
             if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
                 this._backgroundColor = attributes.backgroundColor || DEFAULT_BACKGROUND_COLOR;
             }
@@ -297,9 +293,6 @@
                 if (deepestChild)
                     return deepestChild;
             }
-
-            if (!this._hasInput)
-                return null;
 
             return this;
         },

@@ -3,14 +3,13 @@
 
     var Window = new Class({
         initialize: function() {
-            this.hasInput = true;
             this.backgroundColor = null;
         },
         connect: function(server) {
             this._server = server;
             this._server.clientConnected(this);
             this._windowId = this._server.createWindow(this);
-            this._server.changeAttributes(this, this._windowId, { hasInput: this.hasInput, backgroundColor: this.backgroundColor });
+            this._server.changeAttributes(this, this._windowId, { backgroundColor: this.backgroundColor });
             this._server.selectInput(this, this._windowId, ["Expose", "ConfigureNotify"]);
         },
         handleEvent: function(event) {
