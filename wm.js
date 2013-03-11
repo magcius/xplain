@@ -146,7 +146,7 @@
             var geom = this._server.getGeometry(this._wm, this._clientWindowId);
 
             this._wm.register(this._clientWindowId, this);
-            this._server.selectInput(this._wm, this._clientWindowId, ["ButtonPress"]);
+            this._server.grabButton(this._wm, this._clientWindowId, 1, false, ["ButtonPress", "ButtonRelease"], "");
 
             this.frameWindowId = this._server.createWindow(this._wm);
             this._wm.register(this.frameWindowId, this);
@@ -266,6 +266,9 @@
                 this._server.configureWindow(this, frame.frameWindowId, { stackMode: "Above" });
                 if (frameWasReceiver)
                     return frame.handleEvent(event);
+                else
+                    // XXX -- implement sync grabs and allowEvents
+                    this._server.ungrabPointer(this, frame._clientWindowId);
                 break;
 
             // These should only happen for frame windows.

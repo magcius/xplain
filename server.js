@@ -142,6 +142,7 @@
             this._ctxWrapper = new ContextWrapper(this, ctx);
 
             this._properties = {};
+            this._passiveGrabs = {};
 
             // All child windows, sorted with the top-most window *first*.
             this.children = [];
@@ -384,6 +385,16 @@
                 }
             }
         },
+
+        grabButton: function(button, grabInfo) {
+            this._passiveGrabs[button] = grabInfo;
+        },
+        ungrabButton: function(button) {
+            delete this._passiveGrabs[button];
+        },
+        getGrab: function(button) {
+            return this._passiveGrabs[button];
+        },
     });
 
     var ServerClient = new Class({
@@ -513,6 +524,8 @@
         'changeProperty',
         'grabPointer',
         'ungrabPointer',
+        'grabButton',
+        'ungrabButton',
 
         // JS extension -- simplifies the case of drawing
         // by letting someone use an existing expose handler.
@@ -869,30 +882,48 @@
                 event.button = domEvent.which;
                 break;
             }
-
-            this.sendEvent(event);
             return event;
         },
         _handleInputMouseMove: function(domEvent) {
-            this._handleInputSimple(domEvent);
+            var event = this._handleInputSimple(domEvent);
+            this.sendEvent(event);
         },
         _handleInputButtonPress: function(domEvent) {
             var event = this._handleInputSimple(domEvent);
+
+            function checkGrabRecursively(serverWindow) {
+                if (!serverWindow)
+                    return null;
+
+                var grabInfo = checkGrabRecursively(serverWindow.parentServerWindow);
+                if (grabInfo)
+                    return grabInfo;
+
+                return serverWindow.getGrab(event.button);
+            }
+
+            var grabInfo;
+            grabInfo = checkGrabRecursively(this._currentServerWindow);
+            if (grabInfo)
+                this._grabPointer(grabInfo);
+
+            this.sendEvent(event);
 
             // If there's no active explicit pointer grab, take an implicit one.
             // Do this after event delivery for a slight perf gain in case a
             // client takes their own grab.
             if (this._grabClient === null) {
-                var grabInfo = { serverClient: null,
-                                 grabWindow: this._currentServerWindow,
-                                 ownerEvents: false,
-                                 events: [],
-                                 cursor: null };
+                grabInfo = { serverClient: null,
+                             grabWindow: this._currentServerWindow,
+                             ownerEvents: false,
+                             events: [],
+                             cursor: null };
                 this._grabPointer(grabInfo);
             }
         },
         _handleInputButtonRelease: function(domEvent) {
-            this._handleInputSimple(domEvent);
+            var event = this._handleInputSimple(domEvent);
+            this.sendEvent(event);
 
             // Only release if we have an implicit grab.
             if (this._grabClient && this._grabClient.isImplicitGrab)
@@ -1207,6 +1238,20 @@
                 return;
 
             this._ungrabPointer();
+        },
+        grabButton: function(client, grabWindowId, button, ownerEvents, events, cursor) {
+            var grabWindow = this._windowsById[grabWindowId];
+            var serverClient = client._serverClient;
+            var grabInfo = { serverClient: serverClient,
+                             grabWindow: grabWindow,
+                             ownerEvents: ownerEvents,
+                             events: events,
+                             cursor: cursor };
+            grabWindow.grabButton(button, grabInfo);
+        }, 
+        ungrabButton: function(client, grabWindowId, button) {
+            var grabWindow = this._windowsById[grabWindowId];
+            grabWindow.ungrabButton(button);
         },
 
         setWindowShapeRegion: function(client, windowId, shapeType, region) {
