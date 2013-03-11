@@ -913,25 +913,22 @@
                 server.sendEvent(event);
             }
 
-            // Send to all parent windows up to ancestor.
-            function RecurseSendEvent(type, ancestor, child, detail) {
-                if (ancestor == child)
-                    return;
-
+            function EnterNotifies(ancestor, child, detail) {
                 var parent = child.parentServerWindow;
                 if (ancestor == parent)
                     return;
 
-                RecurseSendEvent(type, ancestor, parent, detail);
-                EnterLeaveEvent(type, detail, parent, child);
-            }
-
-            function EnterNotifies(ancestor, child, detail) {
-                RecurseSendEvent("Enter", ancestor, child, detail);
+                EnterNotifies(ancestor, parent, detail);
+                EnterLeaveEvent("Enter", detail, parent, child);
             }
 
             function LeaveNotifies(child, ancestor, detail) {
-                RecurseSendEvent("Leave", ancestor, child, detail);
+                var parent = child.parentServerWindow;
+                if (ancestor == parent)
+                    return;
+
+                EnterLeaveEvent("Leave", detail, parent, child);
+                LeaveNotifies(parent, ancestor, detail);
             }
 
             if (isWindowDescendentOf(fromWin, toWin)) {
