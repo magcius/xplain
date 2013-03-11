@@ -443,7 +443,7 @@
         Extends: ServerClient,
 
         initialize: function(server, serverClient, grabWindow, ownerEvents, events, cursor) {
-            // this.client is the client which has sendEvent and friends.
+            // this.client is the client which has handleEvent and friends.
             // this.serverClient is the serverClient for client that we're
             // wrapping, which we use isInterestedInEvent for the ownerEvents
             // implementation.
