@@ -471,12 +471,37 @@
             this._events = grabInfo.events;
             this.cursor = grabInfo.cursor;
 
+            this._waitingForEvent = false;
+            this.allowEvents(grabInfo.pointerMode);
+
             this.isImplicitGrab = serverClient === null;
+        },
+        isEventConsideredFrozen: function(event) {
+            switch (event.type) {
+                case "ButtonPress":
+                case "ButtonRelease":
+                    // XXX - is Motion frozen or not?
+                    return this._pointerMode == "Sync";
+            }
+            return false;
+        },
+        allowEvents: function(pointerMode) {
+            this._pointerMode = pointerMode;
+
+            // If we get a SyncPointer, then mark ourselves
+            // as waiting for an event again.
+            if (this._pointerMode == "Sync")
+                this._waitingForEvent = true;
         },
         sendEvent: function(event) {
             // Implicit grab -- we should never get here.
             if (!this.serverClient)
                 throw new Error("Server grab -- should be unreachable");
+
+            // If we're not waiting for an event, exit early; this event
+            // will be replayed from the queue when the client wants it.
+            if (this._pointerMode == "Sync" && !this._waitingForEvent)
+                return;
 
             // If ownerEvents is true, that means that any events that would
             // normally be reported to the client are reported, without any
@@ -493,6 +518,8 @@
                 newEvent.windowId = this.grabWindow.windowId;
                 this.client.handleEvent(newEvent);
             }
+
+            this._waitingForEvent = false;
         },
         selectInput: function() {
             throw new Error("selectInput() called on the fake grab client. Should not happen.");
@@ -526,6 +553,7 @@
         'ungrabPointer',
         'grabButton',
         'ungrabButton',
+        'allowEvents',
 
         // JS extension -- simplifies the case of drawing
         // by letting someone use an existing expose handler.
@@ -600,6 +628,9 @@
             this._cursorX = -1;
             this._cursorY = -1;
             this._currentServerWindow = null;
+
+            // The event queue, used when events are frozen during a sync grab.
+            this._eventQueue = [];
         },
 
         _setupDOM: function() {
@@ -796,10 +827,21 @@
             // so don't queue a repaint.
         },
         sendEvent: function(event, except) {
-            // Send input events to grabs if we have one, except in the case
-            // of implicit grabs -- they should have normal delivery.
             if (isEventInputEvent(event) && this._grabClient && !this._grabClient.isImplicitGrab) {
-                this._grabClient.sendEvent(event);
+                if (this._grabClient.isEventConsideredFrozen(event)) {
+                    // If we have a sync grab that's relevant to the current
+                    // event, put it on the event queue for when the client
+                    // allows it through.
+                    this._eventQueue.push(event);
+
+                    // Send over the input event in case the client is waiting
+                    // on an event.
+                    this._grabClient.sendEvent(event);
+                } else {
+                    // Send input events to grabs if we have one, except in the case
+                    // of implicit grabs -- they should have normal delivery.
+                    this._grabClient.sendEvent(event);
+                }
             } else {
                 var serverWindow = this._windowsById[event.windowId];
                 var foundOneClient = false;
@@ -818,6 +860,12 @@
                 }
                 return foundOneClient;
             }
+        },
+        _flushEventQueue: function() {
+            this._eventQueue.forEach(function(event) {
+                this.sendEvent(event);
+            }, this);
+            this._eventQueue = [];
         },
 
         _setupInputHandlers: function() {
@@ -906,6 +954,9 @@
             grabInfo = checkGrabRecursively(this._currentServerWindow);
             if (grabInfo)
                 this._grabPointer(grabInfo);
+
+            if (this._grabClient)
+                console.log(this._grabClient._pointerMode);
 
             this.sendEvent(event);
 
@@ -1208,8 +1259,8 @@
             var serverWindow = this._windowsById[windowId];
             this.damageWindow(serverWindow);
         },
-        grabPointer: function(client, grabWindowId, ownerEvents, events, cursor) {
-            // TODO: pointerMode, keyboardMode
+        grabPointer: function(client, grabWindowId, ownerEvents, events, pointerMode, cursor) {
+            // TODO: keyboardMode
             // Investigate HTML5 APIs for confineTo
 
             if (this._grabClient) {
@@ -1226,6 +1277,7 @@
                              grabWindow: grabWindow,
                              ownerEvents: ownerEvents,
                              events: events,
+                             pointerMode: pointerMode,
                              cursor: cursor };
             this._grabPointer(grabInfo);
         },
@@ -1239,13 +1291,14 @@
 
             this._ungrabPointer();
         },
-        grabButton: function(client, grabWindowId, button, ownerEvents, events, cursor) {
+        grabButton: function(client, grabWindowId, button, ownerEvents, events, pointerMode, cursor) {
             var grabWindow = this._windowsById[grabWindowId];
             var serverClient = client._serverClient;
             var grabInfo = { serverClient: serverClient,
                              grabWindow: grabWindow,
                              ownerEvents: ownerEvents,
                              events: events,
+                             pointerMode: pointerMode,
                              cursor: cursor };
             grabWindow.grabButton(button, grabInfo);
         }, 
@@ -1253,6 +1306,30 @@
             var grabWindow = this._windowsById[grabWindowId];
             grabWindow.ungrabButton(button);
         },
+        allowEvents: function(client, pointerMode) {
+            // The event queue always contains the currently processing
+            // event at the head of the queue so that we can replay it.
+
+            switch (pointerMode) {
+                case "Async":
+                // Eat the first event, unfreeze the pointer grab, and replay the rest.
+                this._eventQueue.shift();
+                this._grabClient.thaw();
+                this._flushEventQueue();
+                break;
+                case "Sync":
+                // Eat the first event, and send the next one over without unthawing.
+                this._eventQueue.shift();
+                this._grabClient.freeze();
+                this._processNextEvent();
+                break;
+                case "Replay":
+                // Ungrab the pointer grab, and send the full queue over.
+                this._ungrabPointer();
+                this._flushEventQueue();
+                break;
+            }
+        }, 
 
         setWindowShapeRegion: function(client, windowId, shapeType, region) {
             var serverWindow = this._windowsById[windowId];

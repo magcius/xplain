@@ -146,7 +146,7 @@
             var geom = this._server.getGeometry(this._wm, this._clientWindowId);
 
             this._wm.register(this._clientWindowId, this);
-            this._server.grabButton(this._wm, this._clientWindowId, 1, false, ["ButtonPress", "ButtonRelease"], "");
+            this._server.grabButton(this._wm, this._clientWindowId, 1, false, ["ButtonPress", "ButtonRelease"], "Sync", "");
 
             this.frameWindowId = this._server.createWindow(this._wm);
             this._wm.register(this.frameWindowId, this);
@@ -198,7 +198,7 @@
             this._origMousePos = { x: event.rootX, y: event.rootY };
             var frameCoords = this._server.getGeometry(this, this.frameWindowId);
             this._origWindowPos = { x: frameCoords.x, y: frameCoords.y };
-            this._server.grabPointer(this._wm, this.frameWindowId, true, ["ButtonRelease", "Motion"], "-moz-grabbing");
+            this._server.grabPointer(this._wm, this.frameWindowId, true, ["ButtonRelease", "Motion"], "Async", "-moz-grabbing");
         },
         _frameButtonRelease: function(event) {
             this._server.ungrabPointer(this._wm, this.frameWindowId);
@@ -267,8 +267,7 @@
                 if (frameWasReceiver)
                     return frame.handleEvent(event);
                 else
-                    // XXX -- implement sync grabs and allowEvents
-                    this._server.ungrabPointer(this, frame._clientWindowId);
+                    this._server.allowEvents(this, "Replay");
                 break;
 
             // These should only happen for frame windows.
