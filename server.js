@@ -442,7 +442,7 @@
     var ServerGrabClient = new Class({
         Extends: ServerClient,
 
-        initialize: function(server, serverClient, grabWindow, ownerEvents, events, cursor) {
+        initialize: function(server, grabInfo) {
             // this.client is the client which has handleEvent and friends.
             // this.serverClient is the serverClient for client that we're
             // wrapping, which we use isInterestedInEvent for the ownerEvents
@@ -450,18 +450,17 @@
 
             // serverClient can be null, which signifies that the
             // server itself took an implicit grab.
+            var serverClient = grabInfo.serverClient;
             var client = serverClient ? serverClient.client : null;
 
             this.parent(server, client);
             this.serverClient = serverClient;
-            this.cursor = cursor;
+            this.grabWindow = grabInfo.grabWindow;
+            this._ownerEvents = grabInfo.ownerEvents;
+            this._events = grabInfo.events;
+            this.cursor = grabInfo.cursor;
 
             this.isImplicitGrab = serverClient === null;
-
-            this.grabWindow = grabWindow;
-
-            this._events = events;
-            this._ownerEvents = ownerEvents;
         },
         sendEvent: function(event) {
             // Implicit grab -- we should never get here.
@@ -884,7 +883,12 @@
             // Do this after event delivery for a slight perf gain in case a
             // client takes their own grab.
             if (this._grabClient === null) {
-                this._grabPointer(null, this._currentServerWindow, false, []);
+                var grabInfo = { serverClient: null,
+                                 grabWindow: this._currentServerWindow,
+                                 ownerEvents: false,
+                                 events: [],
+                                 cursor: null };
+                this._grabPointer(grabInfo);
             }
         },
         _handleInputButtonRelease: function(domEvent) {
@@ -1056,8 +1060,8 @@
             this.syncCurrentWindow();
         },
 
-        _grabPointer: function(serverClient, grabWindow, ownerEvents, events, cursor) {
-            this._grabClient = new ServerGrabClient(this, serverClient, grabWindow, ownerEvents, events, cursor);
+        _grabPointer: function(grabInfo) {
+            this._grabClient = new ServerGrabClient(this, grabInfo);
             this.syncCursor();
         },
         _ungrabPointer: function() {
@@ -1187,7 +1191,12 @@
 
             var grabWindow = this._windowsById[grabWindowId];
             var serverClient = client._serverClient;
-            this._grabPointer(serverClient, grabWindow, ownerEvents, events, cursor);
+            var grabInfo = { serverClient: serverClient,
+                             grabWindow: grabWindow,
+                             ownerEvents: ownerEvents,
+                             events: events,
+                             cursor: cursor };
+            this._grabPointer(grabInfo);
         },
         ungrabPointer: function(client) {
             // Clients can't ungrab an implicit grab.
