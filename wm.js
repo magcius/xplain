@@ -150,7 +150,7 @@
 
             this.frameWindowId = this._server.createWindow(this._wm);
             this._wm.register(this.frameWindowId, this);
-            this._server.selectInput(this._wm, this.frameWindowId, ["Expose", "ButtonPress"]);
+            this._server.selectInput(this._wm, this.frameWindowId, ["Expose", "ButtonPress", "Enter", "Leave"]);
             this._server.changeAttributes(this._wm, this.frameWindowId, { hasInput: true, backgroundColor: 'orange' });
 
             this._closeWindowId = this._makeButton();
@@ -190,6 +190,10 @@
                 return this._frameButtonRelease(event);
             case "Motion":
                 return this._frameMotion(event);
+            case "Enter":
+                return this._frameEnter(event);
+            case "Leave":
+                return this._frameLeave(event);
             case "Expose":
                 return this._frameExpose(event.ctx);
             }
@@ -210,6 +214,16 @@
             var newX = this._origWindowPos.x + event.rootX - this._origMousePos.x;
             var newY = this._origWindowPos.y + event.rootY - this._origMousePos.y;
             this._updateGeometry({ x: newX, y: newY });
+        },
+        _frameEnter: function(event) {
+            this._server.changeAttributes(this._wm, this.frameWindowId, { backgroundColor: 'yellow' });
+            this._server.invalidateWindow(this._wm, this.frameWindowId);
+        },
+        _frameLeave: function(event) {
+            if (event.detail == "Inferior")
+                return;
+            this._server.changeAttributes(this._wm, this.frameWindowId, { backgroundColor: 'orange' });
+            this._server.invalidateWindow(this._wm, this.frameWindowId);
         },
         _frameExpose: function(wrapper) {
             // background color takes care of the base
@@ -274,6 +288,8 @@
             case "ButtonRelease":
             case "Motion":
             case "Expose":
+            case "Enter":
+            case "Leave":
                 return frame.handleEvent(event);
             }
         },
