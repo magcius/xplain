@@ -955,9 +955,6 @@
             if (grabInfo)
                 this._grabPointer(grabInfo);
 
-            if (this._grabClient)
-                console.log(this._grabClient._pointerMode);
-
             this.sendEvent(event);
 
             // If there's no active explicit pointer grab, take an implicit one.
