@@ -627,7 +627,7 @@
 
             this._cursorX = -1;
             this._cursorY = -1;
-            this._currentServerWindow = null;
+            this._cursorServerWindow = null;
 
             // The event queue, used when events are frozen during a sync grab.
             this._eventQueue = [];
@@ -759,8 +759,8 @@
 
             if (this._grabClient && this._grabClient.cursor)
                 cursor = this._grabClient.cursor;
-            else if (this._currentServerWindow)
-                cursor = this._currentServerWindow.cursor;
+            else if (this._cursorServerWindow)
+                cursor = this._cursorServerWindow.cursor;
             else
                 cursor = '';
 
@@ -880,9 +880,9 @@
                           rootX: this._cursorX,
                           rootY: this._cursorY };
 
-            if (serverWindow != this._currentServerWindow) {
-                this._handleInputEnterLeave(event, this._currentServerWindow, serverWindow);
-                this._currentServerWindow = serverWindow;
+            if (serverWindow != this._cursorServerWindow) {
+                this._handleInputEnterLeave(event, this._cursorServerWindow, serverWindow);
+                this._cursorServerWindow = serverWindow;
                 this.syncCursor();
             }
         },
@@ -899,7 +899,7 @@
 
             this.syncCurrentWindow();
 
-            var serverWindow = this._currentServerWindow;
+            var serverWindow = this._cursorServerWindow;
 
             // If we have a grab, all events go to the grab window.
             // XXX - are windowId and the coordinates on the event the same?
@@ -951,7 +951,7 @@
             }
 
             var grabInfo;
-            grabInfo = checkGrabRecursively(this._currentServerWindow);
+            grabInfo = checkGrabRecursively(this._cursorServerWindow);
             if (grabInfo)
                 this._grabPointer(grabInfo);
 
@@ -965,7 +965,7 @@
             // client takes their own grab.
             if (this._grabClient === null) {
                 grabInfo = { serverClient: null,
-                             grabWindow: this._currentServerWindow,
+                             grabWindow: this._cursorServerWindow,
                              ownerEvents: false,
                              events: [],
                              cursor: null };
