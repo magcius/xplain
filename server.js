@@ -1018,7 +1018,7 @@
             }
 
             if (isWindowDescendentOf(fromWin, toWin)) {
-                EnterLeaveEvent("Leave", "Interior", fromWin, null);
+                EnterLeaveEvent("Leave", "Inferior", fromWin, null);
                 EnterNotifies(fromWin, toWin, "Virtual");
                 EnterLeaveEvent("Enter", "Ancestor", toWin, null);
             } else if (isWindowDescendentOf(toWin, fromWin)) {
