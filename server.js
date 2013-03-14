@@ -7,25 +7,6 @@
         });
     }
 
-    function newStyleSheet() {
-        var sheet = document.createElement("style");
-        sheet.css = "text/css";
-        document.body.appendChild(sheet);
-        return sheet;
-    }
-
-    function sizeElement(elem, w, h) {
-        elem.style.width = w + "px";
-        elem.style.height = h + "px";
-    }
-
-    function positionElement(elem, x, y, w, h) {
-        elem.style.position = "absolute";
-        elem.style.left = x + "px";
-        elem.style.top = y + "px";
-        sizeElement(elem, w, h);
-    }
-
     function copyArea(ctx, oldX, oldY, newX, newY, w, h) {
         if (newX < 0) {
             w += newX;
@@ -618,8 +599,6 @@
             // as it uses the standard redraw and windowing machinery.
             this._createRootWindow();
 
-            this._cursorStyleSheet = newStyleSheet();
-
             // Queue a full-stage redraw so that the root window shows.
             this.queueFullRedraw();
 
@@ -640,7 +619,8 @@
             this._container.classList.add("xserver");
             this._container.classList.add("js");
 
-            sizeElement(this._container, this.width, this.height);
+            this._container.style.width = this.width + "px";
+            this._container.style.height = this.height + "px";
 
             this._canvas = document.createElement("canvas");
             this._canvas.width = this.width;
