@@ -97,7 +97,7 @@
         var w = new ImageWindow("TerminalScreenshot.png");
         w.connect(server);
         w.moveResize(windowNumber * cascade, windowNumber * cascade, undefined, undefined);
-        w.changeProperty("WM_NAME", "Terminal Window {i}".substitute({ i: windowNumber }));
+        w.changeProperty("WM_NAME", "Terminal Window " + windowNumber);
         w.map();
 
         var button;

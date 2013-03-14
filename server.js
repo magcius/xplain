@@ -252,7 +252,8 @@
         },
         unparentWindow: function() {
             this._server.damageWindow(this);
-            this.parentServerWindow.children.erase(this);
+            var children = this.parentServerWindow.children;
+            children.splice(children.indexOf(this), 1);
             this._server.syncCurrentWindow();
         },
         parentWindow: function(parentServerWindow) {
@@ -282,26 +283,24 @@
         _siblingIndex: function(sibling) {
             return sibling.parentServerWindow.children.indexOf(sibling);
         },
-        // Return the index that we should be inserted to, given
-        // sibling and mode.
         _insertIntoStack: function(sibling, mode) {
-            var parent = this.parentServerWindow;
-            parent.children.erase(this);
+            var children = this.parentServerWindow.children;
+            children.splice(children.indexOf(this), 1);
             switch (mode) {
             case "Above":
                 if (sibling) {
                     var siblingIndex = this._siblingIndex(sibling);
-                    parent.children.splice(siblingIndex, 0, this);
+                    children.splice(siblingIndex, 0, this);
                 } else {
-                    parent.children.unshift(this);
+                    children.unshift(this);
                 }
                 break;
             case "Below":
                 if (sibling) {
                     var siblingIndex = this._siblingIndex(sibling);
-                    parent.children.splice(siblingIndex + 1, 0, this);
+                    children.splice(siblingIndex + 1, 0, this);
                 } else {
-                    parent.children.push(this);
+                    children.push(this);
                 }
                 break;
                 // TODO: TopIf, BottomIf, Opposite. Ever seen in practice?
