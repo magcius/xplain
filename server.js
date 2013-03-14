@@ -572,6 +572,7 @@
         'ungrabPointer',
         'grabButton',
         'ungrabButton',
+        'setInputFocus',
         'allowEvents',
 
         // JS extension -- simplifies the case of drawing
@@ -645,6 +646,8 @@
             this._cursorX = -1;
             this._cursorY = -1;
             this._cursorServerWindow = null;
+
+            this._focusServerWindow = null;
 
             // The event queue, used when events are frozen during a sync grab.
             this._eventQueue = [];
@@ -1049,6 +1052,121 @@
             }
         },
 
+        _sendFocusEvents: function(eventBase, fromWin, toWin) {
+            // Adapted from Xorg server, a pre-MPX version of dix/events.c
+            // Under MIT license
+
+            if (fromWin == toWin)
+                return;
+
+            var server = this;
+
+            // TODO: NotifyGrab/NotifyUngrab
+            function FocusEvent(type, detail, window) {
+                var event = Object.create(eventBase);
+                event.type = type;
+                event.windowId = window.windowId;
+                event.detail = detail;
+                server.sendEvent(event);
+            }
+
+            function FocusInEvents(ancestor, child, detail, doAncestor, skipChild) {
+                if (child == null)
+                    return ancestor == null;
+
+                if (ancestor == child) {
+                    if (doAncestor)
+                        FocusEvent("FocusIn", detail, child);
+                    return true;
+                } else if (FocusInEvents(ancestor, child.parentServerWindow, detail, doAncestor, skipChild)) {
+                    if (child != skipChild)
+                        FocusEvent("FocusIn", detail, child);
+                    return true;
+                }
+                return false;
+            }
+
+            function FocusOutEvents(child, ancestor, detail, doAncestor) {
+                while (child != ancestor) {
+                    FocusEvent("FocusOut", detail, child);
+                    child = child.parentServerWindow;
+                }
+                if (doAncestor)
+                    FocusEvent("FocusOut", detail, ancestor);
+            }
+
+            var detailOut = (fromWin === null) ? "DetailNone" : "PointerRoot";
+            var detailIn = (toWin === null) ? "DetailNone" : "PointerRoot";
+
+            // ugh, this is sort of a bad API. We should have a constant
+            // window ID for PointerRoot, probably.
+            if (toWin === "PointerRoot" || toWin === null) {
+                if (fromWin === "PointerRoot" || fromWin === null) {
+                    if (fromWin === "PointerRoot")
+                        FocusOutEvents(this._cursorServerWindow, this._rootWindow, "Pointer", true);
+
+                    // Notify the root
+                    FocusEvent("FocusOut", detailOut, this._rootWindow);
+                } else {
+                    if (isWindowDescendentOf(fromWin, this._cursorServerWindow))
+                        FocusOutEvents(this._cursorServerWindow, fromWin, "Pointer", false);
+                    FocusEvent("FocusOut", "Nonlinear", fromWin);
+                    FocusOutEvents(fromWin.parentServerWindow, null, "NonlinearVirtual", false);
+                }
+
+                // Notify the root
+                FocusEvent("FocusIn", detailIn, this._rootWindow);
+                if (toWin == "PointerRoot")
+                    FocusInEvents(this._rootWindow, this._cursorServerWindow, "Pointer", true, null);
+            } else if (fromWin === "PointerRoot" || fromWin === null) {
+                {
+                    if (fromWin == "PointerRoot")
+                        FocusOutEvents(this._cursorServerWindow, this._rootWindow, "Pointer", true);
+
+                    // Notify the root
+                    FocusEvent("FocusOut", detailOut, this._rootWindow);
+
+                    if (toWin.parentServerWindow != null)
+                        FocusInEvents(this._rootWindow, toWin, "NonlinearVirtual", true, toWin);
+                    FocusEvent("FocusIn", "NonlinearVirtual", toWin);
+                    if (isWindowDescendentOf(toWin, this._cursorServerWindow))
+                        FocusInEvents(toWin, this._cursorServerWindow, "Pointer", false, null);
+                }
+            } else if (isWindowDescendentOf(fromWin, toWin)) {
+                if (isWindowDescendentOf(fromWin, this._cursorServerWindow) &&
+                    this._cursorServerWindow != fromWin &&
+                    (!isWindowDescendentOf(toWin, this._cursorServerWindow)) &&
+                    (!isWindowDescendentOf(this._cursorServerWindow, toWin)))
+                    FocusOutEvents(this._cursorServerWindow, fromWin, "Pointer", false);
+
+                FocusEvent("FocusOut", "Interior", fromWin, null);
+                FocusInEvents(fromWin, toWin, "Virtual", false, toWin);
+                FocusEvent("FocusIn", "Ancestor", toWin, null);
+            } else if (isWindowDescendentOf(toWin, fromWin)) {
+                FocusEvent("FocusOut", "Ancestor", fromWin, null);
+                FocusOutEvents(fromWin, toWin, "Virtual", false);
+                FocusEvent("FocusIn", "Inferior", toWin, null);
+
+                if (isWindowDescendentOf(toWin, this._cursorServerWindow) &&
+                    this._cursorServerWindow != fromWin &&
+                    (!isWindowDescendentOf(fromWin, this._cursorServerWindow)) &&
+                    (!isWindowDescendentOf(this._cursorServerWindow, fromWin)))
+                    FocusInEvents(this._cursorServerWindow, toWin, "Pointer", false, null);
+            } else {
+                var common = commonAncestor(toWin, fromWin);
+                if (isWindowDescendentOf(fromWin, this._cursorServerWindow))
+                    FocusOutEvents(this._cursorServerWindow, fromWin, "Pointer", false);
+                FocusEvent("FocusOut", "Nonlinear", fromWin);
+                if (fromWin.parentServerWindow != null)
+                    FocusOutEvents(fromWin.parentServerWindow, common, "NonlinearVirtual", false);
+                if (toWin.parentServerWindow != null)
+                    FocusInEvents(common, toWin, "NonlinearVirtual", true, toWin);
+                FocusEvent("FocusIn", "Nonlinear", toWin);
+                if (isWindowDescendentOf(toWin, this._cursorServerWindow))
+                    FocusInEvents(toWin, this._cursorServerWindow, "Pointer", false, null);
+            }
+        },
+
         // This function copies the front buffer around to move/resize windows.
         _manipulateGraphicsForWindowMoveResize: function(oldRegion, newRegion, oldX, oldY, newX, newY) {
             // This is a bit fancy. We need to accomplish a few things:
@@ -1319,6 +1437,22 @@
         ungrabButton: function(client, grabWindowId, button) {
             var grabWindow = this._windowsById[grabWindowId];
             grabWindow.ungrabButton(button);
+        },
+        setInputFocus: function(client, focusWindowId, revert) {
+            var focusWindow;
+            if (focusWindowId === null || focusWindowId === "PointerRoot")
+                focusWindow = focusWindowId;
+            else
+                focusWindow = this._windowsById[focusWindowId];
+
+            var event = { rootWindowId: this.rootWindowId,
+                          rootX: this._cursorX,
+                          rootY: this._cursorY };
+
+            if (focusWindow != this._focusServerWindow) {
+                this._sendFocusEvents(event, this._focusServerWindow, focusWindow);
+                this._focusServerWindow = focusWindow;
+            }
         },
         allowEvents: function(client, pointerMode) {
             // The event queue always contains the currently processing
