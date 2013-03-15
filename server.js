@@ -272,6 +272,9 @@
 
             for (var i = 0; i < this.children.length; i++) {
                 var child = this.children[i];
+                if (!child.mapped)
+                    continue;
+
                 var deepestChild = child.findDeepestChildAtPoint(x, y);
                 if (deepestChild)
                     return deepestChild;
