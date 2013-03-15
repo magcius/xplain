@@ -62,6 +62,7 @@
         switch (event.type) {
         case "MapNotify":
         case "UnmapNotify":
+        case "DestroyNotify":
         case "ConfigureNotify":
             return true;
         }
@@ -250,10 +251,26 @@
                                      windowId: this.windowId });
             this._server.syncCurrentWindow();
         },
-        unparentWindow: function() {
-            this._server.damageWindow(this);
+        _unparentWindowInternal: function() {
             var children = this.parentServerWindow.children;
             children.splice(children.indexOf(this), 1);
+        },
+        destroy: function() {
+            if (this.mapped)
+                this.unmap();
+
+            this.children.forEach(function(child) {
+                child.destroy();
+            });
+
+            this._unparentWindowInternal(this);
+
+            this._server.sendEvent({ type: "DestroyNotify",
+                                     windowId: this.windowId });
+        },
+        unparentWindow: function() {
+            this._server.damageWindow(this);
+            this._unparentWindowInternal();
             this._server.syncCurrentWindow();
         },
         parentWindow: function(parentServerWindow) {
@@ -1190,8 +1207,7 @@
             if (this._grabClient !== null && this._grabClient.grabWindow)
                 this._ungrabPointer();
 
-            serverWindow.unmap();
-            serverWindow.unparentWindow();
+            serverWindow.destroy();
             serverWindow.finalize();
             this._windowsById[windowId] = null;
         },
