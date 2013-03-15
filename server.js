@@ -914,14 +914,6 @@
             domEvent.preventDefault();
             domEvent.stopPropagation();
 
-            var box = this._container.getBoundingClientRect();
-            var rootCoords = { x: domEvent.clientX - box.left,
-                               y: domEvent.clientY - box.top };
-            this._cursorX = rootCoords.x;
-            this._cursorY = rootCoords.y;
-
-            this.syncCurrentWindow();
-
             var serverWindow = this._cursorServerWindow;
 
             // If we have a grab, all events go to the grab window.
@@ -929,7 +921,7 @@
             if (!serverWindow)
                 return null;
 
-            var winCoords = this._translateCoordinates(this._rootWindow, serverWindow, rootCoords.x, rootCoords.y);
+            var winCoords = this._translateCoordinates(this._rootWindow, serverWindow, this._cursorX, this._cursorY);
 
             var event = { rootWindowId: this.rootWindowId,
                           rootX: this._cursorX,
@@ -956,6 +948,19 @@
             return event;
         },
         _handleInputMouseMove: function(domEvent) {
+            var box = this._container.getBoundingClientRect();
+            var rootCoords = { x: domEvent.clientX - box.left,
+                               y: domEvent.clientY - box.top };
+
+            // This can sometimes happen after a mouseup.
+            if (this._cursorX == rootCoords.x &&
+                this._cursorY == rootCoords.y)
+                return;
+
+            this._cursorX = rootCoords.x;
+            this._cursorY = rootCoords.y;
+            this.syncCurrentWindow();
+
             var event = this._handleInputSimple(domEvent);
             this.sendEvent(event);
         },
