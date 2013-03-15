@@ -350,8 +350,10 @@
                 if (!this._hasCustomBoundingRegion)
                     this.setWindowShapeRegion("Bounding", null);
 
-                if (props.stackMode)
-                    this._insertIntoStack(this._server.getServerWindow(props.sibling), props.stackMode);
+                if (props.stackMode) {
+                    var sibling = props.sibling ? this._server.getServerWindow(props.sibling) : null;
+                    this._insertIntoStack(sibling, props.stackMode);
+                }
 
                 event = Object.create(eventBase);
                 event.type = "ConfigureNotify";
@@ -864,7 +866,7 @@
                     this._grabClient.sendEvent(event);
                 }
             } else {
-                var serverWindow = this._windowsById[event.windowId];
+                var serverWindow = this.getServerWindow(event.windowId);
                 var foundOneClient = false;
                 for (var i = 0; i < this._clients.length; i++) {
                     var serverClient = this._clients[i];
@@ -1301,7 +1303,11 @@
             region.finalize();
         },
         getServerWindow: function(windowId) {
-            return this._windowsById[windowId];
+            var serverWindow = this._windowsById[windowId];
+            if (serverWindow)
+                return serverWindow;
+            else
+                throw new Error("BadWindow");
         },
 
         //
@@ -1339,7 +1345,7 @@
             return serverWindow.windowId;
         },
         destroyWindow: function(client, windowId) {
-            var serverWindow = this._windowsById[windowId];
+            var serverWindow = this.getServerWindow(windowId);
 
             if (this._grabClient !== null && this._grabClient.grabWindow)
                 this._ungrabPointer();
@@ -1349,46 +1355,46 @@
             this._windowsById[windowId] = null;
         },
         reparentWindow: function(client, windowId, newParentId) {
-            var serverWindow = this._windowsById[windowId];
-            var newServerParentWindow = this._windowsById[newParentId];
+            var serverWindow = this.getServerWindow(windowId);
+            var newServerParentWindow = this.getServerWindow(newParentId);
             serverWindow.unparentWindow();
             serverWindow.parentWindow(newServerParentWindow);
         },
         mapWindow: function(client, windowId) {
-            var serverWindow = this._windowsById[windowId];
+            var serverWindow = this.getServerWindow(windowId);
             serverWindow.map(client);
         },
         unmapWindow: function(client, windowId) {
-            var serverWindow = this._windowsById[windowId];
+            var serverWindow = this.getServerWindow(windowId);
             serverWindow.unmap();
         },
         configureWindow: function(client, windowId, props) {
-            var serverWindow = this._windowsById[windowId];
+            var serverWindow = this.getServerWindow(windowId);
             this._configureWindow(client, serverWindow, props);
         },
         getGeometry: function(client, windowId) {
-            var serverWindow = this._windowsById[windowId];
+            var serverWindow = this.getServerWindow(windowId);
             return serverWindow.getGeometry();
         },
         translateCoordinates: function(client, srcWindowId, destWindowId, x, y) {
-            var srcServerWindow = this._windowsById[srcWindowId];
-            var destServerWindow = this._windowsById[destWindowId];
+            var srcServerWindow = this.getServerWindow(srcWindowId);
+            var destServerWindow = this.getServerWindow(destWindowId);
             return this._translateCoordinates(srcServerWindow, destServerWindow, x, y);
         },
         changeAttributes: function(client, windowId, attributes) {
-            var serverWindow = this._windowsById[windowId];
+            var serverWindow = this.getServerWindow(windowId);
             serverWindow.changeAttributes(attributes);
         },
         getProperty: function(client, windowId, name) {
-            var serverWindow = this._windowsById[windowId];
+            var serverWindow = this.getServerWindow(windowId);
             return serverWindow.getProperty(name);
         },
         changeProperty: function(client, windowId, name, value) {
-            var serverWindow = this._windowsById[windowId];
+            var serverWindow = this.getServerWindow(windowId);
             serverWindow.changeProperty(name, value);
         },
         invalidateWindow: function(client, windowId) {
-            var serverWindow = this._windowsById[windowId];
+            var serverWindow = this.getServerWindow(windowId);
             this.damageWindow(serverWindow);
         },
         grabPointer: function(client, grabWindowId, ownerEvents, events, pointerMode, cursor) {
@@ -1403,7 +1409,7 @@
                     throw new Error("AlreadyGrabbed");
             }
 
-            var grabWindow = this._windowsById[grabWindowId];
+            var grabWindow = this.getServerWindow(grabWindowId);
             var serverClient = client._serverClient;
             var grabInfo = { serverClient: serverClient,
                              grabWindow: grabWindow,
@@ -1424,7 +1430,7 @@
             this._ungrabPointer();
         },
         grabButton: function(client, grabWindowId, button, ownerEvents, events, pointerMode, cursor) {
-            var grabWindow = this._windowsById[grabWindowId];
+            var grabWindow = this.getServerWindow(grabWindowId);
             var serverClient = client._serverClient;
             var grabInfo = { serverClient: serverClient,
                              grabWindow: grabWindow,
@@ -1435,7 +1441,7 @@
             grabWindow.grabButton(button, grabInfo);
         }, 
         ungrabButton: function(client, grabWindowId, button) {
-            var grabWindow = this._windowsById[grabWindowId];
+            var grabWindow = this.getServerWindow(grabWindowId);
             grabWindow.ungrabButton(button);
         },
         setInputFocus: function(client, focusWindowId, revert) {
@@ -1443,7 +1449,7 @@
             if (focusWindowId === null || focusWindowId === "PointerRoot")
                 focusWindow = focusWindowId;
             else
-                focusWindow = this._windowsById[focusWindowId];
+                focusWindow = this.getServerWindow(focusWindowId);
 
             var event = { rootWindowId: this.rootWindowId,
                           rootX: this._cursorX,
@@ -1480,7 +1486,7 @@
         }, 
 
         setWindowShapeRegion: function(client, windowId, shapeType, region) {
-            var serverWindow = this._windowsById[windowId];
+            var serverWindow = this.getServerWindow(windowId);
 
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             serverWindow.setWindowShapeRegion(shapeType, region);
