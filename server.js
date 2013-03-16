@@ -174,9 +174,7 @@
         prepareContext: function(ctx) {
             var txform = this.calculateAbsoluteOffset();
             ctx.translate(txform.x, txform.y);
-
-            var region = this._damagedRegion;
-            pathFromRegion(ctx, region);
+            pathFromRegion(ctx, this._damagedRegion);
             ctx.clip();
         },
         clearDamage: function() {
@@ -193,7 +191,6 @@
         },
         damage: function(region) {
             this._damagedRegion.union(this._damagedRegion, region);
-
             this._ctxWrapper.drawWithContext(this._drawBackground.bind(this));
             if (!this._server.sendEvent({ type: "Expose",
                                           windowId: this.windowId,
@@ -802,48 +799,57 @@
             // damage and the window region, and translates it into window-
             // local coordinates.
 
-            var intersection = new Region();
-
-            // This is a copy of the damage region for calculating
-            // the effective damage at every step. We don't want
-            // to subtract damage until the client draws and clears
-            // the damage.
-            var calculatedDamageRegion = new Region();
-            calculatedDamageRegion.copy(this._damagedRegion);
+            // Copy the damage region so we don't mutate it directly --
+            // clients will clear damage after they draw.
+            var damagedRegion = new Region();
+            damagedRegion.copy(this._damagedRegion);
 
             if (this._debugEnabled)
                 this._debugDrawClear();
 
-            this._debugDrawRegion(calculatedDamageRegion, 'red');
+            this._debugDrawRegion(damagedRegion, 'red');
 
-            function iterateWindow(serverWindow) {
+            function recursivelyDamage(serverWindow, inputRegion) {
                 if (!serverWindow.mapped)
                     return;
 
-                if (calculatedDamageRegion.is_empty())
+                if (inputRegion.is_empty())
                     return;
 
+                // The obscuring region is the part of the input region
+                // that this window obscures, not including child windows.
+                var obscuringRegion = new Region();
+
                 // Transform into the child's space.
-                calculatedDamageRegion.translate(-serverWindow.x, -serverWindow.y);
+                inputRegion.translate(-serverWindow.x, -serverWindow.y);
 
-                // Child windows need to be damaged first.
-                serverWindow.children.forEach(iterateWindow);
+                // Clip the damaged region to the bounding region to get
+                // the maximum area that's obscured.
+                obscuringRegion.intersect(inputRegion, serverWindow.boundingRegion);
 
-                intersection.intersect(calculatedDamageRegion, serverWindow.boundingRegion);
+                if (obscuringRegion.not_empty()) {
+                    // We're guaranteed that the window plus children is covering
+                    // this area, so subtract it out of the input region first as
+                    // we're handling it.
+                    inputRegion.subtract(inputRegion, obscuringRegion);
 
-                if (intersection.not_empty()) {
-                    calculatedDamageRegion.subtract(calculatedDamageRegion, intersection);
-                    serverWindow.damage(intersection);
+                    // Child windows need to be damaged first -- they'll subtract
+                    // out parts of inputRegion that we want to not be damaged for.
+                    serverWindow.children.forEach(function(serverWindow) {
+                        recursivelyDamage(serverWindow, obscuringRegion);
+                    });
+
+                    serverWindow.damage(obscuringRegion);
                 }
 
-                calculatedDamageRegion.translate(serverWindow.x, serverWindow.y);
+                // And back.
+                inputRegion.translate(serverWindow.x, serverWindow.y);
+
+                obscuringRegion.finalize();
             }
 
-            iterateWindow(this._rootWindow);
-
-            intersection.finalize();
-            calculatedDamageRegion.finalize();
-
+            recursivelyDamage(this._rootWindow, damagedRegion);
+            damagedRegion.finalize();
             return false;
         },
         damageRegion: function(region) {
