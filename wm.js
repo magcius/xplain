@@ -63,7 +63,6 @@
     // Don't extend Window as this needs to be in the
     // WM client, not its own client.
     var WindowFrame = new Class({
-        Extends: Window,
         initialize: function(wm, server, windowId) {
             this._wm = wm;
             this._server = server;
