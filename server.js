@@ -447,7 +447,7 @@
             var listeningFor = this._eventWindows[windowId];
             return listeningFor && listeningFor.indexOf(eventType) >= 0;
         },
-        isInterestedInEvent: function(event) {
+        filterEvent: function(event) {
             var windowId = event.windowId;
             if (this.isInterestedInWindowEvent(windowId, event.type))
                 return true;
@@ -467,13 +467,11 @@
 
             return false;
         },
+        _deliverEvent: function(event) {
+            this.client.handleEvent(event);
+        },
         sendEvent: function(event) {
-            if (this.isInterestedInEvent(event)) {
-                this.client.handleEvent(event);
-                return true;
-            } else {
-                return false;
-            }
+            this._deliverEvent(event);
         },
         selectInput: function(windowId, eventTypes) {
             var listeningFor = this._eventWindows[windowId];
@@ -493,7 +491,7 @@
         initialize: function(server, grabInfo) {
             // this.client is the client which has handleEvent and friends.
             // this.serverClient is the serverClient for client that we're
-            // wrapping, which we use isInterestedInEvent for the ownerEvents
+            // wrapping, which we use filterEvent for the ownerEvents
             // implementation.
 
             // serverClient can be null, which signifies that the
@@ -545,15 +543,15 @@
             // modification. So, if a client with two windows, window A and
             // window B, and takes a grab on window A, events should still be
             // delivered for window B if they come in.
-            if (this._ownerEvents && this.serverClient.isInterestedInEvent(event))
-                this.client.handleEvent(event);
+            if (this._ownerEvents && this.serverClient.filterEvent(event))
+                this._deliverEvent(event);
 
             // Else, if we should report this event, report it with respect
             // to the grab window.
             if (this._events.indexOf(event.type) >= 0) {
                 var newEvent = Object.create(event);
                 newEvent.windowId = this.grabWindow.windowId;
-                this.client.handleEvent(newEvent);
+                this._deliverEvent(newEvent);
             }
 
             this._waitingForEvent = false;
@@ -906,9 +904,10 @@
                     if (!serverWindow.filterEvent(event))
                         continue;
 
-                    if (!serverClient.sendEvent(event))
+                    if (!serverClient.filterEvent(event))
                         continue;
 
+                    serverClient.sendEvent(event);
                     foundOneClient = true;
                 }
                 return foundOneClient;
