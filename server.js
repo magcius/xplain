@@ -305,12 +305,10 @@
             this._server.sendEvent({ type: "DestroyNotify",
                                      windowId: this.windowId });
         },
-        unparentWindow: function() {
-            this._server.damageWindow(this);
-            this._unparentWindowInternal();
-            this._server.syncCurrentWindow();
-        },
         parentWindow: function(parentServerWindow) {
+            this._server.damageWindow(this);
+            if (this.parentServerWindow)
+                this._unparentWindowInternal();
             this.parentServerWindow = parentServerWindow;
             this.parentServerWindow.children.unshift(this);
             this._server.damageWindow(this);
@@ -1452,7 +1450,6 @@
         reparentWindow: function(client, windowId, newParentId) {
             var serverWindow = this.getServerWindow(windowId);
             var newServerParentWindow = this.getServerWindow(newParentId);
-            serverWindow.unparentWindow();
             serverWindow.parentWindow(newServerParentWindow);
         },
         mapWindow: function(client, windowId) {
