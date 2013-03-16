@@ -164,9 +164,11 @@
         },
         calculateTransformedBoundingRegion: function() {
             var region = new Region();
-            var txform = this.calculateAbsoluteOffset();
             region.copy(this.boundingRegion);
-            region.translate(txform.x, txform.y);
+            this._iterParents(function(serverWindow) {
+                region.intersect(region, serverWindow.boundingRegion);
+                region.translate(serverWindow.x, serverWindow.y);
+            });
             return region;
         },
         prepareContext: function(ctx) {
