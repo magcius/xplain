@@ -169,6 +169,12 @@
             this._wm.unregister(this._clientWindowId);
             this._wm.unregister(this._closeWindowId);
         },
+        frameWasReceiver: function(event) {
+            // The frame has several internal helper windows for buttons, etc.
+            // that we want to respond to. Just check if it's the client window
+            // ID or not.
+            return event.windowId != this._clientWindowId;
+        },
 
         _configureRequestStack: function(event) {
             this._server.configureWindow(this._wm, this.frameWindowId, { stackMode: event.detail });
@@ -274,17 +280,21 @@
 
         handleEvent: function(event) {
             var frame = this._windowFrames[event.windowId];
-            var frameWasReceiver = !!(frame && frame.frameWindowId == event.windowId);
+            var frameWasReceiver = frame && frame.frameWasReceiver(event);
 
             switch (event.type) {
             case "MapRequest":
                 return this.mapRequest(event);
-            case "UnmapNotify":
-                return this.unmapNotify(event);
-            case "DestroyNotify":
-                return this.destroyNotify(event);
             case "ConfigureRequest":
-                return this.configureRequest(event);
+                return this.configureRequest(event, frame);
+            case "UnmapNotify":
+                if (!frameWasReceiver)
+                    return frame.destroy();
+                break;
+            case "DestroyNotify":
+                if (!frameWasReceiver)
+                    return frame.unregister();
+                break;
             case "ButtonPress":
                 // Raise on click.
                 this._server.configureWindow(this, frame.frameWindowId, { stackMode: "Above" });
@@ -304,9 +314,7 @@
                 return frame.handleEvent(event);
             }
         },
-        configureRequest: function(event) {
-            var frame = this._windowFrames[event.windowId];
-
+        configureRequest: function(event, frame) {
             // If we don't have a frame for a window, it was never
             // mapped, simply re-configure the window with whatever
             // it requested.
@@ -320,20 +328,6 @@
             }
         },
         unmapNotify: function(event) {
-            var frame = this._windowFrames[event.windowId];
-
-            if (!frame || event.windowId == frame.frameWindowId)
-                return;
-
-            frame.destroy();
-        },
-        destroyNotify: function(event) {
-            var frame = this._windowFrames[event.windowId];
-
-            if (!frame || event.windowId == frame.frameWindowId)
-                return;
-
-            frame.unregister();
         },
         mapRequest: function(event) {
             var frame = new WindowFrame(this, this._server, event.windowId);
