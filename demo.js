@@ -67,8 +67,14 @@
             this.parent(server);
             this._server.selectInput(this, this._windowId, ["FocusIn", "FocusOut"]);
             this._image.addEventListener("load", function() {
-                this.moveResize(undefined, undefined, this._image.width, this._image.height);
-                this.invalidate();
+                try {
+                    this.moveResize(undefined, undefined, this._image.width, this._image.height);
+                    this.invalidate();
+                } catch(e) {
+                    // The window might be destroyed, but we won't know about it.
+                    // We'll get a FocusOut in that case, which will eventually
+                    // cause a "load" here. Ignore the BadWindow here.
+                }
             }.bind(this));
         },
         handleEvent: function(event) {

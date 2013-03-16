@@ -226,14 +226,31 @@
             this._updateGeometry({ x: newX, y: newY });
         },
         _frameFocusIn: function(event) {
-            this._server.changeAttributes(this._wm, this.frameWindowId, { backgroundColor: 'yellow' });
-            this._server.invalidateWindow(this._wm, this.frameWindowId);
+            try {
+                this._server.changeAttributes(this._wm, this.frameWindowId, { backgroundColor: 'yellow' });
+                this._server.invalidateWindow(this._wm, this.frameWindowId);
+            } catch(e) {
+                // Clicking on the close button will destroy the client window,
+                // causing the focus to revert to PointerRoot. The frame isn't
+                // destroyed yet -- the UnmapNotify is still in the queue. Thus,
+                // we get a FocusIn on the button window, as that's where the
+                // pointer is. We'll process the UnmapNotify, destroy the window,
+                // and then go to process the FocusIn, but fail with a BadWindow.
+                // Ignore it.
+            }
         },
         _frameFocusOut: function(event) {
             if (event.detail == "Inferior")
                 return;
-            this._server.changeAttributes(this._wm, this.frameWindowId, { backgroundColor: 'orange' });
-            this._server.invalidateWindow(this._wm, this.frameWindowId);
+
+            try {
+                this._server.changeAttributes(this._wm, this.frameWindowId, { backgroundColor: 'orange' });
+                this._server.invalidateWindow(this._wm, this.frameWindowId);
+            } catch(e) {
+                // It's possible for us to get a FocusOut event after the frame
+                // has been destroyed on the server side. In this case, just ignore
+                // the BadWindow that comes back.
+            }
         },
         _frameExpose: function(wrapper) {
             // background color takes care of the base
@@ -263,7 +280,7 @@
                 return this._handleFrameEvent(event);
         },
         focus: function() {
-            this._server.setInputFocus(this._wm, this._clientWindowId);
+            this._server.setInputFocus(this._wm, this._clientWindowId, "PointerRoot");
         },
     });
 
@@ -325,8 +342,6 @@
                 // client coordinates.
                 frame.configureRequest(event);
             }
-        },
-        unmapNotify: function(event) {
         },
         mapRequest: function(event) {
             var frame = new WindowFrame(this, this._server, event.windowId);

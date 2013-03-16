@@ -686,6 +686,7 @@
             this._cursorY = -1;
             this._cursorServerWindow = null;
 
+            this._focusRevertTo = null;
             this._focusServerWindow = null;
 
             // The event queue, used when events are frozen during a sync grab.
@@ -1229,6 +1230,32 @@
                     FocusInEvents(toWin, this._cursorServerWindow, "Pointer", false, null);
             }
         },
+        _setInputFocus: function(focusWindowId, revert) {
+            var focusWindow;
+            if (focusWindowId === null || focusWindowId === "PointerRoot")
+                focusWindow = focusWindowId;
+            else
+                focusWindow = this.getServerWindow(focusWindowId);
+
+            var event = { rootWindowId: this.rootWindowId,
+                          rootX: this._cursorX,
+                          rootY: this._cursorY };
+
+            if (focusWindow != this._focusServerWindow || focusWindowId === "PointerRoot") {
+                this._sendFocusEvents(event, this._focusServerWindow, focusWindow);
+                this._focusServerWindow = focusWindow;
+            }
+
+            this._focusRevertTo = revert;
+        },
+        _revertInputFocus: function() {
+            if (this._focusRevertTo === null)
+                this._setInputFocus(null, null);
+            else if (this._focusRevertTo === "Parent")
+                this._setInputFocus(this._focusServerWindow.parentServerWindow.windowId, null);
+            else if (this._focusRevertTo === "PointerRoot")
+                this._setInputFocus("PointerRoot", "PointerRoot");
+        },
 
         // This function copies the front buffer around to move/resize windows.
         _damageAndCopyRegions: function(oldRegion, newRegion, oldX, oldY, newX, newY) {
@@ -1369,6 +1396,9 @@
             if (!serverWindow.viewable) {
                 if (this._grabClient !== null && this._grabClient.grabWindow)
                     this._ungrabPointer();
+
+                if (this._focusServerWindow == serverWindow)
+                    this._revertInputFocus();
             }
         },
         getServerWindow: function(windowId) {
@@ -1510,20 +1540,7 @@
             grabWindow.ungrabButton(button);
         },
         setInputFocus: function(client, focusWindowId, revert) {
-            var focusWindow;
-            if (focusWindowId === null || focusWindowId === "PointerRoot")
-                focusWindow = focusWindowId;
-            else
-                focusWindow = this.getServerWindow(focusWindowId);
-
-            var event = { rootWindowId: this.rootWindowId,
-                          rootX: this._cursorX,
-                          rootY: this._cursorY };
-
-            if (focusWindow != this._focusServerWindow) {
-                this._sendFocusEvents(event, this._focusServerWindow, focusWindow);
-                this._focusServerWindow = focusWindow;
-            }
+            this._setInputFocus(focusWindowId, revert);
         },
         allowEvents: function(client, pointerMode) {
             // The event queue always contains the currently processing
