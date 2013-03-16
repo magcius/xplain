@@ -1181,7 +1181,7 @@
         },
 
         // This function copies the front buffer around to move/resize windows.
-        _manipulateGraphicsForWindowMoveResize: function(oldRegion, newRegion, oldX, oldY, newX, newY) {
+        _damageAndCopyRegions: function(oldRegion, newRegion, oldX, oldY, newX, newY) {
             // This is a bit fancy. We need to accomplish a few things:
             //
             //   1. If the area on top of the window was damaged before
@@ -1280,7 +1280,7 @@
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             var newPos = serverWindow.calculateAbsoluteOffset();
 
-            this._manipulateGraphicsForWindowMoveResize(oldRegion, newRegion, oldPos.x, oldPos.y, newPos.x, newPos.y);
+            this._damageAndCopyRegions(oldRegion, newRegion, oldPos.x, oldPos.y, newPos.x, newPos.y);
 
             oldRegion.finalize();
             newRegion.finalize();
@@ -1503,15 +1503,7 @@
             serverWindow.setWindowShapeRegion(shapeType, region);
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
 
-            var damagedRegion = new Region();
-            damagedRegion.subtract(oldRegion, newRegion);
-            this.damageRegion(damagedRegion);
-            damagedRegion.subtract(newRegion, oldRegion);
-            this.damageRegion(damagedRegion);
-
-            damagedRegion.finalize();
-            oldRegion.finalize();
-            newRegion.finalize();
+            this._damageAndCopyRegions(oldRegion, newRegion, 0, 0, 0, 0);
         },
     });
 
