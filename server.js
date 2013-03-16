@@ -689,8 +689,8 @@
             this._focusRevertTo = null;
             this._focusServerWindow = null;
 
-            // The event queue, used when events are frozen during a sync grab.
-            this._eventQueue = [];
+            // The event queue used when events are frozen during a sync grab.
+            this._frozenEventQueue = [];
         },
 
         _setupDOM: function() {
@@ -906,7 +906,7 @@
                     // If we have a sync grab that's relevant to the current
                     // event, put it on the event queue for when the client
                     // allows it through.
-                    this._eventQueue.push(event);
+                    this._frozenEventQueue.push(event);
 
                     // Send over the input event in case the client is waiting
                     // on an event.
@@ -935,9 +935,9 @@
                 return foundOneClient;
             }
         },
-        _flushEventQueue: function() {
-            while (this._eventQueue.length > 0) {
-                var event = this._eventQueue.shift();
+        _flushFrozenEventQueue: function() {
+            while (this._frozenEventQueue.length > 0) {
+                var event = this._frozenEventQueue.shift();
                 this.sendEvent(event);
             }
         },
@@ -1549,20 +1549,20 @@
             switch (pointerMode) {
                 case "Async":
                 // Eat the first event, unfreeze the pointer grab, and replay the rest.
-                this._eventQueue.shift();
+                this._frozenEventQueue.shift();
                 this._grabClient.thaw();
-                this._flushEventQueue();
+                this._flushFrozenEventQueue();
                 break;
                 case "Sync":
                 // Eat the first event, and send the next one over without unthawing.
-                this._eventQueue.shift();
+                this._frozenEventQueue.shift();
                 this._grabClient.freeze();
                 this._processNextEvent();
                 break;
                 case "Replay":
                 // Ungrab the pointer grab, and send the full queue over.
                 this._ungrabPointer();
-                this._flushEventQueue();
+                this._flushFrozenEventQueue();
                 break;
             }
         },
