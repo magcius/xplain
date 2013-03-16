@@ -106,7 +106,7 @@
             this._clientGeometry.y = border.top;
 
             if (positionUpdated || sizeUpdated)
-                this._server.configureWindow(this._wm, this.frameWindowId, this._frameGeometry);
+                this._server.configureWindow(this._wm, this._frameWindowId, this._frameGeometry);
 
             if (sizeUpdated) {
                 // Update the client window
@@ -116,11 +116,11 @@
                                                                               y: 8 });
 
                 // Invalidate the frame that's already been partially painted.
-                this._server.invalidateWindow(this._wm, this.frameWindowId);
+                this._server.invalidateWindow(this._wm, this._frameWindowId);
             }
 
             var shapeRegion = roundedRectRegion(this._frameGeometry, { topLeft: 10, topRight: 10 });
-            this._server.setWindowShapeRegion(this._wm, this.frameWindowId, "Bounding", shapeRegion);
+            this._server.setWindowShapeRegion(this._wm, this._frameWindowId, "Bounding", shapeRegion);
             shapeRegion.finalize();
         },
 
@@ -136,7 +136,7 @@
             var corners = { topLeft: radius, topRight: radius, bottomLeft: radius, bottomRight: radius };
             var shapeRegion = roundedRectRegion(geom, corners);
             this._server.setWindowShapeRegion(this._wm, buttonWindowId, "Bounding", shapeRegion);
-            this._server.reparentWindow(this._wm, buttonWindowId, this.frameWindowId);
+            this._server.reparentWindow(this._wm, buttonWindowId, this._frameWindowId);
             this._server.mapWindow(this._wm, buttonWindowId);
             return buttonWindowId;
         },
@@ -147,24 +147,24 @@
             this._wm.register(this._clientWindowId, this);
             this._server.grabButton(this._wm, this._clientWindowId, 1, false, ["ButtonPress", "ButtonRelease"], "Sync", "");
 
-            this.frameWindowId = this._server.createWindow(this._wm);
-            this._wm.register(this.frameWindowId, this);
-            this._server.selectInput(this._wm, this.frameWindowId, ["Expose", "ButtonPress", "FocusIn", "FocusOut"]);
-            this._server.changeAttributes(this._wm, this.frameWindowId, { hasInput: true, backgroundColor: 'orange' });
+            this._frameWindowId = this._server.createWindow(this._wm);
+            this._wm.register(this._frameWindowId, this);
+            this._server.selectInput(this._wm, this._frameWindowId, ["Expose", "ButtonPress", "FocusIn", "FocusOut"]);
+            this._server.changeAttributes(this._wm, this._frameWindowId, { hasInput: true, backgroundColor: 'orange' });
 
             this._closeWindowId = this._makeButton();
             this._server.changeAttributes(this._wm, this._closeWindowId, { backgroundColor: 'red' });
 
-            this._server.reparentWindow(this._wm, this._clientWindowId, this.frameWindowId);
-            this._server.mapWindow(this._wm, this.frameWindowId);
+            this._server.reparentWindow(this._wm, this._clientWindowId, this._frameWindowId);
+            this._server.mapWindow(this._wm, this._frameWindowId);
 
             this._updateGeometry(geom);
         },
         destroy: function() {
-            this._server.destroyWindow(this._wm, this.frameWindowId);
+            this._server.destroyWindow(this._wm, this._frameWindowId);
         },
         unregister: function() {
-            this._wm.unregister(this.frameWindowId);
+            this._wm.unregister(this._frameWindowId);
             this._wm.unregister(this._clientWindowId);
             this._wm.unregister(this._closeWindowId);
         },
@@ -176,7 +176,7 @@
         },
 
         _configureRequestStack: function(event) {
-            this._server.configureWindow(this._wm, this.frameWindowId, { stackMode: event.detail });
+            this._server.configureWindow(this._wm, this._frameWindowId, { stackMode: event.detail });
         },
         configureRequest: function(event) {
             // ICCCM 4.1.5
@@ -210,12 +210,12 @@
         },
         _frameButtonPress: function(event) {
             this._origMousePos = { x: event.rootX, y: event.rootY };
-            var frameCoords = this._server.getGeometry(this, this.frameWindowId);
+            var frameCoords = this._server.getGeometry(this, this._frameWindowId);
             this._origWindowPos = { x: frameCoords.x, y: frameCoords.y };
-            this._server.grabPointer(this._wm, this.frameWindowId, true, ["ButtonRelease", "Motion"], "Async", "-moz-grabbing");
+            this._server.grabPointer(this._wm, this._frameWindowId, true, ["ButtonRelease", "Motion"], "Async", "-moz-grabbing");
         },
         _frameButtonRelease: function(event) {
-            this._server.ungrabPointer(this._wm, this.frameWindowId);
+            this._server.ungrabPointer(this._wm, this._frameWindowId);
 
             this._origMousePos = null;
             this._origWindowPos = null;
@@ -227,8 +227,8 @@
         },
         _frameFocusIn: function(event) {
             try {
-                this._server.changeAttributes(this._wm, this.frameWindowId, { backgroundColor: 'yellow' });
-                this._server.invalidateWindow(this._wm, this.frameWindowId);
+                this._server.changeAttributes(this._wm, this._frameWindowId, { backgroundColor: 'yellow' });
+                this._server.invalidateWindow(this._wm, this._frameWindowId);
             } catch(e) {
                 // Clicking on the close button will destroy the client window,
                 // causing the focus to revert to PointerRoot. The frame isn't
@@ -244,8 +244,8 @@
                 return;
 
             try {
-                this._server.changeAttributes(this._wm, this.frameWindowId, { backgroundColor: 'orange' });
-                this._server.invalidateWindow(this._wm, this.frameWindowId);
+                this._server.changeAttributes(this._wm, this._frameWindowId, { backgroundColor: 'orange' });
+                this._server.invalidateWindow(this._wm, this._frameWindowId);
             } catch(e) {
                 // It's possible for us to get a FocusOut event after the frame
                 // has been destroyed on the server side. In this case, just ignore
@@ -276,9 +276,12 @@
         handleEvent: function(event) {
             if (event.windowId == this._closeWindowId)
                 return this._handleButtonEvent(event);
-            if (event.windowId == this.frameWindowId)
+            if (event.windowId == this._frameWindowId)
                 return this._handleFrameEvent(event);
         },
+        raise: function() {
+            this._server.configureWindow(this._wm, this._frameWindowId, { stackMode: "Above" });
+        },  
         focus: function() {
             this._server.setInputFocus(this._wm, this._clientWindowId, "PointerRoot");
         },
@@ -313,7 +316,7 @@
                 break;
             case "ButtonPress":
                 // Raise on click.
-                this._server.configureWindow(this, frame.frameWindowId, { stackMode: "Above" });
+                frame.raise();
                 frame.focus();
                 if (frameWasReceiver)
                     return frame.handleEvent(event);
