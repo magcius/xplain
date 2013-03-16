@@ -666,9 +666,6 @@
             // as it uses the standard redraw and windowing machinery.
             this._createRootWindow();
 
-            // Queue a full-stage redraw so that the root window shows.
-            this.queueFullRedraw();
-
             this.publicServer = new PublicServer(this);
         },
 
