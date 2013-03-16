@@ -652,15 +652,6 @@
             this._damagedRegion = new Region();
             this._queueRedrawTimeoutId = 0;
 
-            // This needs to be done after we set up everything else
-            // as it uses the standard redraw and windowing machinery.
-            this._createRootWindow();
-
-            // Queue a full-stage redraw so that the root window shows.
-            this.queueFullRedraw();
-
-            this.publicServer = new PublicServer(this);
-
             this._cursorX = -1;
             this._cursorY = -1;
             this._cursorServerWindow = null;
@@ -670,6 +661,15 @@
 
             // The event queue used when events are frozen during a sync grab.
             this._frozenEventQueue = [];
+
+            // This needs to be done after we set up everything else
+            // as it uses the standard redraw and windowing machinery.
+            this._createRootWindow();
+
+            // Queue a full-stage redraw so that the root window shows.
+            this.queueFullRedraw();
+
+            this.publicServer = new PublicServer(this);
         },
 
         _setupDOM: function() {
