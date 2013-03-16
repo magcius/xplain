@@ -244,7 +244,7 @@
                     viewable = true;
             }
 
-            if (this.viewable != viewable) {
+            if (valueUpdated(viewable, viewable)) {
                 this.viewable = viewable;
                 this._server.viewabilityChanged(this);
                 this.children.forEach(function(child) {
