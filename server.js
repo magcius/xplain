@@ -134,6 +134,7 @@
 
             this.cursor = '';
             this.mapped = false;
+            this.viewable = false;
 
             this.x = 0;
             this.y = 0;
@@ -225,6 +226,32 @@
                                      windowId: this.windowId,
                                      name: name, value: value });
         },
+        recalculateViewability: function() {
+            var viewable;
+            // At the point that this is called, we always assume
+            // that our parent's viewability is valid.
+            if (!this.mapped && this.viewable) {
+                // If a parent is becoming unviewable, it means
+                // that we always are becoming unviewable.
+                viewable = false;
+            } else if (this.mapped && !this.viewable) {
+                // Else, the viewabiliy of us is the viewability
+                // of our parent, and if we don't have any, then
+                // we're directly viewable.
+                if (this.parentServerWindow)
+                    viewable = this.parentServerWindow.viewable;
+                else
+                    viewable = true;
+            }
+
+            if (this.viewable != viewable) {
+                this.viewable = viewable;
+                this._server.viewabilityChanged(this);
+                this.children.forEach(function(child) {
+                    child.recalculateViewability();
+                });
+            }
+        },
         map: function(client) {
             if (this.mapped)
                 return;
@@ -245,6 +272,7 @@
                 this._server.sendEvent({ type: "MapNotify",
                                          windowId: this.windowId });
                 this._server.damageWindow(this);
+                this.recalculateViewability();
                 this._server.syncCurrentWindow();
             }
         },
@@ -257,6 +285,7 @@
             this._server.sendEvent({ type: "UnmapNotify",
                                      windowId: this.windowId });
             this._server.syncCurrentWindow();
+            this.recalculateViewability();
         },
         _unparentWindowInternal: function() {
             var children = this.parentServerWindow.children;
@@ -1330,6 +1359,14 @@
             this.damageRegion(region);
             region.finalize();
         },
+        viewabilityChanged: function(serverWindow) {
+            // If a window is becoming unviewable and we have a grab on it,
+            // drop the grab.
+            if (!serverWindow.viewable) {
+                if (this._grabClient !== null && this._grabClient.grabWindow)
+                    this._ungrabPointer();
+            }
+        },
         getServerWindow: function(windowId) {
             var serverWindow = this._windowsById[windowId];
             if (serverWindow)
@@ -1374,10 +1411,6 @@
         },
         destroyWindow: function(client, windowId) {
             var serverWindow = this.getServerWindow(windowId);
-
-            if (this._grabClient !== null && this._grabClient.grabWindow)
-                this._ungrabPointer();
-
             serverWindow.destroy();
             serverWindow.finalize();
             this._windowsById[windowId] = null;
