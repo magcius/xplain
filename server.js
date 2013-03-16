@@ -441,6 +441,11 @@
 
             // window id => list of event types
             this._eventWindows = {};
+
+            // event queue to send to the client
+            // window at the next mainloop iteration
+            this._eventQueue = [];
+            this._eventQueueTimeoutId = 0;
         },
 
         isInterestedInWindowEvent: function(windowId, eventType) {
@@ -467,9 +472,23 @@
 
             return false;
         },
+        _flushEventQueue: function() {
+            while (this._eventQueue.length > 0) {
+                var event = this._eventQueue.shift();
+                this.client.handleEvent(event);
+            }
+            this._eventQueueTimeoutId = 0;
+        },
+        _queueClientEvent: function(event) {
+            // Send the event to the client on the next mainloop iteration
+            // to fake async and prevent reentrancy and dependency bugs.
+            if (this._eventQueueTimeoutId == 0)
+                this._eventQueueTimeoutId = setTimeout(this._flushEventQueue.bind(this));
+            this._eventQueue.push(event);
+        },
         sendEvent: function(event) {
             if (this.isInterestedInEvent(event)) {
-                this.client.handleEvent(event);
+                this._queueClientEvent(event);
                 return true;
             } else {
                 return false;
@@ -546,14 +565,14 @@
             // window B, and takes a grab on window A, events should still be
             // delivered for window B if they come in.
             if (this._ownerEvents && this.serverClient.isInterestedInEvent(event))
-                this.client.handleEvent(event);
+                this._queueClientEvent(event);
 
             // Else, if we should report this event, report it with respect
             // to the grab window.
             if (this._events.indexOf(event.type) >= 0) {
                 var newEvent = Object.create(event);
                 newEvent.windowId = this.grabWindow.windowId;
-                this.client.handleEvent(newEvent);
+                this._queueClientEvent(newEvent);
             }
 
             this._waitingForEvent = false;
