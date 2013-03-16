@@ -1494,7 +1494,7 @@
                 this._flushEventQueue();
                 break;
             }
-        }, 
+        },
 
         setWindowShapeRegion: function(client, windowId, shapeType, region) {
             var serverWindow = this.getServerWindow(windowId);
