@@ -947,7 +947,7 @@
             }
             return event;
         },
-        _handleInputMouseMove: function(domEvent) {
+        _updateCursor: function(domEvent) {
             var box = this._container.getBoundingClientRect();
             var rootCoords = { x: domEvent.clientX - box.left,
                                y: domEvent.clientY - box.top };
@@ -955,16 +955,21 @@
             // This can sometimes happen after a mouseup.
             if (this._cursorX == rootCoords.x &&
                 this._cursorY == rootCoords.y)
-                return;
+                return false;
 
             this._cursorX = rootCoords.x;
             this._cursorY = rootCoords.y;
             this.syncCurrentWindow();
-
+            return true;
+        },
+        _handleInputMouseMove: function(domEvent) {
+            if (!this._updateCursor(domEvent))
+                return;
             var event = this._handleInputSimple(domEvent);
             this.sendEvent(event);
         },
         _handleInputButtonPress: function(domEvent) {
+            this._updateCursor(domEvent);
             var event = this._handleInputSimple(domEvent);
 
             function checkGrabRecursively(serverWindow) {
@@ -998,6 +1003,7 @@
             }
         },
         _handleInputButtonRelease: function(domEvent) {
+            this._updateCursor(domEvent);
             var event = this._handleInputSimple(domEvent);
             this.sendEvent(event);
 
