@@ -164,6 +164,11 @@
         destroy: function() {
             this._server.destroyWindow(this._wm, this.frameWindowId);
         },
+        unregister: function() {
+            this._wm.unregister(this.frameWindowId);
+            this._wm.unregister(this._clientWindowId);
+            this._wm.unregister(this._closeWindowId);
+        },
 
         _configureRequestStack: function(event) {
             this._server.configureWindow(this._wm, this.frameWindowId, { stackMode: event.detail });
@@ -276,6 +281,8 @@
                 return this.mapRequest(event);
             case "UnmapNotify":
                 return this.unmapNotify(event);
+            case "DestroyNotify":
+                return this.destroyNotify(event);
             case "ConfigureRequest":
                 return this.configureRequest(event);
             case "ButtonPress":
@@ -320,6 +327,14 @@
 
             frame.destroy();
         },
+        destroyNotify: function(event) {
+            var frame = this._windowFrames[event.windowId];
+
+            if (!frame || event.windowId == frame.frameWindowId)
+                return;
+
+            frame.unregister();
+        },
         mapRequest: function(event) {
             var frame = new WindowFrame(this, this._server, event.windowId);
 
@@ -334,6 +349,9 @@
         },
         register: function(windowId, frame) {
             this._windowFrames[windowId] = frame;
+        },
+        unregister: function(windowId) {
+            this._windowFrames[windowId] = null;
         },
     });
 
