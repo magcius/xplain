@@ -671,7 +671,7 @@
 
             // The region of the screen that needs to be updated.
             this._damagedRegion = new Region();
-            this._queueRedraw = new Task(this._redraw.bind(this));
+            this._queueRedrawTimeoutId = 0;
 
             // This needs to be done after we set up everything else
             // as it uses the standard redraw and windowing machinery.
@@ -827,6 +827,10 @@
             this._container.style.cursor = cursor;
         },
 
+        _queueRedraw: function() {
+            if (this._queueRedrawTimeoutId == 0)
+                this._queueRedrawTimeoutId = setTimeout(this._redraw.bind(this), 1);
+        },
         _redraw: function() {
             // The damaged region is global, not per-window. This function
             // walks all windows, computing the intersection of the global
@@ -884,7 +888,7 @@
 
             recursivelyDamage(this._rootWindow, damagedRegion);
             damagedRegion.finalize();
-            return false;
+            this._queueRedrawTimeoutId = 0;
         },
         damageRegion: function(region) {
             this._damagedRegion.union(this._damagedRegion, region);
