@@ -259,6 +259,7 @@
         _unparentWindowInternal: function() {
             var children = this.parentServerWindow.children;
             children.splice(children.indexOf(this), 1);
+            this.parentServerWindow = null;
         },
         destroy: function() {
             if (this.mapped)
