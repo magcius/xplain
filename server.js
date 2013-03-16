@@ -171,11 +171,18 @@
             });
             return region;
         },
+        _drawBackground: function(ctx) {
+            ctx.fillStyle = this._backgroundColor;
+            ctx.fillRect(0, 0, this.width, this.height);
+        },
         prepareContext: function(ctx) {
             var txform = this.calculateAbsoluteOffset();
             ctx.translate(txform.x, txform.y);
             pathFromRegion(ctx, this._damagedRegion);
             ctx.clip();
+
+            // XXX -- this is not the proper place to put this.
+            this._drawBackground(ctx);
         },
         clearDamage: function() {
             // Don't bother trashing our region here as
@@ -185,17 +192,15 @@
             this._server.subtractDamage(this._damagedRegion);
             this._damagedRegion.clear();
         },
-        _drawBackground: function(ctx) {
-            ctx.fillStyle = this._backgroundColor;
-            ctx.fillRect(0, 0, this.width, this.height);
-        },
         damage: function(region) {
             this._damagedRegion.union(this._damagedRegion, region);
-            this._ctxWrapper.drawWithContext(this._drawBackground.bind(this));
             if (!this._server.sendEvent({ type: "Expose",
                                           windowId: this.windowId,
-                                          ctx: this._ctxWrapper }))
+                                          ctx: this._ctxWrapper })) {
+                // HACK call prepareContext so we have our background drawn
+                this._ctxWrapper.drawWithContext(function() {});
                 this.clearDamage();
+            }
         },
         changeAttributes: function(attributes) {
             if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
