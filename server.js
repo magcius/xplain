@@ -7,6 +7,9 @@
         });
     }
 
+    // Workaround for browser bugs in drawImage:
+    //   https://bugzilla.mozilla.org/show_bug.cgi?id=842110
+    //   https://code.google.com/p/chromium/issues/detail?id=176714
     function copyArea(ctx, oldX, oldY, newX, newY, w, h) {
         if (newX < 0) {
             w += newX;
