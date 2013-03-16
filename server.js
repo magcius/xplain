@@ -936,10 +936,10 @@
             }
         },
         _flushEventQueue: function() {
-            this._eventQueue.forEach(function(event) {
+            while (this._eventQueue.length > 0) {
+                var event = this._eventQueue.shift();
                 this.sendEvent(event);
-            }, this);
-            this._eventQueue = [];
+            }
         },
 
         _setupInputHandlers: function() {
