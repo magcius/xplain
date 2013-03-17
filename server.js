@@ -877,6 +877,24 @@
             // This is expected to be called after the client has painted,
             // so don't queue a repaint.
         },
+        _getServerClientsForEvent: function(event, except) {
+            var serverWindow = this.getServerWindow(event.windowId);
+            if (!serverWindow.filterEvent(event))
+                return [];
+
+            var clients = [];
+            for (var i = 0; i < this._clients.length; i++) {
+                var serverClient = this._clients[i];
+                if (serverClient.client == except)
+                    continue;
+
+                if (!serverClient.filterEvent(event))
+                    continue;
+
+                clients.push(serverClient);
+            }
+            return clients;
+        },
         sendEvent: function(event, except) {
             if (isEventInputEvent(event) && this._grabClient && !this._grabClient.isImplicitGrab) {
                 if (this._grabClient.isEventConsideredFrozen(event)) {
@@ -896,23 +914,11 @@
 
                 return true;
             } else {
-                var serverWindow = this.getServerWindow(event.windowId);
-                if (!serverWindow.filterEvent(event))
-                    return false;
-
-                var foundOneClient = false;
-                for (var i = 0; i < this._clients.length; i++) {
-                    var serverClient = this._clients[i];
-                    if (serverClient.client == except)
-                        continue;
-
-                    if (!serverClient.filterEvent(event))
-                        continue;
-
+                var clients = this._getServerClientsForEvent(event, except);
+                clients.forEach(function(serverClient) {
                     serverClient.sendEvent(event);
-                    foundOneClient = true;
-                }
-                return foundOneClient;
+                });
+                return clients.length > 0;
             }
         },
         _flushFrozenEventQueue: function() {
