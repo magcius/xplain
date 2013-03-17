@@ -252,14 +252,14 @@
                 // the BadWindow that comes back.
             }
         },
-        _frameExpose: function(wrapper) {
+        _frameExpose: function() {
             // background color takes care of the base
 
             // Draw title.
             var title = this._server.getProperty(this._wm, this._clientWindowId, "WM_NAME");
             if (title) {
                 var geom = this._server.getGeometry(this._wm, this._clientWindowId);
-                wrapper.drawWithContext(function(ctx) {
+                this._server.drawWithContext(this, this._frameWindowId, function(ctx) {
                     ctx.fillStyle = '#000';
                     ctx.textAlign = 'center';
                     ctx.font = '12pt sans-serif';
@@ -267,7 +267,7 @@
                 });
             }
 
-            wrapper.clearDamage();
+            this._server.clearDamage(this, this._frameWindowId);
         },
         _handleButtonEvent: function(event) {
             if (event.windowId == this._closeWindowId && event.type == "ButtonRelease")

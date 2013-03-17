@@ -88,30 +88,10 @@
         return a !== undefined && a !== b;
     }
 
-    var ContextWrapper = new Class({
-        initialize: function(serverWindow, ctx) {
-            this._serverWindow = serverWindow;
-            this._ctx = ctx;
-        },
-
-        drawWithContext: function(func) {
-            var ctx = this._ctx;
-            ctx.beginPath();
-            ctx.save();
-            this._serverWindow.prepareContext(ctx);
-            func(ctx);
-            ctx.restore();
-        },
-
-        clearDamage: function() {
-            this._serverWindow.clearDamage();
-        },
-    });
-
     var DEFAULT_BACKGROUND_COLOR = '#ddd';
 
     var ServerWindow = new Class({
-        initialize: function(windowId, server, ctx) {
+        initialize: function(windowId, server) {
             this._server = server;
             this.windowId = windowId;
 
@@ -123,8 +103,6 @@
             // The bounding region, as defined by the SHAPE extension, in window coordinates.
             this.boundingRegion = new Region();
             this._hasCustomBoundingRegion = false;
-
-            this._ctxWrapper = new ContextWrapper(this, ctx);
 
             this._properties = {};
             this._passiveGrabs = {};
@@ -192,10 +170,9 @@
         },
         damage: function(region) {
             this._damagedRegion.union(this._damagedRegion, region);
-            this._ctxWrapper.drawWithContext(this._drawBackground.bind(this));
+            this._server.drawWithContext(this, this.windowId, this._drawBackground.bind(this));
             if (!this._server.sendEvent({ type: "Expose",
-                                          windowId: this.windowId,
-                                          ctx: this._ctxWrapper }))
+                                          windowId: this.windowId }))
                 this.clearDamage();
         },
         changeAttributes: function(attributes) {
@@ -595,6 +572,8 @@
         // by letting someone use an existing expose handler.
         // This is the model used by GDK internally.
         'invalidateWindow',
+        'drawWithContext',
+        'clearDamage',
 
         // SHAPE / XFixes
         'setWindowShapeRegion',
@@ -1363,7 +1342,7 @@
         // Used by _createRootWindow and createWindow.
         _createWindowInternal: function() {
             var windowId = ++this._nextWindowId;
-            var serverWindow = new ServerWindow(windowId, this, this._ctx);
+            var serverWindow = new ServerWindow(windowId, this);
             this._windowsById[windowId] = serverWindow;
             return serverWindow;
         },
@@ -1551,6 +1530,19 @@
         invalidateWindow: function(client, windowId) {
             var serverWindow = this.getServerWindow(windowId);
             this.damageWindow(serverWindow);
+        },
+        drawWithContext: function(client, windowId, func) {
+            var ctx = this._ctx;
+            var serverWindow = this.getServerWindow(windowId);
+            ctx.beginPath();
+            ctx.save();
+            serverWindow.prepareContext(ctx);
+            func(ctx);
+            ctx.restore();
+        },
+        clearDamage: function(client, windowId) {
+            var serverWindow = this.getServerWindow(windowId);
+            serverWindow.clearDamage();
         },
 
         setWindowShapeRegion: function(client, windowId, shapeType, region) {

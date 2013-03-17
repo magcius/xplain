@@ -17,10 +17,10 @@
             this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
         },
         expose: function(wrapper) {
-            wrapper.drawWithContext(function(ctx) {
+            this._server.drawWithContext(this, this._windowId, function(ctx) {
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
-            wrapper.clearDamage();
+            this._server.clearDamage(this, this._windowId);
         },
     });
 
@@ -42,10 +42,10 @@
             }.bind(this));
         },
         expose: function(wrapper) {
-            wrapper.drawWithContext(function(ctx) {
+            this._server.drawWithContext(this, this._windowId, function(ctx) {
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
-            wrapper.clearDamage();
+            this._server.clearDamage(this, this._windowId);
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -94,10 +94,10 @@
             this._image.src = "TerminalScreenshotUnfocused.png";
         },
         expose: function(wrapper) {
-            wrapper.drawWithContext(function(ctx) {
+            this._server.drawWithContext(this, this._windowId, function(ctx) {
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
-            wrapper.clearDamage();
+            this._server.clearDamage(this, this._windowId);
         },
     });
 
