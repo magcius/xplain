@@ -1478,10 +1478,6 @@
             var serverWindow = this.getServerWindow(windowId);
             serverWindow.changeProperty(name, value);
         },
-        invalidateWindow: function(client, windowId) {
-            var serverWindow = this.getServerWindow(windowId);
-            this.damageWindow(serverWindow);
-        },
         grabPointer: function(client, grabWindowId, ownerEvents, events, pointerMode, cursor) {
             // TODO: keyboardMode
             // Investigate HTML5 APIs for confineTo
@@ -1555,6 +1551,11 @@
                 this._flushFrozenEventQueue();
                 break;
             }
+        },
+
+        invalidateWindow: function(client, windowId) {
+            var serverWindow = this.getServerWindow(windowId);
+            this.damageWindow(serverWindow);
         },
 
         setWindowShapeRegion: function(client, windowId, shapeType, region) {
