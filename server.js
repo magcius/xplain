@@ -893,6 +893,8 @@
                     // of implicit grabs -- they should have normal delivery.
                     this._grabClient.sendEvent(event);
                 }
+
+                return true;
             } else {
                 var serverWindow = this.getServerWindow(event.windowId);
                 var foundOneClient = false;
