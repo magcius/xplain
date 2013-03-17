@@ -480,6 +480,13 @@
 
             listeningFor.push.apply(listeningFor, eventTypes);
         },
+        makeGrabInfo: function(event) {
+            return { serverClient: this,
+                     grabWindow: this._server.getServerWindow(event.windowId),
+                     ownerEvents: false, // implement OwnerGrabEvents
+                     events: this._eventWindows[event.windowId],
+                     cursor: null };
+        },
     });
 
     // A ServerGrabClient is a fake ServerClient that handles
@@ -508,8 +515,6 @@
 
             this._waitingForEvent = false;
             this.allowEvents(grabInfo.pointerMode);
-
-            this.isImplicitGrab = serverClient === null;
         },
         isEventConsideredFrozen: function(event) {
             switch (event.type) {
@@ -896,7 +901,7 @@
             return clients;
         },
         sendEvent: function(event, except) {
-            if (isEventInputEvent(event) && this._grabClient && !this._grabClient.isImplicitGrab) {
+            if (isEventInputEvent(event) && this._grabClient) {
                 if (this._grabClient.isEventConsideredFrozen(event)) {
                     // If we have a sync grab that's relevant to the current
                     // event, put it on the event queue for when the client
@@ -907,8 +912,7 @@
                     // on an event.
                     this._grabClient.sendEvent(event);
                 } else {
-                    // Send input events to grabs if we have one, except in the case
-                    // of implicit grabs -- they should have normal delivery.
+                    // Send input events to grabs if we have one.
                     this._grabClient.sendEvent(event);
                 }
 
@@ -1020,33 +1024,31 @@
                 return serverWindow.getGrab(event.button);
             }
 
-            var grabInfo;
-            grabInfo = checkGrabRecursively(this._cursorServerWindow);
+            var grabWindow = this.getServerWindow(event.windowId);
+            var grabInfo = checkGrabRecursively(grabWindow);
+            if (!grabInfo) {
+                // Only one ButtonPress can be selected on the same window,
+                // so this should always have length=1.
+                var clients = this._getServerClientsForEvent(event);
+                var firstClient = clients[0];
+                if (firstClient)
+                    grabInfo = firstClient.makeGrabInfo(event);
+                else
+                    // XXX -- protocol is unclear here -- who gets the grab?
+                    // For now, don't take a grab and send just the event.
+                    ;
+            }
+
             if (grabInfo)
                 this._grabPointer(grabInfo);
 
             this.sendEvent(event);
-
-            // If there's no active explicit pointer grab, take an implicit one.
-            // Do this after event delivery for a slight perf gain in case a
-            // client takes their own grab.
-            if (this._grabClient === null) {
-                grabInfo = { serverClient: null,
-                             grabWindow: this._cursorServerWindow,
-                             ownerEvents: false,
-                             events: [],
-                             cursor: null };
-                this._grabPointer(grabInfo);
-            }
         },
         _handleInputButtonRelease: function(domEvent) {
             this._updateCursor(domEvent);
             var event = this._handleInputSimple(domEvent);
             this.sendEvent(event);
-
-            // Only release if we have an implicit grab.
-            if (this._grabClient && this._grabClient.isImplicitGrab)
-                this._ungrabPointer(null);
+            this._ungrabPointer(null);
         },
         _handleInputEnterLeave: function(eventBase, fromWin, toWin) {
             // Adapted from Xorg server, a pre-MPX version of dix/enterleave.c
@@ -1481,13 +1483,8 @@
             // TODO: keyboardMode
             // Investigate HTML5 APIs for confineTo
 
-            if (this._grabClient) {
-                // Allow overwriting an implicit server grab.
-                if (this._grabClient.isImplicitGrab)
-                    this._ungrabPointer();
-                else
-                    throw new Error("AlreadyGrabbed");
-            }
+            if (this._grabClient)
+                throw new Error("AlreadyGrabbed");
 
             var grabWindow = this.getServerWindow(grabWindowId);
             var serverClient = client._serverClient;
@@ -1500,10 +1497,6 @@
             this._grabPointer(grabInfo);
         },
         ungrabPointer: function(client) {
-            // Clients can't ungrab an implicit grab.
-            if (this._grabClient.isImplicitGrab)
-                return;
-
             if (client != this._grabClient.client)
                 return;
 
