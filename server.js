@@ -1048,7 +1048,7 @@
             this._updateCursor(domEvent);
             var event = this._handleInputSimple(domEvent);
             this.sendEvent(event);
-            this._ungrabPointer(null);
+            this._ungrabPointer();
         },
         _handleInputEnterLeave: function(eventBase, fromWin, toWin) {
             // Adapted from Xorg server, a pre-MPX version of dix/enterleave.c
