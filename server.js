@@ -1483,8 +1483,17 @@
             // TODO: keyboardMode
             // Investigate HTML5 APIs for confineTo
 
-            if (this._grabClient)
-                throw new Error("AlreadyGrabbed");
+            if (this._grabClient) {
+                // Allow overwriting a grab from the same client. By core event
+                // protocol semantics, this should be ChangeActivePointerGrab,
+                // but I like the XI2 semantics of just calling grabPointer again.
+                // I think it's cleaner, and it cuts down on the amount of duplicate
+                // code.
+                if (this._grabClient.client == client)
+                    this._ungrabPointer();
+                else
+                    throw new Error("AlreadyGrabbed");
+            }
 
             var grabWindow = this.getServerWindow(grabWindowId);
             var serverClient = client._serverClient;
