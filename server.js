@@ -936,6 +936,9 @@
             this._container.addEventListener("mousemove", this._handleInputMouseMove.bind(this));
             this._container.addEventListener("mousedown", this._handleInputButtonPress.bind(this));
             this._container.addEventListener("mouseup", this._handleInputButtonRelease.bind(this));
+            this._container.addEventListener("contextmenu", function(event) {
+                event.preventDefault();
+            })
         },
 
         syncCurrentWindow: function() {
