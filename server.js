@@ -897,13 +897,13 @@
                 return true;
             } else {
                 var serverWindow = this.getServerWindow(event.windowId);
+                if (!serverWindow.filterEvent(event))
+                    return false;
+
                 var foundOneClient = false;
                 for (var i = 0; i < this._clients.length; i++) {
                     var serverClient = this._clients[i];
                     if (serverClient.client == except)
-                        continue;
-
-                    if (!serverWindow.filterEvent(event))
                         continue;
 
                     if (!serverClient.filterEvent(event))
