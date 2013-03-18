@@ -462,19 +462,9 @@
     // details if the pointer is grabbed to make event delivery
     // and other things easier.
     var ServerGrabClient = new Class({
-        Extends: ServerClient,
-
         initialize: function(server, grabInfo) {
-            // this.client is the client which has handleEvent and friends.
-            // this.serverClient is the serverClient for client that we're
-            // wrapping, which we use filterEvent for the ownerEvents
-            // implementation.
-
-            var serverClient = grabInfo.serverClient;
-            var client = serverClient.client;
-
-            this.parent(server, client);
-            this._serverClient = serverClient;
+            this._serverClient = grabInfo.serverClient;
+            this.client = this._serverClient.client;
             this._ownerEvents = grabInfo.ownerEvents;
             this._events = grabInfo.events;
             this.grabWindow = grabInfo.grabWindow;
