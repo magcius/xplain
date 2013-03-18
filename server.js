@@ -439,11 +439,8 @@
 
             return false;
         },
-        _deliverEvent: function(event) {
-            this.client.handleEvent(event);
-        },
         sendEvent: function(event) {
-            this._deliverEvent(event);
+            this.client.handleEvent(event);
         },
         selectInput: function(windowId, eventTypes) {
             var listeningFor = this._eventWindows[windowId];
@@ -515,14 +512,14 @@
             // window B, and takes a grab on window A, events should still be
             // delivered for window B if they come in.
             if (this._ownerEvents && this._serverClient.filterEvent(event))
-                this._deliverEvent(event);
+                this._serverClient.sendEvent(event);
 
             // Else, if we should report this event, report it with respect
             // to the grab window.
             if (this._events.indexOf(event.type) >= 0) {
                 var newEvent = Object.create(event);
                 newEvent.windowId = this.grabWindow.windowId;
-                this._deliverEvent(newEvent);
+                this._serverClient.sendEvent(newEvent);
             }
 
             this._waitingForEvent = false;
