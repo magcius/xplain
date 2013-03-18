@@ -473,10 +473,8 @@
             // wrapping, which we use filterEvent for the ownerEvents
             // implementation.
 
-            // serverClient can be null, which signifies that the
-            // server itself took an implicit grab.
             var serverClient = grabInfo.serverClient;
-            var client = serverClient ? serverClient.client : null;
+            var client = serverClient.client;
 
             this.parent(server, client);
             this.serverClient = serverClient;
@@ -506,10 +504,6 @@
                 this._waitingForEvent = true;
         },
         sendEvent: function(event) {
-            // Implicit grab -- we should never get here.
-            if (!this.serverClient)
-                throw new Error("Server grab -- should be unreachable");
-
             // If we're not waiting for an event, exit early; this event
             // will be replayed from the queue when the client wants it.
             if (this._pointerMode == "Sync" && !this._waitingForEvent)
