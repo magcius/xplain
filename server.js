@@ -927,12 +927,6 @@
             domEvent.stopPropagation();
 
             var serverWindow = this._cursorServerWindow;
-
-            // If we have a grab, all events go to the grab window.
-            // XXX - are windowId and the coordinates on the event the same?
-            if (!serverWindow)
-                return null;
-
             var winCoords = this._translateCoordinates(this._rootWindow, serverWindow, this._cursorX, this._cursorY);
 
             var event = { rootWindowId: this.rootWindowId,
