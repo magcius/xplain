@@ -922,9 +922,11 @@
             }
         },
         _handleInputBase: function(domEvent) {
-            // X does not have event bubbling, so stop it now.
+            // The X server should capture all input events.
             domEvent.preventDefault();
             domEvent.stopPropagation();
+
+            // XXX -- actually find event window, that sort of thing.
 
             var serverWindow = this._cursorServerWindow;
             var winCoords = this._translateCoordinates(this._rootWindow, serverWindow, this._cursorX, this._cursorY);
