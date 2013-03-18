@@ -7,7 +7,10 @@
         },
         connect: function(server) {
             this._server = server;
-            this._server.clientConnected(this);
+            this._port = this._server.clientConnected(this);
+            this._port.addEventListener("message", function(messageEvent) {
+                this.handleEvent(messageEvent.data);
+            }.bind(this));
             this._windowId = this._server.createWindow(this);
             this._server.changeAttributes(this, this._windowId, { backgroundColor: this.backgroundColor });
             this._server.selectInput(this, this._windowId, ["Expose", "ConfigureNotify"]);

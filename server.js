@@ -406,6 +406,25 @@
         },
     });
 
+    // A simple container so we don't litter the DOM.
+    var iframeContainer = document.createElement("message-ports");
+    iframeContainer.style.display = 'none';
+    document.body.appendChild(iframeContainer);
+
+    function MessagePort() {
+        var iframe = document.createElement("iframe");
+        iframeContainer.appendChild(iframe);
+        return iframe.contentWindow;
+    }
+
+    function flattenObject(obj) {
+        var flat = {};
+        // Flatten the prototype chain.
+        for (var prop in obj)
+            flat[prop] = obj[prop];
+        return flat;
+    }
+
     var ServerClient = new Class({
         initialize: function(server, client) {
             this._server = server;
@@ -413,6 +432,8 @@
 
             // window id => list of event types
             this._eventWindows = {};
+
+            this.clientPort = new MessagePort();
         },
 
         isInterestedInWindowEvent: function(windowId, eventType) {
@@ -440,7 +461,8 @@
             return false;
         },
         sendEvent: function(event) {
-            this.client.handleEvent(event);
+            var flatEvent = flattenObject(event);
+            this.clientPort.postMessage(flatEvent, "/");
         },
         selectInput: function(windowId, eventTypes) {
             var listeningFor = this._eventWindows[windowId];
@@ -1355,6 +1377,7 @@
             var serverClient = new ServerClient(this, client);
             client._serverClient = serverClient;
             this._clients.push(serverClient);
+            return serverClient.clientPort;
         },
         _checkOtherClientsForEvent: function(windowId, eventType, except) {
             return this._clients.some(function(otherClient) {

@@ -290,7 +290,10 @@
     var WindowManager = new Class({
         connect: function(server) {
             this._server = server;
-            this._server.clientConnected(this);
+            this._port = this._server.clientConnected(this);
+            this._port.addEventListener("message", function(messageEvent) {
+                this.handleEvent(messageEvent.data);
+            }.bind(this));
             this._server.selectInput(this, this._server.rootWindowId, ["SubstructureRedirect", "SubstructureNotify"]);
 
             // window ID => WindowFrame
