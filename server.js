@@ -477,7 +477,7 @@
             var client = serverClient.client;
 
             this.parent(server, client);
-            this.serverClient = serverClient;
+            this._serverClient = serverClient;
             this.grabWindow = grabInfo.grabWindow;
             this._ownerEvents = grabInfo.ownerEvents;
             this._events = grabInfo.events;
@@ -514,7 +514,7 @@
             // modification. So, if a client with two windows, window A and
             // window B, and takes a grab on window A, events should still be
             // delivered for window B if they come in.
-            if (this._ownerEvents && this.serverClient.filterEvent(event))
+            if (this._ownerEvents && this._serverClient.filterEvent(event))
                 this._deliverEvent(event);
 
             // Else, if we should report this event, report it with respect
