@@ -478,9 +478,9 @@
 
             this.parent(server, client);
             this._serverClient = serverClient;
-            this.grabWindow = grabInfo.grabWindow;
             this._ownerEvents = grabInfo.ownerEvents;
             this._events = grabInfo.events;
+            this.grabWindow = grabInfo.grabWindow;
             this.cursor = grabInfo.cursor;
 
             this._waitingForEvent = false;
@@ -1353,7 +1353,7 @@
             // If a window is becoming unviewable and we have a grab on it,
             // drop the grab.
             if (!serverWindow.viewable) {
-                if (this._grabClient !== null && this._grabClient.grabWindow)
+                if (this._grabClient && this._grabClient.grabWindow == serverWindow)
                     this._ungrabPointer();
 
                 if (this._focusServerWindow == serverWindow)
