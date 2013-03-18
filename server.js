@@ -514,9 +514,6 @@
 
             this._waitingForEvent = false;
         },
-        selectInput: function() {
-            throw new Error("selectInput() called on the fake grab client. Should not happen.");
-        },
     });
 
     var PublicServer = new Class({
