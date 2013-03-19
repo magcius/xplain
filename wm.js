@@ -281,7 +281,7 @@
         },
         raise: function() {
             this._server.configureWindow(this._wm, this._frameWindowId, { stackMode: "Above" });
-        },  
+        },
         focus: function() {
             this._server.setInputFocus(this._wm, this._clientWindowId, "PointerRoot");
         },
@@ -327,7 +327,7 @@
                     this._server.allowEvents(this, "Replay");
                 break;
 
-            // These should only happen for frame windows.
+                // These should only happen for frame windows.
             case "ButtonRelease":
             case "Motion":
             case "Expose":

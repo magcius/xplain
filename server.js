@@ -497,10 +497,10 @@
         },
         isEventConsideredFrozen: function(event) {
             switch (event.type) {
-                case "ButtonPress":
-                case "ButtonRelease":
-                    // XXX - is Motion frozen or not?
-                    return this._pointerMode == "Sync";
+            case "ButtonPress":
+            case "ButtonRelease":
+                // XXX - is Motion frozen or not?
+                return this._pointerMode == "Sync";
             }
             return false;
         },
@@ -1491,7 +1491,7 @@
                              pointerMode: pointerMode,
                              cursor: cursor };
             grabWindow.grabButton(button, grabInfo);
-        }, 
+        },
         ungrabButton: function(client, grabWindowId, button) {
             var grabWindow = this.getServerWindow(grabWindowId);
             grabWindow.ungrabButton(button);
@@ -1504,19 +1504,19 @@
             // event at the head of the queue so that we can replay it.
 
             switch (pointerMode) {
-                case "Async":
+            case "Async":
                 // Eat the first event, unfreeze the pointer grab, and replay the rest.
                 this._frozenEventQueue.shift();
                 this._grabClient.thaw();
                 this._flushFrozenEventQueue();
                 break;
-                case "Sync":
+            case "Sync":
                 // Eat the first event, and send the next one over without unthawing.
                 this._frozenEventQueue.shift();
                 this._grabClient.freeze();
                 this._processNextEvent();
                 break;
-                case "Replay":
+            case "Replay":
                 // Ungrab the pointer grab, and send the full queue over.
                 this._ungrabPointer();
                 this._flushFrozenEventQueue();

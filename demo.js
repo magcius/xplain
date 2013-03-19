@@ -79,12 +79,12 @@
         },
         handleEvent: function(event) {
             switch(event.type) {
-                case "FocusIn":
-                    return this._handleFocusIn(event);
-                case "FocusOut":
-                    return this._handleFocusOut(event);
-                default:
-                    return this.parent(event);
+            case "FocusIn":
+                return this._handleFocusIn(event);
+            case "FocusOut":
+                return this._handleFocusOut(event);
+            default:
+                return this.parent(event);
             }
         },
         _handleFocusIn: function(event) {
