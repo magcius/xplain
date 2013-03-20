@@ -1546,6 +1546,10 @@
 
         setWindowShapeRegion: function(client, windowId, shapeType, region) {
             var serverWindow = this.getServerWindow(windowId);
+            if (!serverWindow.mapped) {
+                serverWindow.setWindowShapeRegion(shapeType, region);
+                return;
+            }
 
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             serverWindow.setWindowShapeRegion(shapeType, region);
