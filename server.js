@@ -515,7 +515,7 @@
         },
         sendEvent: function(event) {
             var flatEvent = flattenObject(event);
-            this.clientPort.postMessage(flatEvent, "/");
+            this.clientPort.postMessage(flatEvent, "*");
         },
         selectInput: function(windowId, eventTypes) {
             var listeningFor = this._eventWindows[windowId];
