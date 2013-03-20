@@ -245,7 +245,7 @@
                                          windowId: this.windowId });
                 this._server.damageWindow(this);
                 this.recalculateViewability();
-                this._server.syncCurrentWindow();
+                this._server.syncCursorWindow();
             }
         },
         unmap: function() {
@@ -256,7 +256,7 @@
             this.mapped = false;
             this._server.sendEvent({ type: "UnmapNotify",
                                      windowId: this.windowId });
-            this._server.syncCurrentWindow();
+            this._server.syncCursorWindow();
             this.recalculateViewability();
         },
         _unparentWindowInternal: function() {
@@ -284,7 +284,7 @@
             this.parentServerWindow = parentServerWindow;
             this.parentServerWindow.children.unshift(this);
             this._server.damageWindow(this);
-            this._server.syncCurrentWindow();
+            this._server.syncCursorWindow();
         },
 
         findDeepestChildAtPoint: function(x, y) {
@@ -916,7 +916,7 @@
             })
         },
 
-        syncCurrentWindow: function() {
+        syncCursorWindow: function() {
             var serverWindow = this._rootWindow.findDeepestChildAtPoint(this._cursorX, this._cursorY);
             var event = { rootWindowId: this.rootWindowId,
                           rootX: this._cursorX,
@@ -974,7 +974,7 @@
 
             this._cursorX = rootCoords.x;
             this._cursorY = rootCoords.y;
-            this.syncCurrentWindow();
+            this.syncCursorWindow();
             return true;
         },
         _handleInputMouseMove: function(domEvent) {
@@ -1325,7 +1325,7 @@
             oldRegion.finalize();
             newRegion.finalize();
 
-            this.syncCurrentWindow();
+            this.syncCursorWindow();
         },
 
         _grabPointer: function(grabInfo, isPassive) {
