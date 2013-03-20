@@ -624,7 +624,6 @@
 
             // The region of the screen that needs to be updated.
             this._damagedRegion = new Region();
-            this._mainloopTimeoutId = 0;
 
             this._cursorX = -1;
             this._cursorY = -1;
@@ -778,14 +777,6 @@
             this._container.style.cursor = cursor;
         },
 
-        _scheduleMainloop: function() {
-            if (this._mainloopTimeoutId == 0)
-                this._mainloopTimeoutId = setTimeout(this._mainloop.bind(this), 1);
-        },
-        _mainloop: function() {
-            this._mainloopTimeoutId = 0;
-            this._redraw();
-        },
         _redraw: function() {
             // The damaged region is global, not per-window. This function
             // walks all windows, computing the intersection of the global
@@ -846,7 +837,7 @@
         },
         damageRegion: function(region) {
             this._damagedRegion.union(this._damagedRegion, region);
-            this._scheduleMainloop();
+            this._redraw();
         },
         subtractDamage: function(region) {
             this._damagedRegion.subtract(this._damagedRegion, region);
