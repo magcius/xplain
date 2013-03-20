@@ -1149,45 +1149,6 @@
                 this._setInputFocus("PointerRoot", "PointerRoot");
         },
 
-        // This function copies the front buffer around to move/resize windows.
-        _damageAndCopyRegions: function(oldRegion, newRegion, oldX, oldY, newX, newY) {
-            var oldExtents = oldRegion.extents();
-            var oldW = oldExtents.width, oldH = oldExtents.height;
-
-            var tmp = new Region();
-            var damagedRegion = new Region();
-
-            // Pixels need to be exposed under the window in places where the
-            // old region is, but the new region isn't.
-            tmp.subtract(oldRegion, newRegion);
-            damagedRegion.union(damagedRegion, tmp);
-
-            if (oldRegion.not_empty() && (newX != oldX || newY != oldY)) {
-                // We're going to copy the contents of the old region into
-                // the area of the new region, so translate the old region
-                // into the coordinate space of the new region.
-                oldRegion.translate(newX - oldX, newY - oldY);
-
-                var ctx = this._ctx;
-                ctx.beginPath();
-                ctx.save();
-                tmp.intersect(newRegion, oldRegion);
-                pathFromRegion(ctx, tmp);
-                ctx.clip();
-                copyArea(ctx, oldX, oldY, newX, newY, oldW, oldH);
-                ctx.restore();
-            }
-
-            // Pixels need to be exposed on the window in places where the
-            // new region is, but the old region isn't.
-            tmp.subtract(newRegion, oldRegion);
-            damagedRegion.union(damagedRegion, tmp);
-
-            this.damageRegion(damagedRegion);
-            tmp.finalize();
-            damagedRegion.finalize();
-        },
-
         wrapWindowChange: function(serverWindow, func) {
             if (!serverWindow.mapped) {
                 func();
@@ -1203,11 +1164,50 @@
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             var newPos = serverWindow.calculateAbsoluteOffset();
 
-            this._damageAndCopyRegions(oldRegion, newRegion, oldPos.x, oldPos.y, newPos.x, newPos.y);
-            newRegion.finalize();
+            var oldExtents = oldRegion.extents();
+            var oldW = oldExtents.width, oldH = oldExtents.height;
+
+            var tmp = new Region();
+            var damagedRegion = new Region();
+
+            // Pixels need to be exposed under the window in places where the
+            // old region is, but the new region isn't.
+            tmp.subtract(oldRegion, newRegion);
+            damagedRegion.union(damagedRegion, tmp);
+
+            function pointEqual(a, b) {
+                return a.x == b.x && a.y == b.y;
+            }
+
+            if (oldRegion.not_empty() && !pointEqual(oldPos, newPos)) {
+                // We're going to copy the contents of the old region into
+                // the area of the new region, so translate the old region
+                // into the coordinate space of the new region.
+                oldRegion.translate(newPos.x - oldPos.x, newPos.y - oldPos.y);
+
+                var ctx = this._ctx;
+                ctx.beginPath();
+                ctx.save();
+                tmp.intersect(newRegion, oldRegion);
+                pathFromRegion(ctx, tmp);
+                ctx.clip();
+                copyArea(ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, oldW, oldH);
+                ctx.restore();
+            }
+
+            // Pixels need to be exposed on the window in places where the
+            // new region is, but the old region isn't.
+            tmp.subtract(newRegion, oldRegion);
+            damagedRegion.union(damagedRegion, tmp);
+
+            this.damageRegion(damagedRegion);
             this.syncCursorWindow();
 
+            tmp.finalize();
+            damagedRegion.finalize();
+
             oldRegion.finalize();
+            newRegion.finalize();
         },
 
         _grabPointer: function(grabInfo, isPassive) {
