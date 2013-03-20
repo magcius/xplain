@@ -998,23 +998,25 @@
                 return serverWindow.getGrab(event.button);
             }
 
-            var grabWindow = this.getServerWindow(event.windowId);
-            var grabInfo = checkGrabRecursively(grabWindow);
-            if (!grabInfo) {
-                // Only one ButtonPress can be selected on the same window,
-                // so this should always have length=1.
-                var clients = this._getServerClientsForEvent(event);
-                var firstClient = clients[0];
-                if (firstClient)
-                    grabInfo = firstClient.makeGrabInfo(event);
-                else
-                    // XXX -- protocol is unclear here -- who gets the grab?
-                    // For now, don't take a grab and send just the event.
-                    ;
-            }
+            if (!this._grabClient) {
+                var grabWindow = this.getServerWindow(event.windowId);
+                var grabInfo = checkGrabRecursively(grabWindow);
+                if (!grabInfo) {
+                    // Only one ButtonPress can be selected on the same window,
+                    // so this should always have length=1.
+                    var clients = this._getServerClientsForEvent(event);
+                    var firstClient = clients[0];
+                    if (firstClient)
+                        grabInfo = firstClient.makeGrabInfo(event);
+                    else
+                        // XXX -- protocol is unclear here -- who gets the grab?
+                        // For now, don't take a grab and send just the event.
+                        ;
+                }
 
-            if (grabInfo)
-                this._grabPointer(grabInfo, true);
+                if (grabInfo)
+                    this._grabPointer(grabInfo, true);
+            }
 
             this.sendEvent(event);
         },

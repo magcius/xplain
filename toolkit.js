@@ -8,7 +8,9 @@
         connect: function(server) {
             this._server = server;
             this._port = this._server.clientConnected(this);
+            console.log("YYY");
             this._port.addEventListener("message", function(messageEvent) {
+                console.log("XXX");
                 this.handleEvent(messageEvent.data);
             }.bind(this));
             this._windowId = this._server.createWindow(this);
