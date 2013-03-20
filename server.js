@@ -153,8 +153,11 @@
             pathFromRegion(ctx, this.damagedRegion);
             ctx.clip();
         },
-        clearDamage: function() {
-            this.damagedRegion.clear();
+        clearDamage: function(region) {
+            if (region === "Full")
+                this.damagedRegion.clear();
+            else
+                this.damagedRegion.subtract(this.damagedRegion, region);
         },
         _drawBackground: function(ctx) {
             ctx.fillStyle = this._backgroundColor;
@@ -170,7 +173,7 @@
             this._server.drawWithContext(this, this.windowId, this._drawBackground.bind(this));
             if (!this._server.sendEvent({ type: "Expose",
                                           windowId: this.windowId }))
-                this.clearDamage();
+                this.clearDamage("Full");
         },
         changeAttributes: function(attributes) {
             if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
@@ -1417,9 +1420,9 @@
             func(ctx);
             ctx.restore();
         },
-        clearDamage: function(client, windowId) {
+        clearDamage: function(client, windowId, region) {
             var serverWindow = this.getServerWindow(windowId);
-            serverWindow.clearDamage();
+            serverWindow.clearDamage(region);
         },
 
         setWindowShapeRegion: function(client, windowId, shapeType, region) {

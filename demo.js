@@ -29,7 +29,9 @@
             this._server.drawWithContext(this._windowId, function(ctx) {
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
-            this._server.clearDamage(this._windowId);
+            var region = new Region();
+            region.init_rect(0, 0, this.width, this.height);
+            this._server.clearDamage(this._windowId, region);
         },
     });
 

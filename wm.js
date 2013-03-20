@@ -267,7 +267,7 @@
                 });
             }
 
-            this._server.clearDamage(this._frameWindowId);
+            this._server.clearDamage(this._frameWindowId, "Full");
         },
         _handleButtonEvent: function(event) {
             if (event.windowId == this._closeWindowId && event.type == "ButtonRelease")
