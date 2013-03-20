@@ -278,13 +278,12 @@
             this._unparentWindowInternal(this);
         },
         parentWindow: function(parentServerWindow) {
-            this._server.damageWindow(this);
             if (this.parentServerWindow)
                 this._unparentWindowInternal();
-            this.parentServerWindow = parentServerWindow;
-            this.parentServerWindow.children.unshift(this);
-            this._server.damageWindow(this);
-            this._server.syncCursorWindow();
+            this._server.wrapWindowChange(this, function() {
+                this.parentServerWindow = parentServerWindow;
+                this.parentServerWindow.children.unshift(this);
+            }.bind(this));
         },
 
         findDeepestChildAtPoint: function(x, y) {
@@ -332,7 +331,6 @@
                 break;
                 // TODO: TopIf, BottomIf, Opposite. Ever seen in practice?
             }
-            this._server.damageWindow(this);
         },
 
         configureWindow: function(client, props) {
@@ -344,31 +342,30 @@
             event = Object.create(eventBase);
             event.type = "ConfigureRequest";
             if (!this._server.sendEvent(event, client)) {
-                if (props.x !== undefined)
-                    this.x = props.x | 0;
-                if (props.y !== undefined)
-                    this.y = props.y | 0;
-                if (props.width !== undefined)
-                    this.width = props.width | 0;
-                if (props.height !== undefined)
-                    this.height = props.height | 0;
-
                 // Update the bounding region if we didn't already have a custom one.
-                if (!this._hasCustomBoundingRegion)
-                    this.setWindowShapeRegion("Bounding", null);
+                this._server.wrapWindowChange(this, function() {
+                    if (props.x !== undefined)
+                        this.x = props.x | 0;
+                    if (props.y !== undefined)
+                        this.y = props.y | 0;
+                    if (props.width !== undefined)
+                        this.width = props.width | 0;
+                    if (props.height !== undefined)
+                        this.height = props.height | 0;
 
-                if (props.stackMode) {
-                    var sibling = props.sibling ? this._server.getServerWindow(props.sibling) : null;
-                    this._insertIntoStack(sibling, props.stackMode);
-                }
+                    if (!this._hasCustomBoundingRegion)
+                        this._setWindowShapeRegion("Bounding", null);
 
-                event = Object.create(eventBase);
-                event.type = "ConfigureNotify";
-                this._server.sendEvent(event);
+                    if (props.stackMode) {
+                        var sibling = props.sibling ? this._server.getServerWindow(props.sibling) : null;
+                        this._insertIntoStack(sibling, props.stackMode);
+                    }
 
-                return true;
+                    event = Object.create(eventBase);
+                    event.type = "ConfigureNotify";
+                    this._server.sendEvent(event);
+                }.bind(this));
             }
-            return false;
         },
         filterEvent: function(event) {
             // If we're an override redirect window and the event is a MapRequest
@@ -381,7 +378,7 @@
             return { x: this.x, y: this.y, width: this.width, height: this.height };
         },
 
-        setWindowShapeRegion: function(shapeType, region) {
+        _setWindowShapeRegion: function(shapeType, region) {
             if (shapeType === "Bounding") {
                 this.boundingRegion.clear();
 
@@ -393,6 +390,15 @@
                     this._hasCustomBoundingRegion = false;
                 }
             }
+        },
+        setWindowShapeRegion: function(shapeType, region) {
+            this._server.wrapWindowChange(this, function() {
+                // We don't actually check if the two are the same. This
+                // is assuming that this is so seldom called that the cost
+                // doesn't really matter. It probably wouldn't be too hard
+                // to check, though.
+                this._setWindowShapeRegion(shapeType, region);
+            }.bind(this));
         },
 
         grabButton: function(button, grabInfo) {
@@ -661,7 +667,7 @@
             this.rootWindowId = this._rootWindow.windowId;
             this._rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             this._rootWindow.parentServerWindow = null;
-            this._configureWindow(this, this._rootWindow, { x: 0, y: 0, width: this.width, height: this.height });
+            this._rootWindow.configureWindow(this, { x: 0, y: 0, width: this.width, height: this.height });
             this._rootWindow.map();
         },
 
@@ -1195,8 +1201,7 @@
             damagedRegion.finalize();
         },
 
-        // Helper func for _configureWindow and setWindowShapeRegion
-        _changeWindowShape: function(serverWindow, func) {
+        wrapWindowChange: function(serverWindow, func) {
             if (!serverWindow.mapped) {
                 func();
                 return;
@@ -1206,24 +1211,16 @@
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             var oldPos = serverWindow.calculateAbsoluteOffset();
 
-            // Make the change. If func() returns false, it means nothing
-            // changed and we don't have to do anything.
-            if (func()) {
-                var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-                var newPos = serverWindow.calculateAbsoluteOffset();
+            func();
 
-                this._damageAndCopyRegions(oldRegion, newRegion, oldPos.x, oldPos.y, newPos.x, newPos.y);
-                newRegion.finalize();
-                this.syncCursorWindow();
-            }
+            var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+            var newPos = serverWindow.calculateAbsoluteOffset();
+
+            this._damageAndCopyRegions(oldRegion, newRegion, oldPos.x, oldPos.y, newPos.x, newPos.y);
+            newRegion.finalize();
+            this.syncCursorWindow();
 
             oldRegion.finalize();
-        },
-
-        _configureWindow: function(client, serverWindow, props) {
-            this._changeWindowShape(serverWindow, function() {
-                return serverWindow.configureWindow(client, props);
-            });
         },
 
         _grabPointer: function(grabInfo, isPassive) {
@@ -1326,7 +1323,7 @@
         },
         configureWindow: function(client, windowId, props) {
             var serverWindow = this.getServerWindow(windowId);
-            this._configureWindow(client, serverWindow, props);
+            serverWindow.configureWindow(client, props);
         },
         getGeometry: function(client, windowId) {
             var serverWindow = this.getServerWindow(windowId);
@@ -1445,14 +1442,7 @@
 
         setWindowShapeRegion: function(client, windowId, shapeType, region) {
             var serverWindow = this.getServerWindow(windowId);
-            this._changeWindowShape(serverWindow, function() {
-                serverWindow.setWindowShapeRegion(shapeType, region);
-                // We don't actually check if the two are the same. This
-                // is assuming that this is so seldom called that the cost
-                // doesn't really matter. It probably wouldn't be too hard
-                // to check, though.
-                return true;
-            });
+            serverWindow.setWindowShapeRegion(shapeType, region);
         },
     });
 
