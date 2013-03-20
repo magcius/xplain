@@ -712,10 +712,6 @@
             });
         },
 
-        _clipRegionToVisibleCoords: function(region) {
-            region.intersect_rect(region, 0, 0, this.width, this.height);
-        },
-
         // For a given window, return the region that would be
         // immediately damaged if the window was removed. That is,
         // the window's shape region clipped to the areas that are
@@ -1165,9 +1161,6 @@
             var tmp = new Region();
             var damagedRegion = new Region();
 
-            this._clipRegionToVisibleCoords(oldRegion);
-            this._clipRegionToVisibleCoords(newRegion);
-
             // Pixels need to be exposed under the window in places where the
             // old region is, but the new region isn't.
             tmp.subtract(oldRegion, newRegion);
@@ -1245,7 +1238,6 @@
                 return;
 
             var region = this._calculateEffectiveRegionForWindow(serverWindow);
-            this._clipRegionToVisibleCoords(region);
             this.damageRegion(region);
             region.finalize();
         },
