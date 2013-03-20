@@ -1158,14 +1158,12 @@
             // Get the old state.
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             var oldPos = serverWindow.calculateAbsoluteOffset();
+            var oldW = serverWindow.width, oldH = serverWindow.height;
 
             func();
 
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             var newPos = serverWindow.calculateAbsoluteOffset();
-
-            var oldExtents = oldRegion.extents();
-            var oldW = oldExtents.width, oldH = oldExtents.height;
 
             var tmp = new Region();
             var damagedRegion = new Region();
