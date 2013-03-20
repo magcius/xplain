@@ -1476,10 +1476,8 @@
             this._grabPointer(grabInfo);
         },
         ungrabPointer: function(client) {
-            if (client != this._grabClient.client)
-                return;
-
-            this._ungrabPointer();
+            if (this._grabClient && this._grabClient.client == client)
+                this._ungrabPointer();
         },
         grabButton: function(client, grabWindowId, button, ownerEvents, events, pointerMode, cursor) {
             var grabWindow = this.getServerWindow(grabWindowId);
