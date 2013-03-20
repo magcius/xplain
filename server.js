@@ -1531,8 +1531,11 @@
             this.damageWindow(serverWindow);
         },
         drawWithContext: function(client, windowId, func) {
-            var ctx = this._ctx;
             var serverWindow = this.getServerWindow(windowId);
+            if (!serverWindow.mapped)
+                return;
+
+            var ctx = this._ctx;
             ctx.beginPath();
             ctx.save();
             serverWindow.prepareContext(ctx);
