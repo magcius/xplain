@@ -272,10 +272,10 @@
                 child.destroy();
             });
 
-            this._unparentWindowInternal(this);
-
             this._server.sendEvent({ type: "DestroyNotify",
                                      windowId: this.windowId });
+
+            this._unparentWindowInternal(this);
         },
         parentWindow: function(parentServerWindow) {
             this._server.damageWindow(this);
