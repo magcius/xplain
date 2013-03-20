@@ -98,7 +98,7 @@
             this._backgroundColor = DEFAULT_BACKGROUND_COLOR;
 
             // The region of the window that needs to be redrawn, in window coordinates.
-            this._damagedRegion = new Region();
+            this.damagedRegion = new Region();
 
             // The bounding region, as defined by the SHAPE extension, in window coordinates.
             this.boundingRegion = new Region();
@@ -123,8 +123,8 @@
             this.boundingRegion.finalize();
             this.boundingRegion = null;
 
-            this._damagedRegion.finalize();
-            this._damagedRegion = null;
+            this.damagedRegion.finalize();
+            this.damagedRegion = null;
         },
         _iterParents: function(callback) {
             var serverWindow = this;
@@ -153,16 +153,11 @@
         prepareContext: function(ctx) {
             var txform = this.calculateAbsoluteOffset();
             ctx.translate(txform.x, txform.y);
-            pathFromRegion(ctx, this._damagedRegion);
+            pathFromRegion(ctx, this.damagedRegion);
             ctx.clip();
         },
         clearDamage: function() {
-            // Don't bother trashing our region here as
-            // we'll clear it below.
-            var txform = this.calculateAbsoluteOffset();
-            this._damagedRegion.translate(txform.x, txform.y);
-            this._server.subtractDamage(this._damagedRegion);
-            this._damagedRegion.clear();
+            this.damagedRegion.clear();
         },
         _drawBackground: function(ctx) {
             ctx.fillStyle = this._backgroundColor;
@@ -170,6 +165,11 @@
         },
         damage: function(region) {
             this._damagedRegion.union(this._damagedRegion, region);
+        },
+        sendExpose: function() {
+            if (this.damagedRegion.is_empty())
+                return;
+
             this._server.drawWithContext(this, this.windowId, this._drawBackground.bind(this));
             if (!this._server.sendEvent({ type: "Expose",
                                           windowId: this.windowId }))
@@ -777,67 +777,58 @@
             this._container.style.cursor = cursor;
         },
 
-        _redraw: function() {
-            // The damaged region is global, not per-window. This function
-            // walks all windows, computing the intersection of the global
-            // damage and the window region, and translates it into window-
-            // local coordinates.
-
+        damageRegion: function(region) {
             function recursivelyDamage(serverWindow, inputRegion) {
                 if (!serverWindow.mapped)
                     return;
 
-                if (inputRegion.is_empty())
-                    return;
-
-                // The obscuring region is the part of the input region
-                // that this window obscures, not including child windows.
+                // The obscuring region is the part of @inputRegion that
+                // will obscure other windows. It doesn't include its child
+                // windows obscuring regions either, as the window shouldn't
+                // draw into the region owned by its children.
                 var obscuringRegion = new Region();
 
                 // Transform into the child's space.
                 inputRegion.translate(-serverWindow.x, -serverWindow.y);
+                region.translate(-serverWindow.x, -serverWindow.y);
 
                 // Clip the damaged region to the bounding region to get
                 // the maximum area that's obscured.
                 obscuringRegion.intersect(inputRegion, serverWindow.boundingRegion);
 
-                if (obscuringRegion.not_empty()) {
-                    // We're guaranteed that the window plus children is covering
-                    // this area, so subtract it out of the input region first as
-                    // we're handling it.
-                    inputRegion.subtract(inputRegion, obscuringRegion);
+                // We're guaranteed that the window plus children is covering
+                // this area, so subtract it out of the input region first as
+                // we're handling it.
+                inputRegion.subtract(inputRegion, obscuringRegion);
 
-                    // Child windows need to be damaged first -- they'll subtract
-                    // out parts of inputRegion that we want to not be damaged for.
-                    serverWindow.children.forEach(function(serverWindow) {
-                        recursivelyDamage(serverWindow, obscuringRegion);
-                    });
+                // Child windows need to be damaged first -- they'll subtract
+                // out parts of inputRegion that we want to not be damaged for.
+                serverWindow.children.forEach(function(serverWindow) {
+                    recursivelyDamage(serverWindow, obscuringRegion);
+                });
 
-                    serverWindow.damage(obscuringRegion);
-                }
+                // We need to set the window's damaged region, clipped to
+                // the region that's passed into damageRegion().
+                // Do this by clearing out region, and then adding in
+                // what we want to set.
+                var windowDamage = serverWindow.damagedRegion;
+                windowDamage.subtract(windowDamage, region);
+                windowDamage.union(windowDamage, obscuringRegion);
+                serverWindow.sendExpose();
 
-                // And back.
+                // And transform back.
                 inputRegion.translate(serverWindow.x, serverWindow.y);
+                region.translate(serverWindow.x, serverWindow.y);
 
                 obscuringRegion.finalize();
             }
 
-            // Copy the damage region so it doesn't get mutated when
-            // sending it to clients -- clients need to subtract damage
-            // when they draw.
+            // The caller owns the damaged region, so make sure
+            // none of our subtractions take effect.
             var damagedRegion = new Region();
-            damagedRegion.copy(this._damagedRegion);
+            damagedRegion.copy(region);
             recursivelyDamage(this._rootWindow, damagedRegion);
             damagedRegion.finalize();
-        },
-        damageRegion: function(region) {
-            this._damagedRegion.union(this._damagedRegion, region);
-            this._redraw();
-        },
-        subtractDamage: function(region) {
-            this._damagedRegion.subtract(this._damagedRegion, region);
-            // This is expected to be called after the client has painted,
-            // so don't queue a repaint.
         },
         _getServerClientsForEvent: function(event, except) {
             var serverWindow = this.getServerWindow(event.windowId);
@@ -1206,30 +1197,6 @@
 
         // This function copies the front buffer around to move/resize windows.
         _damageAndCopyRegions: function(oldRegion, newRegion, oldX, oldY, newX, newY) {
-            // This is a bit fancy. We need to accomplish a few things:
-            //
-            //   1. If the area on top of the window was damaged before
-            //      the reconfigure, we need to ensure we move that
-            //      damaged region to the new coordinates.
-            //
-            //   2. If the window was resized, we need to ensure we mark
-            //      the newly exposed region on the window itself as
-            //      damaged.
-            //
-            //   3. If the window was moved, we need to ensure we mark
-            //      the newly exposed region under the old position of
-            //      the window as damaged.
-            //
-            //   4. Make sure we prevent exposing as much as possible.
-            //      If a window, completely obscured, moves somewhere,
-            //      we shouldn't expose any pixels. Similar sensible
-            //      behavior should happen for cases the window is
-            //      partially obscured.
-
-            // 1., 2., and 3. are documented where the corresponding code is done.
-            // 4. is done by making sure we call _calculateEffectiveRegionForWindow,
-            //    which excludes the region where windows visually obscure the window.
-
             var oldExtents = oldRegion.extents();
             var oldW = oldExtents.width, oldH = oldExtents.height;
 
@@ -1238,18 +1205,8 @@
             this._clipRegionToVisibleCoords(oldRegion);
             this._clipRegionToVisibleCoords(newRegion);
 
-            // 1. (We need to do this first, as the other steps manipulate
-            //     oldRegion and the global damaged region in ways that would
-            //     cause us to damage more than necessary.)
-            //    Pixels that were marked as damaged on the old window need
-            //    to be translated to pixels on the global damaged region.
-            damagedRegion.intersect(this._damagedRegion, oldRegion);
-            damagedRegion.translate(newX - oldX, newY - oldY);
-            this._clipRegionToVisibleCoords(damagedRegion);
-            this.damageRegion(damagedRegion);
-
-            // 2. Pixels need to be exposed under the window in places where the
-            //    old region is, but the new region isn't.
+            // Pixels need to be exposed under the window in places where the
+            // old region is, but the new region isn't.
             damagedRegion.subtract(oldRegion, newRegion);
             this.damageRegion(damagedRegion);
             this._debugDrawRegion(damagedRegion, 'yellow');
@@ -1262,8 +1219,8 @@
             if (positionChanged)
                 oldRegion.translate(newX - oldX, newY - oldY);
 
-            // 3. Pixels need to be exposed on the window in places where the
-            //    new region is, but the old region isn't.
+            // Pixels need to be exposed on the window in places where the
+            // new region is, but the old region isn't.
             damagedRegion.subtract(newRegion, oldRegion);
             this.damageRegion(damagedRegion);
             this._debugDrawRegion(damagedRegion, 'green');
