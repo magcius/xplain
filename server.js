@@ -91,7 +91,7 @@
     var DEFAULT_BACKGROUND_COLOR = '#ddd';
 
     var ServerWindow = new Class({
-        initialize: function(windowId, server) {
+        initialize: function(windowId, server, props) {
             this._server = server;
             this.windowId = windowId;
 
@@ -114,10 +114,7 @@
             this.mapped = false;
             this.viewable = false;
 
-            this.x = 0;
-            this.y = 0;
-            this.width = 1;
-            this.height = 1;
+            this._configureWindow(props);
         },
         finalize: function() {
             this.boundingRegion.finalize();
@@ -336,6 +333,20 @@
             }
         },
 
+        _configureWindow: function(props) {
+            if (props.x !== undefined)
+                this.x = props.x | 0;
+            if (props.y !== undefined)
+                this.y = props.y | 0;
+            if (props.width !== undefined)
+                this.width = props.width | 0;
+            if (props.height !== undefined)
+                this.height = props.height | 0;
+
+            if (!this._hasCustomBoundingRegion)
+                this._setWindowShapeRegion("Bounding", null);
+        },
+
         configureWindow: function(client, props) {
             var eventBase = { windowId: this.windowId,
                               x: props.x, y: props.y, width: props.width, height: props.height,
@@ -345,19 +356,8 @@
             event = Object.create(eventBase);
             event.type = "ConfigureRequest";
             if (!this._server.sendEvent(event, client)) {
-                // Update the bounding region if we didn't already have a custom one.
                 this._server.wrapWindowChange(this, function() {
-                    if (props.x !== undefined)
-                        this.x = props.x | 0;
-                    if (props.y !== undefined)
-                        this.y = props.y | 0;
-                    if (props.width !== undefined)
-                        this.width = props.width | 0;
-                    if (props.height !== undefined)
-                        this.height = props.height | 0;
-
-                    if (!this._hasCustomBoundingRegion)
-                        this._setWindowShapeRegion("Bounding", null);
+                    this._configureWindow(props);
 
                     if (props.stackMode) {
                         var sibling = props.sibling ? this._server.getServerWindow(props.sibling) : null;
@@ -667,11 +667,10 @@
         },
 
         _createRootWindow: function() {
-            this._rootWindow = this._createWindowInternal();
+            this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: this.width, height: this.height });
             this.rootWindowId = this._rootWindow.windowId;
             this._rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             this._rootWindow.parentServerWindow = null;
-            this._rootWindow.configureWindow(this, { x: 0, y: 0, width: this.width, height: this.height });
             this._rootWindow.map();
         },
 
@@ -1221,9 +1220,9 @@
         },
 
         // Used by _createRootWindow and createWindow.
-        _createWindowInternal: function() {
+        _createWindowInternal: function(props) {
             var windowId = ++this._nextWindowId;
-            var serverWindow = new ServerWindow(windowId, this);
+            var serverWindow = new ServerWindow(windowId, this, props);
             this._windowsById[windowId] = serverWindow;
             return serverWindow;
         },
@@ -1282,8 +1281,8 @@
 
             client.selectInput(windowId, eventTypes);
         },
-        createWindow: function(client) {
-            var serverWindow = this._createWindowInternal();
+        createWindow: function(client, props) {
+            var serverWindow = this._createWindowInternal(props);
             serverWindow.parentWindow(this._rootWindow);
             return serverWindow.windowId;
         },

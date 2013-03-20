@@ -125,12 +125,12 @@
         },
 
         _makeButton: function() {
-            var buttonWindowId = this._server.createWindow();
+            var size = 15;
+            var geom = { x: 0, y: 0, width: size, height: size };
+            var buttonWindowId = this._server.createWindow(geom);
             this._wm.register(buttonWindowId, this);
             this._server.selectInput(buttonWindowId, ["ButtonRelease"]);
             this._server.changeAttributes(buttonWindowId, { cursor: "pointer" });
-            var size = 15;
-            var geom = { width: size, height: size };
             this._server.configureWindow(buttonWindowId, geom);
             var radius = size / 2;
             var corners = { topLeft: radius, topRight: radius, bottomLeft: radius, bottomRight: radius };
@@ -147,7 +147,7 @@
             this._wm.register(this._clientWindowId, this);
             this._server.grabButton(this._clientWindowId, 1, false, ["ButtonPress", "ButtonRelease"], "Sync", "");
 
-            this._frameWindowId = this._server.createWindow();
+            this._frameWindowId = this._server.createWindow(geom);
             this._wm.register(this._frameWindowId, this);
             this._server.selectInput(this._frameWindowId, ["SubstructureRedirect", "SubstructureNotify", "Expose", "ButtonPress", "FocusIn", "FocusOut"]);
             this._server.changeAttributes(this._frameWindowId, { hasInput: true, backgroundColor: 'orange' });
