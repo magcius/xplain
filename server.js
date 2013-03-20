@@ -783,16 +783,6 @@
             // damage and the window region, and translates it into window-
             // local coordinates.
 
-            // Copy the damage region so we don't mutate it directly --
-            // clients will clear damage after they draw.
-            var damagedRegion = new Region();
-            damagedRegion.copy(this._damagedRegion);
-
-            if (this._debugEnabled)
-                this._debugDrawClear();
-
-            this._debugDrawRegion(damagedRegion, 'red');
-
             function recursivelyDamage(serverWindow, inputRegion) {
                 if (!serverWindow.mapped)
                     return;
@@ -832,6 +822,11 @@
                 obscuringRegion.finalize();
             }
 
+            // Copy the damage region so it doesn't get mutated when
+            // sending it to clients -- clients need to subtract damage
+            // when they draw.
+            var damagedRegion = new Region();
+            damagedRegion.copy(this._damagedRegion);
             recursivelyDamage(this._rootWindow, damagedRegion);
             damagedRegion.finalize();
         },
