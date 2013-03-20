@@ -63,6 +63,7 @@
             this._image = new Image();
             this._image.addEventListener("load", function() {
                 try {
+                    this._loaded = true;
                     this.moveResize(undefined, undefined, this._image.width, this._image.height);
                     this.invalidate();
                 } catch(e) {
@@ -82,13 +83,20 @@
                 return this.parent(event);
             }
         },
+        _setImage: function(src) {
+            this._loaded = false;
+            this._image.src = src;
+        },
         _handleFocusIn: function(event) {
-            this._image.src = "TerminalScreenshotFocused.png";
+            this._setImage("TerminalScreenshotFocused.png");
         },
         _handleFocusOut: function(event) {
-            this._image.src = "TerminalScreenshotUnfocused.png";
+            this._setImage("TerminalScreenshotUnfocused.png");
         },
         expose: function(wrapper) {
+            if (!this._loaded)
+                return;
+
             this._server.drawWithContext(this, this._windowId, function(ctx) {
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
