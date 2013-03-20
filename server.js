@@ -274,7 +274,7 @@
             this._server.sendEvent({ type: "DestroyNotify",
                                      windowId: this.windowId });
 
-            this._unparentWindowInternal(this);
+            this._unparentWindowInternal();
         },
         parentWindow: function(parentServerWindow) {
             if (this.parentServerWindow)
