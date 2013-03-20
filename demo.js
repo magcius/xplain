@@ -1,65 +1,10 @@
 (function(exports) {
     "use strict";
 
-    var BackgroundWindow = new Class({
+    var ImageWindow = new Class({
         Extends: Window,
         connect: function(server) {
             this.parent(server);
-            this._image = new Image();
-            this._image.addEventListener("load", function() {
-                this.moveResize(undefined, undefined, this._image.width, this._image.height);
-                this.invalidate();
-            }.bind(this));
-            this._image.src = "WoodBackground.jpg";
-            this._server.changeAttributes(this._windowId, { overrideRedirect: true });
-        },
-        expose: function(wrapper) {
-            this._server.drawWithContext(this._windowId, function(ctx) {
-                ctx.drawImage(this._image, 0, 0, this.width, this.height);
-            }.bind(this));
-            this._server.clearDamage(this._windowId);
-        },
-    });
-
-    var Launcher = new Class({
-        Extends: Window,
-        initialize: function(imageSrc, callback) {
-            this.parent(imageSrc);
-            this._imageSrc = imageSrc;
-            this._callback = callback;
-        },
-        connect: function(server) {
-            this.parent(server);
-            this._server.changeAttributes(this._windowId, { overrideRedirect: true, cursor: "pointer" });
-            this._server.selectInput(this._windowId, ["ButtonPress"]);
-            this._image = new Image();
-            this._image.addEventListener("load", function() {
-                this.moveResize(undefined, undefined, this._image.width, this._image.height);
-                this.invalidate();
-            }.bind(this));
-            this._image.src = this._imageSrc;
-        },
-        expose: function(wrapper) {
-            this._server.drawWithContext(this._windowId, function(ctx) {
-                ctx.drawImage(this._image, 0, 0, this.width, this.height);
-            }.bind(this));
-            this._server.clearDamage(this._windowId);
-        },
-        handleEvent: function(event) {
-            switch (event.type) {
-            case "ButtonPress":
-                return this._callback.call(null);
-            default:
-                return this.parent(event);
-            }
-        },
-    });
-
-    var FakeTerminalWindow = new Class({
-        Extends: Window,
-        connect: function(server) {
-            this.parent(server);
-            this._server.selectInput(this._windowId, ["FocusIn", "FocusOut"]);
             this._image = new Image();
             this._image.addEventListener("load", function() {
                 try {
@@ -73,27 +18,11 @@
                 }
             }.bind(this));
         },
-        handleEvent: function(event) {
-            switch(event.type) {
-            case "FocusIn":
-                return this._handleFocusIn(event);
-            case "FocusOut":
-                return this._handleFocusOut(event);
-            default:
-                return this.parent(event);
-            }
-        },
         _setImage: function(src) {
             this._loaded = false;
             this._image.src = src;
         },
-        _handleFocusIn: function(event) {
-            this._setImage("TerminalScreenshotFocused.png");
-        },
-        _handleFocusOut: function(event) {
-            this._setImage("TerminalScreenshotUnfocused.png");
-        },
-        expose: function(wrapper) {
+        expose: function() {
             if (!this._loaded)
                 return;
 
@@ -101,6 +30,63 @@
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
             this._server.clearDamage(this._windowId);
+        },
+    });
+
+    var BackgroundWindow = new Class({
+        Extends: ImageWindow,
+        connect: function(server) {
+            this.parent(server);
+            this._server.changeAttributes(this._windowId, { overrideRedirect: true });
+            this._setImage("WoodBackground.jpg");
+        },
+    });
+
+    var Launcher = new Class({
+        Extends: ImageWindow,
+        initialize: function(imageSrc, callback) {
+            this.parent(imageSrc);
+            this._imageSrc = imageSrc;
+            this._callback = callback;
+        },
+        connect: function(server) {
+            this.parent(server);
+            this._server.changeAttributes(this._windowId, { overrideRedirect: true, cursor: "pointer" });
+            this._server.selectInput(this._windowId, ["ButtonPress"]);
+            this._setImage(this._imageSrc);
+        },
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "ButtonPress":
+                return this._callback.call(null);
+            default:
+                return this.parent(event);
+            }
+        },
+    });
+
+    var FakeTerminalWindow = new Class({
+        Extends: ImageWindow,
+        connect: function(server) {
+            this.parent(server);
+            this._server.selectInput(this._windowId, ["FocusIn", "FocusOut"]);
+            this._handleFocusOut();
+        },
+        handleEvent: function(event) {
+            switch(event.type) {
+            case "FocusIn":
+                return this._handleFocusIn();
+            case "FocusOut":
+                return this._handleFocusOut();
+            default:
+                return this.parent(event);
+            }
+        },
+        _handleFocusIn: function() {
+            this._setImage("TerminalScreenshotFocused.png");
+        },
+        _handleFocusOut: function() {
+            this._setImage("TerminalScreenshotUnfocused.png");
         },
     });
 
