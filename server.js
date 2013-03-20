@@ -1155,6 +1155,7 @@
             var oldExtents = oldRegion.extents();
             var oldW = oldExtents.width, oldH = oldExtents.height;
 
+            var tmp = new Region();
             var damagedRegion = new Region();
 
             this._clipRegionToVisibleCoords(oldRegion);
@@ -1162,8 +1163,8 @@
 
             // Pixels need to be exposed under the window in places where the
             // old region is, but the new region isn't.
-            damagedRegion.subtract(oldRegion, newRegion);
-            this.damageRegion(damagedRegion);
+            tmp.subtract(oldRegion, newRegion);
+            damagedRegion.union(damagedRegion, tmp);
 
             var positionChanged = newX != oldX || newY != oldY;
 
@@ -1175,8 +1176,8 @@
 
             // Pixels need to be exposed on the window in places where the
             // new region is, but the old region isn't.
-            damagedRegion.subtract(newRegion, oldRegion);
-            this.damageRegion(damagedRegion);
+            tmp.subtract(newRegion, oldRegion);
+            damagedRegion.union(damagedRegion, tmp);
 
             // Copy the old image contents over, masked to the region.
             if (oldRegion.not_empty() && positionChanged) {
@@ -1189,6 +1190,8 @@
                 ctx.restore();
             }
 
+            this.damageRegion(damagedRegion);
+            tmp.finalize();
             damagedRegion.finalize();
         },
 
