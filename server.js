@@ -1175,12 +1175,12 @@
             tmp.subtract(newRegion, oldRegion);
             damagedRegion.union(damagedRegion, tmp);
 
-            // Copy the old image contents over, masked to the region.
             if (oldRegion.not_empty() && positionChanged) {
                 var ctx = this._ctx;
                 ctx.beginPath();
                 ctx.save();
-                pathFromRegion(ctx, newRegion);
+                tmp.intersect(newRegion, oldRegion);
+                pathFromRegion(ctx, tmp);
                 ctx.clip();
                 copyArea(ctx, oldX, oldY, newX, newY, oldW, oldH);
                 ctx.restore();
