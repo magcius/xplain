@@ -1207,18 +1207,17 @@
             var oldPos = serverWindow.calculateAbsoluteOffset();
 
             // Make the change. If func() returns false, it means nothing
-            // changed and we can bail out early without having to copy around
-            // regions.
-            if (!func())
-                return;
+            // changed and we don't have to do anything.
+            if (func()) {
+                var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+                var newPos = serverWindow.calculateAbsoluteOffset();
 
-            var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            var newPos = serverWindow.calculateAbsoluteOffset();
+                this._damageAndCopyRegions(oldRegion, newRegion, oldPos.x, oldPos.y, newPos.x, newPos.y);
+                newRegion.finalize();
+                this.syncCursorWindow();
+            }
 
-            this._damageAndCopyRegions(oldRegion, newRegion, oldPos.x, oldPos.y, newPos.x, newPos.y);
             oldRegion.finalize();
-            newRegion.finalize();
-            this.syncCursorWindow();
         },
 
         _configureWindow: function(client, serverWindow, props) {
