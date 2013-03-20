@@ -250,7 +250,7 @@
         },
         unmap: function() {
             if (!this.mapped)
-                return;
+                return false;
 
             this._server.damageWindow(this);
             this.mapped = false;
@@ -258,6 +258,7 @@
                                      windowId: this.windowId });
             this._server.syncCursorWindow();
             this.recalculateViewability();
+            return true;
         },
         _unparentWindowInternal: function() {
             var children = this.parentServerWindow.children;
@@ -277,12 +278,15 @@
             this._unparentWindowInternal();
         },
         parentWindow: function(parentServerWindow) {
+            var wasMapped = this.unmap();
+
             if (this.parentServerWindow)
                 this._unparentWindowInternal();
-            this._server.wrapWindowChange(this, function() {
-                this.parentServerWindow = parentServerWindow;
-                this.parentServerWindow.children.unshift(this);
-            }.bind(this));
+            this.parentServerWindow = parentServerWindow;
+            this.parentServerWindow.children.unshift(this);
+
+            if (wasMapped)
+                this.map();
         },
 
         findDeepestChildAtPoint: function(x, y) {
