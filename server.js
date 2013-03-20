@@ -645,10 +645,6 @@
         _setupDOM: function() {
             this._container = document.createElement("div");
 
-            // Allow querying with .xserver.js
-            this._container.classList.add("xserver");
-            this._container.classList.add("js");
-
             this._container.style.width = this.width + "px";
             this._container.style.height = this.height + "px";
 
@@ -667,47 +663,6 @@
             this._rootWindow.parentServerWindow = null;
             this._configureWindow(this, this._rootWindow, { x: 0, y: 0, width: this.width, height: this.height });
             this._rootWindow.map();
-        },
-
-        setDebugEnabled: function(value) {
-            this._debugEnabled = value;
-
-            if (this._debugEnabled && !this._debugCanvas) {
-                this._debugCanvas = document.createElement("canvas");
-                this._debugCanvas.classList.add("debugCanvas");
-                this._debugCanvas.width = this.width;
-                this._debugCanvas.height = this.height;
-                this._debugCtx = this._debugCanvas.getContext("2d");
-                this._container.appendChild(this._debugCanvas);
-            }
-
-            if (this._debugEnabled) {
-                this._container.classList.add("debug");
-            } else {
-                this._container.classList.remove("debug");
-                this._debugDrawClear();
-            }
-        },
-        toggleDebug: function() {
-            this.setDebugEnabled(!this._debugEnabled);
-        },
-        _debugDrawRegion: function(region, style) {
-            if (!this._debugEnabled)
-                return;
-
-            this._debugCtx.beginPath();
-            this._debugCtx.save();
-            pathFromRegion(this._debugCtx, region);
-            this._debugCtx.fillStyle = style;
-            this._debugCtx.globalAlpha = 0.4;
-            this._debugCtx.fill();
-            this._debugCtx.restore();
-        },
-        _debugDrawClear: function() {
-            if (!this._debugEnabled)
-                return;
-
-            this._debugCtx.clearRect(0, 0, this._debugCtx.canvas.width, this._debugCtx.canvas.height);
         },
 
         queueFullRedraw: function() {
@@ -1209,7 +1164,6 @@
             // old region is, but the new region isn't.
             damagedRegion.subtract(oldRegion, newRegion);
             this.damageRegion(damagedRegion);
-            this._debugDrawRegion(damagedRegion, 'yellow');
 
             var positionChanged = newX != oldX || newY != oldY;
 
@@ -1223,7 +1177,6 @@
             // new region is, but the old region isn't.
             damagedRegion.subtract(newRegion, oldRegion);
             this.damageRegion(damagedRegion);
-            this._debugDrawRegion(damagedRegion, 'green');
 
             // Copy the old image contents over, masked to the region.
             if (oldRegion.not_empty() && positionChanged) {

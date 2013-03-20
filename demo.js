@@ -135,8 +135,6 @@
 
     window.addEventListener("keydown", function(evt) {
         var letter = String.fromCharCode(evt.keyCode);
-        if (letter === 'D')
-            _server.toggleDebug();
         if (letter === 'R')
             _server.queueFullRedraw();
     });
