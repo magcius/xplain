@@ -1162,20 +1162,12 @@
             tmp.subtract(oldRegion, newRegion);
             damagedRegion.union(damagedRegion, tmp);
 
-            var positionChanged = newX != oldX || newY != oldY;
-
-            // If X/Y change, we copy the old area, so we need to translate into
-            // the coordinate space of the new window's position to know what needs
-            // to be redrawn after the copy.
-            if (positionChanged)
+            if (oldRegion.not_empty() && (newX != oldX || newY != oldY)) {
+                // We're going to copy the contents of the old region into
+                // the area of the new region, so translate the old region
+                // into the coordinate space of the new region.
                 oldRegion.translate(newX - oldX, newY - oldY);
 
-            // Pixels need to be exposed on the window in places where the
-            // new region is, but the old region isn't.
-            tmp.subtract(newRegion, oldRegion);
-            damagedRegion.union(damagedRegion, tmp);
-
-            if (oldRegion.not_empty() && positionChanged) {
                 var ctx = this._ctx;
                 ctx.beginPath();
                 ctx.save();
@@ -1185,6 +1177,11 @@
                 copyArea(ctx, oldX, oldY, newX, newY, oldW, oldH);
                 ctx.restore();
             }
+
+            // Pixels need to be exposed on the window in places where the
+            // new region is, but the old region isn't.
+            tmp.subtract(newRegion, oldRegion);
+            damagedRegion.union(damagedRegion, tmp);
 
             this.damageRegion(damagedRegion);
             tmp.finalize();
