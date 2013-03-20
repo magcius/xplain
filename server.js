@@ -265,8 +265,7 @@
             this.parentServerWindow = null;
         },
         destroy: function() {
-            if (this.mapped)
-                this.unmap();
+            this.unmap();
 
             this.children.forEach(function(child) {
                 child.destroy();
