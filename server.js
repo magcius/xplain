@@ -1195,34 +1195,36 @@
             damagedRegion.finalize();
         },
 
-        _configureWindow: function(client, serverWindow, props) {
-            // If the server window isn't mapped, just reconfigure
-            // the window without doing any damage region stuff.
+        // Helper func for _configureWindow and setWindowShapeRegion
+        _changeWindowShape: function(serverWindow, func) {
             if (!serverWindow.mapped) {
-                serverWindow.configureWindow(client, props);
+                func();
                 return;
             }
 
+            // Get the old state.
             var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             var oldPos = serverWindow.calculateAbsoluteOffset();
 
-            // Reconfigure the window -- this will modify the shape region.
-            if (!serverWindow.configureWindow(client, props)) {
-                // If we didn't actually reconfigure the window, don't redraw
-                // anything. It shouldn't actually affect anything in this case,
-                // but better safe than sorry.
+            // Make the change. If func() returns false, it means nothing
+            // changed and we can bail out early without having to copy around
+            // regions.
+            if (!func())
                 return;
-            }
 
             var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
             var newPos = serverWindow.calculateAbsoluteOffset();
 
             this._damageAndCopyRegions(oldRegion, newRegion, oldPos.x, oldPos.y, newPos.x, newPos.y);
-
             oldRegion.finalize();
             newRegion.finalize();
-
             this.syncCursorWindow();
+        },
+
+        _configureWindow: function(client, serverWindow, props) {
+            this._changeWindowShape(serverWindow, function() {
+                return serverWindow.configureWindow(client, props);
+            });
         },
 
         _grabPointer: function(grabInfo, isPassive) {
@@ -1444,16 +1446,14 @@
 
         setWindowShapeRegion: function(client, windowId, shapeType, region) {
             var serverWindow = this.getServerWindow(windowId);
-            if (!serverWindow.mapped) {
+            this._changeWindowShape(serverWindow, function() {
                 serverWindow.setWindowShapeRegion(shapeType, region);
-                return;
-            }
-
-            var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-            serverWindow.setWindowShapeRegion(shapeType, region);
-            var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
-
-            this._damageAndCopyRegions(oldRegion, newRegion, 0, 0, 0, 0);
+                // We don't actually check if the two are the same. This
+                // is assuming that this is so seldom called that the cost
+                // doesn't really matter. It probably wouldn't be too hard
+                // to check, though.
+                return true;
+            });
         },
     });
 
