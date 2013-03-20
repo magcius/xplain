@@ -692,33 +692,29 @@
             return { x: x, y: y };
         },
 
-        _iterWindowsAboveWindow: function(serverWindow, callback) {
-            while (serverWindow != null && serverWindow.parentServerWindow != null) {
-                var parent = serverWindow.parentServerWindow;
-                var idx = parent.children.indexOf(serverWindow);
-                var windowsOnTop = parent.children.slice(0, idx);
-                windowsOnTop.filter(function(serverWindow) {
-                    return serverWindow.mapped;
-                }).forEach(callback);
-                serverWindow = parent;
-            }
-        },
-
-        _subtractAboveWindowsFromRegion: function(serverWindow, region) {
-            this._iterWindowsAboveWindow(serverWindow, function(aboveWindow) {
-                var transformedBoundingRegion = aboveWindow.calculateTransformedBoundingRegion();
-                region.subtract(region, transformedBoundingRegion);
-                transformedBoundingRegion.finalize();
-            });
-        },
-
         // For a given window, return the region that would be
         // immediately damaged if the window was removed. That is,
         // the window's shape region clipped to the areas that are
         // visible.
         _calculateEffectiveRegionForWindow: function(serverWindow) {
             var region = serverWindow.calculateTransformedBoundingRegion();
-            this._subtractAboveWindowsFromRegion(serverWindow, region);
+
+            function subtractWindow(aboveWindow) {
+                if (!serverWindow.mapped)
+                    return;
+
+                var transformedBoundingRegion = aboveWindow.calculateTransformedBoundingRegion();
+                region.subtract(region, transformedBoundingRegion);
+                transformedBoundingRegion.finalize();
+            }
+
+            while (serverWindow != null && serverWindow.parentServerWindow != null) {
+                var parent = serverWindow.parentServerWindow;
+                var idx = parent.children.indexOf(serverWindow);
+                var windowsOnTop = parent.children.slice(0, idx);
+                windowsOnTop.forEach(subtractWindow);
+                serverWindow = parent;
+            }
             return region;
         },
 
