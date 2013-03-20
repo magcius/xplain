@@ -448,15 +448,11 @@
             var serverWindow = this._server.getServerWindow(windowId);
             var substructureRedirect = isEventSubstructureRedirect(event);
             var substructureNotify = isEventSubstructureNotify(event);
-            if (substructureNotify || substructureRedirect) {
-                while (serverWindow) {
-                    if (substructureRedirect && this.isInterestedInWindowEvent(serverWindow.windowId, "SubstructureRedirect"))
-                        return true;
-                    if (substructureNotify && this.isInterestedInWindowEvent(serverWindow.windowId, "SubstructureNotify"))
-                        return true;
-                    serverWindow = serverWindow.parentServerWindow;
-                }
-            }
+            var parent = serverWindow.parentServerWindow;
+            if (substructureRedirect && this.isInterestedInWindowEvent(parent.windowId, "SubstructureRedirect"))
+                return true;
+            if (substructureNotify && this.isInterestedInWindowEvent(parent.windowId, "SubstructureNotify"))
+                return true;
 
             return false;
         },

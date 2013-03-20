@@ -149,7 +149,7 @@
 
             this._frameWindowId = this._server.createWindow(this._wm);
             this._wm.register(this._frameWindowId, this);
-            this._server.selectInput(this._wm, this._frameWindowId, ["Expose", "ButtonPress", "FocusIn", "FocusOut"]);
+            this._server.selectInput(this._wm, this._frameWindowId, ["SubstructureRedirect", "SubstructureNotify", "Expose", "ButtonPress", "FocusIn", "FocusOut"]);
             this._server.changeAttributes(this._wm, this._frameWindowId, { hasInput: true, backgroundColor: 'orange' });
 
             this._closeWindowId = this._makeButton();
