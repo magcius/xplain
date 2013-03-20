@@ -899,6 +899,9 @@
             var rootCoords = { x: domEvent.clientX - box.left,
                                y: domEvent.clientY - box.top };
 
+            rootCoords.x = Math.min(Math.max(rootCoords.x, 0), this.width - 1);
+            rootCoords.y = Math.min(Math.max(rootCoords.y, 0), this.height - 1);
+
             // This can sometimes happen after a mouseup.
             if (this._cursorX == rootCoords.x &&
                 this._cursorY == rootCoords.y)
