@@ -11,13 +11,13 @@
                 this.invalidate();
             }.bind(this));
             this._image.src = "WoodBackground.jpg";
-            this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
+            this._server.changeAttributes(this._windowId, { overrideRedirect: true });
         },
         expose: function(wrapper) {
-            this._server.drawWithContext(this, this._windowId, function(ctx) {
+            this._server.drawWithContext(this._windowId, function(ctx) {
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
-            this._server.clearDamage(this, this._windowId);
+            this._server.clearDamage(this._windowId);
         },
     });
 
@@ -30,8 +30,8 @@
         },
         connect: function(server) {
             this.parent(server);
-            this._server.changeAttributes(this, this._windowId, { overrideRedirect: true, cursor: "pointer" });
-            this._server.selectInput(this, this._windowId, ["ButtonPress"]);
+            this._server.changeAttributes(this._windowId, { overrideRedirect: true, cursor: "pointer" });
+            this._server.selectInput(this._windowId, ["ButtonPress"]);
             this._image = new Image();
             this._image.addEventListener("load", function() {
                 this.moveResize(undefined, undefined, this._image.width, this._image.height);
@@ -40,10 +40,10 @@
             this._image.src = this._imageSrc;
         },
         expose: function(wrapper) {
-            this._server.drawWithContext(this, this._windowId, function(ctx) {
+            this._server.drawWithContext(this._windowId, function(ctx) {
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
-            this._server.clearDamage(this, this._windowId);
+            this._server.clearDamage(this._windowId);
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -59,7 +59,7 @@
         Extends: Window,
         connect: function(server) {
             this.parent(server);
-            this._server.selectInput(this, this._windowId, ["FocusIn", "FocusOut"]);
+            this._server.selectInput(this._windowId, ["FocusIn", "FocusOut"]);
             this._image = new Image();
             this._image.addEventListener("load", function() {
                 try {
@@ -97,16 +97,15 @@
             if (!this._loaded)
                 return;
 
-            this._server.drawWithContext(this, this._windowId, function(ctx) {
+            this._server.drawWithContext(this._windowId, function(ctx) {
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
-            this._server.clearDamage(this, this._windowId);
+            this._server.clearDamage(this._windowId);
         },
     });
 
-    var _server = new Server(1024, 768);
-    var server = _server.publicServer;
-    document.querySelector(".server").appendChild(_server.elem);
+    var server = new Server(1024, 768);
+    document.querySelector(".server").appendChild(server.elem);
 
     var wm = new WindowManager();
     wm.connect(server);
@@ -139,6 +138,6 @@
             _server.queueFullRedraw();
     });
 
-    window._server = _server;
+    window.server = server;
 
 })(window);

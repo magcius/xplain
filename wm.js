@@ -106,62 +106,62 @@
             this._clientGeometry.y = border.top;
 
             if (positionUpdated || sizeUpdated)
-                this._server.configureWindow(this._wm, this._frameWindowId, this._frameGeometry);
+                this._server.configureWindow(this._frameWindowId, this._frameGeometry);
 
             if (sizeUpdated) {
                 // Update the client window
-                this._server.configureWindow(this._wm, this._clientWindowId, this._clientGeometry);
+                this._server.configureWindow(this._clientWindowId, this._clientGeometry);
 
-                this._server.configureWindow(this._wm, this._closeWindowId, { x: border.left + this._clientGeometry.width - 20,
+                this._server.configureWindow(this._closeWindowId, { x: border.left + this._clientGeometry.width - 20,
                                                                               y: 8 });
 
                 // Invalidate the frame that's already been partially painted.
-                this._server.invalidateWindow(this._wm, this._frameWindowId);
+                this._server.invalidateWindow(this._frameWindowId);
             }
 
             var shapeRegion = roundedRectRegion(this._frameGeometry, { topLeft: 10, topRight: 10 });
-            this._server.setWindowShapeRegion(this._wm, this._frameWindowId, "Bounding", shapeRegion);
+            this._server.setWindowShapeRegion(this._frameWindowId, "Bounding", shapeRegion);
             shapeRegion.finalize();
         },
 
         _makeButton: function() {
-            var buttonWindowId = this._server.createWindow(this._wm);
+            var buttonWindowId = this._server.createWindow();
             this._wm.register(buttonWindowId, this);
-            this._server.selectInput(this._wm, buttonWindowId, ["ButtonRelease"]);
-            this._server.changeAttributes(this._wm, buttonWindowId, { cursor: "pointer" });
+            this._server.selectInput(buttonWindowId, ["ButtonRelease"]);
+            this._server.changeAttributes(buttonWindowId, { cursor: "pointer" });
             var size = 15;
             var geom = { width: size, height: size };
-            this._server.configureWindow(this._wm, buttonWindowId, geom);
+            this._server.configureWindow(buttonWindowId, geom);
             var radius = size / 2;
             var corners = { topLeft: radius, topRight: radius, bottomLeft: radius, bottomRight: radius };
             var shapeRegion = roundedRectRegion(geom, corners);
-            this._server.setWindowShapeRegion(this._wm, buttonWindowId, "Bounding", shapeRegion);
-            this._server.reparentWindow(this._wm, buttonWindowId, this._frameWindowId);
-            this._server.mapWindow(this._wm, buttonWindowId);
+            this._server.setWindowShapeRegion(buttonWindowId, "Bounding", shapeRegion);
+            this._server.reparentWindow(buttonWindowId, this._frameWindowId);
+            this._server.mapWindow(buttonWindowId);
             return buttonWindowId;
         },
 
         construct: function() {
-            var geom = this._server.getGeometry(this._wm, this._clientWindowId);
+            var geom = this._server.getGeometry(this._clientWindowId);
 
             this._wm.register(this._clientWindowId, this);
-            this._server.grabButton(this._wm, this._clientWindowId, 1, false, ["ButtonPress", "ButtonRelease"], "Sync", "");
+            this._server.grabButton(this._clientWindowId, 1, false, ["ButtonPress", "ButtonRelease"], "Sync", "");
 
             this._frameWindowId = this._server.createWindow(this._wm);
             this._wm.register(this._frameWindowId, this);
-            this._server.selectInput(this._wm, this._frameWindowId, ["SubstructureRedirect", "SubstructureNotify", "Expose", "ButtonPress", "FocusIn", "FocusOut"]);
-            this._server.changeAttributes(this._wm, this._frameWindowId, { hasInput: true, backgroundColor: 'orange' });
+            this._server.selectInput(this._frameWindowId, ["SubstructureRedirect", "SubstructureNotify", "Expose", "ButtonPress", "FocusIn", "FocusOut"]);
+            this._server.changeAttributes(this._frameWindowId, { hasInput: true, backgroundColor: 'orange' });
 
             this._closeWindowId = this._makeButton();
-            this._server.changeAttributes(this._wm, this._closeWindowId, { backgroundColor: 'red' });
+            this._server.changeAttributes(this._closeWindowId, { backgroundColor: 'red' });
 
-            this._server.reparentWindow(this._wm, this._clientWindowId, this._frameWindowId);
-            this._server.mapWindow(this._wm, this._frameWindowId);
+            this._server.reparentWindow(this._clientWindowId, this._frameWindowId);
+            this._server.mapWindow(this._frameWindowId);
 
             this._updateGeometry(geom);
         },
         destroy: function() {
-            this._server.destroyWindow(this._wm, this._frameWindowId);
+            this._server.destroyWindow(this._frameWindowId);
         },
         unregister: function() {
             this._wm.unregister(this._frameWindowId);
@@ -176,7 +176,7 @@
         },
 
         _configureRequestStack: function(event) {
-            this._server.configureWindow(this._wm, this._frameWindowId, { stackMode: event.detail });
+            this._server.configureWindow(this._frameWindowId, { stackMode: event.detail });
         },
         configureRequest: function(event) {
             // ICCCM 4.1.5
@@ -210,12 +210,12 @@
         },
         _frameButtonPress: function(event) {
             this._origMousePos = { x: event.rootX, y: event.rootY };
-            var frameCoords = this._server.getGeometry(this, this._frameWindowId);
+            var frameCoords = this._server.getGeometry(this._frameWindowId);
             this._origWindowPos = { x: frameCoords.x, y: frameCoords.y };
-            this._server.grabPointer(this._wm, this._frameWindowId, true, ["ButtonRelease", "Motion"], "Async", "-moz-grabbing");
+            this._server.grabPointer(this._frameWindowId, true, ["ButtonRelease", "Motion"], "Async", "-moz-grabbing");
         },
         _frameButtonRelease: function(event) {
-            this._server.ungrabPointer(this._wm, this._frameWindowId);
+            this._server.ungrabPointer(this._frameWindowId);
 
             this._origMousePos = null;
             this._origWindowPos = null;
@@ -227,8 +227,8 @@
         },
         _frameFocusIn: function(event) {
             try {
-                this._server.changeAttributes(this._wm, this._frameWindowId, { backgroundColor: 'yellow' });
-                this._server.invalidateWindow(this._wm, this._frameWindowId);
+                this._server.changeAttributes(this._frameWindowId, { backgroundColor: 'yellow' });
+                this._server.invalidateWindow(this._frameWindowId);
             } catch(e) {
                 // Clicking on the close button will destroy the client window,
                 // causing the focus to revert to PointerRoot. The frame isn't
@@ -244,8 +244,8 @@
                 return;
 
             try {
-                this._server.changeAttributes(this._wm, this._frameWindowId, { backgroundColor: 'orange' });
-                this._server.invalidateWindow(this._wm, this._frameWindowId);
+                this._server.changeAttributes(this._frameWindowId, { backgroundColor: 'orange' });
+                this._server.invalidateWindow(this._frameWindowId);
             } catch(e) {
                 // It's possible for us to get a FocusOut event after the frame
                 // has been destroyed on the server side. In this case, just ignore
@@ -256,10 +256,10 @@
             // background color takes care of the base
 
             // Draw title.
-            var title = this._server.getProperty(this._wm, this._clientWindowId, "WM_NAME");
+            var title = this._server.getProperty(this._clientWindowId, "WM_NAME");
             if (title) {
-                var geom = this._server.getGeometry(this._wm, this._clientWindowId);
-                this._server.drawWithContext(this, this._frameWindowId, function(ctx) {
+                var geom = this._server.getGeometry(this._clientWindowId);
+                this._server.drawWithContext(this._frameWindowId, function(ctx) {
                     ctx.fillStyle = '#000';
                     ctx.textAlign = 'center';
                     ctx.font = '12pt sans-serif';
@@ -267,11 +267,11 @@
                 });
             }
 
-            this._server.clearDamage(this, this._frameWindowId);
+            this._server.clearDamage(this._frameWindowId);
         },
         _handleButtonEvent: function(event) {
             if (event.windowId == this._closeWindowId && event.type == "ButtonRelease")
-                this._server.destroyWindow(this._wm, this._clientWindowId);
+                this._server.destroyWindow(this._clientWindowId);
         },
         handleEvent: function(event) {
             if (event.windowId == this._closeWindowId)
@@ -280,21 +280,23 @@
                 return this._handleFrameEvent(event);
         },
         raise: function() {
-            this._server.configureWindow(this._wm, this._frameWindowId, { stackMode: "Above" });
+            this._server.configureWindow(this._frameWindowId, { stackMode: "Above" });
         },
         focus: function() {
-            this._server.setInputFocus(this._wm, this._clientWindowId, "PointerRoot");
+            this._server.setInputFocus(this._clientWindowId, "PointerRoot");
         },
     });
 
     var WindowManager = new Class({
         connect: function(server) {
-            this._server = server;
-            this._port = this._server.clientConnected(this);
+            this._privateServer = server;
+            var connection = this._privateServer.clientConnected(this);
+            this._port = connection.clientPort;
             this._port.addEventListener("message", function(messageEvent) {
                 this.handleEvent(messageEvent.data);
             }.bind(this));
-            this._server.selectInput(this, this._server.rootWindowId, ["SubstructureRedirect", "SubstructureNotify"]);
+            this._server = connection.server;
+            this._server.selectInput(this._server.rootWindowId, ["SubstructureRedirect", "SubstructureNotify"]);
 
             // window ID => WindowFrame
             this._windowFrames = {};
@@ -324,7 +326,7 @@
                 if (frameWasReceiver)
                     return frame.handleEvent(event);
                 else
-                    this._server.allowEvents(this, "Replay");
+                    this._server.allowEvents("Replay");
                 break;
 
                 // These should only happen for frame windows.
@@ -341,7 +343,7 @@
             // mapped, simply re-configure the window with whatever
             // it requested.
             if (!frame) {
-                this._server.configureWindow(this, event.windowId,
+                this._server.configureWindow(event.windowId,
                                              { x: event.x, y: event.y, width: event.width, height: event.height });
             } else {
                 // The frame will move/resize the window to its
@@ -357,7 +359,7 @@
 
             // Map the original window, now that we've reparented it
             // back into the frame.
-            this._server.mapWindow(this, event.windowId);
+            this._server.mapWindow(event.windowId);
 
             frame.focus();
         },

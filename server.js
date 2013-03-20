@@ -412,6 +412,56 @@
         },
     });
 
+    var PublicServer = new Class({
+        initialize: function(serverClient, server) {
+            this._serverClient = serverClient;
+            this._server = server;
+            this.width = this._server.width;
+            this.height = this._server.height;
+            this.rootWindowId = this._server.rootWindowId;
+        }
+    });
+
+    var publicMethods = [
+        'clientConnected',
+        'selectInput',
+        'createWindow',
+        'destroyWindow',
+        'reparentWindow',
+        'mapWindow',
+        'unmapWindow',
+        'configureWindow',
+        'getGeometry',
+        'translateCoordinates',
+        'changeAttributes',
+        'getProperty',
+        'changeProperty',
+        'grabPointer',
+        'ungrabPointer',
+        'grabButton',
+        'ungrabButton',
+        'setInputFocus',
+        'allowEvents',
+
+        // JS extension -- simplifies the case of drawing
+        // by letting someone use an existing expose handler.
+        // This is the model used by GDK internally.
+        'invalidateWindow',
+        'drawWithContext',
+        'clearDamage',
+
+        // SHAPE / XFixes
+        'setWindowShapeRegion',
+    ];
+
+    publicMethods.forEach(function(methodName) {
+        PublicServer.prototype[methodName] = function() {
+            var args = [].slice.call(arguments);
+            args.unshift(this._serverClient);
+            return this._server[methodName].apply(this._server, args);
+        };
+    });
+
     // A simple container so we don't litter the DOM.
     var iframeContainer = document.createElement("message-ports");
     iframeContainer.style.display = 'none';
@@ -440,6 +490,7 @@
             this._eventWindows = {};
 
             this.clientPort = new MessagePort();
+            this.publicServer = new PublicServer(this, server);
         },
 
         isInterestedInWindowEvent: function(windowId, eventType) {
@@ -487,8 +538,7 @@
     // and other things easier.
     var ServerGrabClient = new Class({
         initialize: function(server, grabInfo, isPassive) {
-            this._serverClient = grabInfo.serverClient;
-            this.client = this._serverClient.client;
+            this.serverClient = grabInfo.serverClient;
             this._ownerEvents = grabInfo.ownerEvents;
             this._events = grabInfo.events;
             this.grabWindow = grabInfo.grabWindow;
@@ -526,66 +576,19 @@
             // modification. So, if a client with two windows, window A and
             // window B, and takes a grab on window A, events should still be
             // delivered for window B if they come in.
-            if (this._ownerEvents && this._serverClient.filterEvent(event))
-                this._serverClient.sendEvent(event);
+            if (this._ownerEvents && this.serverClient.filterEvent(event))
+                this.serverClient.sendEvent(event);
 
             // Else, if we should report this event, report it with respect
             // to the grab window.
             if (this._events.indexOf(event.type) >= 0) {
                 var newEvent = Object.create(event);
                 newEvent.windowId = this.grabWindow.windowId;
-                this._serverClient.sendEvent(newEvent);
+                this.serverClient.sendEvent(newEvent);
             }
 
             this._waitingForEvent = false;
         },
-    });
-
-    var PublicServer = new Class({
-        initialize: function(server) {
-            this._server = server;
-            this.width = this._server.width;
-            this.height = this._server.height;
-            this.rootWindowId = this._server.rootWindowId;
-        }
-    });
-
-    var publicMethods = [
-        'clientConnected',
-        'selectInput',
-        'createWindow',
-        'destroyWindow',
-        'reparentWindow',
-        'mapWindow',
-        'unmapWindow',
-        'configureWindow',
-        'getGeometry',
-        'translateCoordinates',
-        'changeAttributes',
-        'getProperty',
-        'changeProperty',
-        'grabPointer',
-        'ungrabPointer',
-        'grabButton',
-        'ungrabButton',
-        'setInputFocus',
-        'allowEvents',
-
-        // JS extension -- simplifies the case of drawing
-        // by letting someone use an existing expose handler.
-        // This is the model used by GDK internally.
-        'invalidateWindow',
-        'drawWithContext',
-        'clearDamage',
-
-        // SHAPE / XFixes
-        'setWindowShapeRegion',
-    ];
-
-    publicMethods.forEach(function(methodName) {
-        PublicServer.prototype[methodName] = function() {
-            return this._server[methodName].apply(this._server, arguments);
-        };
     });
 
     var simpleInputEventMap = {
@@ -644,8 +647,6 @@
             // This needs to be done after we set up everything else
             // as it uses the standard redraw and windowing machinery.
             this._createRootWindow();
-
-            this.publicServer = new PublicServer(this);
         },
 
         _setupDOM: function() {
@@ -799,7 +800,7 @@
             var clients = [];
             for (var i = 0; i < this._clients.length; i++) {
                 var serverClient = this._clients[i];
-                if (serverClient.client == except)
+                if (serverClient == except)
                     continue;
 
                 if (!serverClient.filterEvent(event))
@@ -1272,9 +1273,9 @@
         //
         clientConnected: function(client) {
             var serverClient = new ServerClient(this, client);
-            client._serverClient = serverClient;
             this._clients.push(serverClient);
-            return serverClient.clientPort;
+            return { clientPort: serverClient.clientPort,
+                     server: serverClient.publicServer };
         },
         _checkOtherClientsForEvent: function(windowId, eventType, except) {
             return this._clients.some(function(otherClient) {
@@ -1285,17 +1286,15 @@
             });
         },
         selectInput: function(client, windowId, eventTypes) {
-            var serverClient = client._serverClient;
-
             var checkEvent = (function checkEvent(eventType) {
                 if (eventTypes.indexOf(eventType) >= 0)
-                    if (this._checkOtherClientsForEvent(windowId, eventType, serverClient))
+                    if (this._checkOtherClientsForEvent(windowId, eventType, client))
                         throw new Error("BadAccess");
             }).bind(this);
             checkEvent("SubstructureRedirect");
             checkEvent("ButtonPress");
 
-            serverClient.selectInput(windowId, eventTypes);
+            client.selectInput(windowId, eventTypes);
         },
         createWindow: function(client) {
             var serverWindow = this._createWindowInternal();
@@ -1356,15 +1355,14 @@
                 // but I like the XI2 semantics of just calling grabPointer again.
                 // I think it's cleaner, and it cuts down on the amount of duplicate
                 // code.
-                if (this._grabClient.client == client)
+                if (this._grabClient.serverClient == client)
                     this._ungrabPointer();
                 else
                     throw new Error("AlreadyGrabbed");
             }
 
             var grabWindow = this.getServerWindow(grabWindowId);
-            var serverClient = client._serverClient;
-            var grabInfo = { serverClient: serverClient,
+            var grabInfo = { serverClient: client,
                              grabWindow: grabWindow,
                              ownerEvents: ownerEvents,
                              events: events,
@@ -1373,13 +1371,12 @@
             this._grabPointer(grabInfo, true);
         },
         ungrabPointer: function(client) {
-            if (this._grabClient && this._grabClient.client == client)
+            if (this._grabClient && this._grabClient.serverClient == client)
                 this._ungrabPointer();
         },
         grabButton: function(client, grabWindowId, button, ownerEvents, events, pointerMode, cursor) {
             var grabWindow = this.getServerWindow(grabWindowId);
-            var serverClient = client._serverClient;
-            var grabInfo = { serverClient: serverClient,
+            var grabInfo = { serverClient: client,
                              grabWindow: grabWindow,
                              ownerEvents: ownerEvents,
                              events: events,

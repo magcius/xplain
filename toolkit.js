@@ -6,14 +6,16 @@
             this.backgroundColor = null;
         },
         connect: function(server) {
-            this._server = server;
-            this._port = this._server.clientConnected(this);
+            this._privateServer = server;
+            var connection = this._privateServer.clientConnected(this);
+            this._port = connection.clientPort;
             this._port.addEventListener("message", function(messageEvent) {
                 this.handleEvent(messageEvent.data);
             }.bind(this));
+            this._server = connection.server;
             this._windowId = this._server.createWindow(this);
-            this._server.changeAttributes(this, this._windowId, { backgroundColor: this.backgroundColor });
-            this._server.selectInput(this, this._windowId, ["Expose", "ConfigureNotify"]);
+            this._server.changeAttributes(this._windowId, { backgroundColor: this.backgroundColor });
+            this._server.selectInput(this._windowId, ["Expose", "ConfigureNotify"]);
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -34,37 +36,37 @@
                 this.height = event.height;
         },
         invalidate: function() {
-            this._server.invalidateWindow(this, this._windowId);
+            this._server.invalidateWindow(this._windowId);
         },
         reparent: function(newParent) {
-            this._server.reparentWindow(this, this._windowId, newParent._windowId);
+            this._server.reparentWindow(this._windowId, newParent._windowId);
         },
         expose: function() {
         },
         raise: function() {
-            this._server.configureWindow(this, this._windowId, { stackMode: "Above" });
+            this._server.configureWindow(this._windowId, { stackMode: "Above" });
         },
         lower: function() {
-            this._server.configureWindow(this, this._windowId, { stackMode: "Below" });
+            this._server.configureWindow(this._windowId, { stackMode: "Below" });
         },
         destroy: function() {
-            this._server.destroyWindow(this, this._windowId);
+            this._server.destroyWindow(this._windowId);
         },
         map: function() {
-            this._server.mapWindow(this, this._windowId);
+            this._server.mapWindow(this._windowId);
         },
         unmap: function() {
-            this._server.unmapWindow(this, this._windowId);
+            this._server.unmapWindow(this._windowId);
         },
         moveResize: function(x, y, width, height) {
-            this._server.configureWindow(this, this._windowId, { x: x, y: y, width: width, height: height });
+            this._server.configureWindow(this._windowId, { x: x, y: y, width: width, height: height });
         },
         changeProperty: function(name, value) {
-            this._server.changeProperty(this, this._windowId, name, value);
+            this._server.changeProperty(this._windowId, name, value);
         },
 
         getRootCoords: function() {
-            var translated = this._server.translateCoordinates(this, this._windowId, this._server.rootWindowId, 0, 0);
+            var translated = this._server.translateCoordinates(this._windowId, this._server.rootWindowId, 0, 0);
             return { x: translated.x, y: translated.y };
         },
     });
