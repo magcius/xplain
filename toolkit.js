@@ -13,7 +13,7 @@
                 this.handleEvent(messageEvent.data);
             }.bind(this));
             this._server = connection.server;
-            this._windowId = this._server.createWindow(this);
+            this._windowId = this._server.createWindow();
             this._server.changeAttributes(this._windowId, { backgroundColor: this.backgroundColor });
             this._server.selectInput(this._windowId, ["Expose", "ConfigureNotify"]);
         },
