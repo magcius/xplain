@@ -3,17 +3,14 @@
 
     var BackgroundWindow = new Class({
         Extends: Window,
-        initialize: function() {
-            this.parent();
-            this._image = new Image();
-            this._image.src = "WoodBackground.jpg";
-        },
         connect: function(server) {
             this.parent(server);
+            this._image = new Image();
             this._image.addEventListener("load", function() {
                 this.moveResize(undefined, undefined, this._image.width, this._image.height);
                 this.invalidate();
             }.bind(this));
+            this._image.src = "WoodBackground.jpg";
             this._server.changeAttributes(this, this._windowId, { overrideRedirect: true });
         },
         expose: function(wrapper) {
@@ -28,18 +25,19 @@
         Extends: Window,
         initialize: function(imageSrc, callback) {
             this.parent(imageSrc);
-            this._image = new Image();
-            this._image.src = imageSrc;
+            this._imageSrc = imageSrc;
             this._callback = callback;
         },
         connect: function(server) {
             this.parent(server);
             this._server.changeAttributes(this, this._windowId, { overrideRedirect: true, cursor: "pointer" });
             this._server.selectInput(this, this._windowId, ["ButtonPress"]);
+            this._image = new Image();
             this._image.addEventListener("load", function() {
                 this.moveResize(undefined, undefined, this._image.width, this._image.height);
                 this.invalidate();
             }.bind(this));
+            this._image.src = this._imageSrc;
         },
         expose: function(wrapper) {
             this._server.drawWithContext(this, this._windowId, function(ctx) {
@@ -59,13 +57,10 @@
 
     var FakeTerminalWindow = new Class({
         Extends: Window,
-        initialize: function() {
-            this.parent();
-            this._image = new Image();
-        },
         connect: function(server) {
             this.parent(server);
             this._server.selectInput(this, this._windowId, ["FocusIn", "FocusOut"]);
+            this._image = new Image();
             this._image.addEventListener("load", function() {
                 try {
                     this.moveResize(undefined, undefined, this._image.width, this._image.height);
