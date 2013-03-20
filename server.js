@@ -484,13 +484,14 @@
     // details if the pointer is grabbed to make event delivery
     // and other things easier.
     var ServerGrabClient = new Class({
-        initialize: function(server, grabInfo) {
+        initialize: function(server, grabInfo, isPassive) {
             this._serverClient = grabInfo.serverClient;
             this.client = this._serverClient.client;
             this._ownerEvents = grabInfo.ownerEvents;
             this._events = grabInfo.events;
             this.grabWindow = grabInfo.grabWindow;
             this.cursor = grabInfo.cursor;
+            this.isPassive = isPassive;
 
             this._waitingForEvent = false;
             this.allowEvents(grabInfo.pointerMode);
@@ -1013,7 +1014,7 @@
             }
 
             if (grabInfo)
-                this._grabPointer(grabInfo);
+                this._grabPointer(grabInfo, true);
 
             this.sendEvent(event);
         },
@@ -1021,7 +1022,8 @@
             this._updateCursor(domEvent);
             var event = this._handleInputSimple(domEvent);
             this.sendEvent(event);
-            this._ungrabPointer();
+            if (this._grabClient && this._grabClient.isPassive)
+                this._ungrabPointer();
         },
         _handleInputEnterLeave: function(eventBase, fromWin, toWin) {
             // Adapted from Xorg server, a pre-MPX version of dix/enterleave.c
@@ -1326,8 +1328,8 @@
             this.syncCurrentWindow();
         },
 
-        _grabPointer: function(grabInfo) {
-            this._grabClient = new ServerGrabClient(this, grabInfo);
+        _grabPointer: function(grabInfo, isPassive) {
+            this._grabClient = new ServerGrabClient(this, grabInfo, isPassive);
             this.syncCursor();
         },
         _ungrabPointer: function() {
@@ -1473,7 +1475,7 @@
                              events: events,
                              pointerMode: pointerMode,
                              cursor: cursor };
-            this._grabPointer(grabInfo);
+            this._grabPointer(grabInfo, true);
         },
         ungrabPointer: function(client) {
             if (this._grabClient && this._grabClient.client == client)
