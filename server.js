@@ -544,6 +544,8 @@
     // and other things easier.
     var ServerGrabClient = new Class({
         initialize: function(server, grabInfo, isPassive) {
+            this._server = server;
+
             this.serverClient = grabInfo.serverClient;
             this._ownerEvents = grabInfo.ownerEvents;
             this._events = grabInfo.events;
@@ -551,10 +553,13 @@
             this.cursor = grabInfo.cursor;
             this.isPassive = isPassive;
 
-            this._waitingForEvent = false;
+            // The event queue used when events are frozen during a sync grab.
+            this._frozenEventQueue = [];
+            this._clientEvent = null;
+
             this.allowEvents(grabInfo.pointerMode);
         },
-        isEventConsideredFrozen: function(event) {
+        _isEventConsideredFrozen: function(event) {
             switch (event.type) {
             case "ButtonPress":
             case "ButtonRelease":
@@ -563,19 +568,43 @@
             }
             return false;
         },
+        _flushFrozenEventQueue: function() {
+            while (this._frozenEventQueue.length > 0) {
+                var event = this._frozenEventQueue.shift();
+                this.sendEvent(event);
+            }
+        },
         allowEvents: function(pointerMode) {
             this._pointerMode = pointerMode;
 
-            // If we get a SyncPointer, then mark ourselves
-            // as waiting for an event again.
-            if (this._pointerMode == "Sync")
-                this._waitingForEvent = true;
+            // this._frozenEventQueue only has undelivered events. The last
+            // event delivered to the client is in this._clientEvent.
+            switch (pointerMode) {
+            case "Async":
+                // Unfreeze the pointer grab, and replay the rest.
+                // XXX -- private method
+                this._server._ungrabPointer();
+                this._flushFrozenEventQueue();
+                break;
+            case "Sync":
+                // Send the next one over without unthawing.
+                var event = this._frozenEventQueue.shift();
+                if (event)
+                    this._deliverEvent(event);
+                else
+                    this._server._ungrabPointer();
+                break;
+            case "Replay":
+                // Requeue the client event, unfreeze the pointer grab,
+                // and replay the rest.
+                this._frozenEventQueue.unshift(this._clientEvent);
+                this._server._ungrabPointer();
+                this._flushFrozenEventQueue();
+                break;
+            }
         },
-        sendEvent: function(event) {
-            // If we're not waiting for an event, exit early; this event
-            // will be replayed from the queue when the client wants it.
-            if (this._pointerMode == "Sync" && !this._waitingForEvent)
-                return;
+        _deliverEvent: function(event) {
+            this._clientEvent = event;
 
             // If ownerEvents is true, that means that any events that would
             // normally be reported to the client are reported, without any
@@ -592,8 +621,15 @@
                 newEvent.windowId = this.grabWindow.windowId;
                 this.serverClient.sendEvent(newEvent);
             }
-
-            this._waitingForEvent = false;
+        },
+        sendEvent: function(event) {
+            // If we have a sync grab that's relevant to the current
+            // event, and we already have an event in processing
+            // by the client, save it for later.
+            if (this._isEventConsideredFrozen(event) && this._clientEvent)
+                this._frozenEventQueue.push(event);
+            else
+                this._deliverEvent(event);
         },
     });
 
@@ -646,9 +682,6 @@
 
             this._focusRevertTo = null;
             this._focusServerWindow = null;
-
-            // The event queue used when events are frozen during a sync grab.
-            this._frozenEventQueue = [];
 
             // This needs to be done after we set up everything else
             // as it uses the standard redraw and windowing machinery.
@@ -809,20 +842,7 @@
         },
         sendEvent: function(event, except) {
             if (isEventInputEvent(event) && this._grabClient) {
-                if (this._grabClient.isEventConsideredFrozen(event)) {
-                    // If we have a sync grab that's relevant to the current
-                    // event, put it on the event queue for when the client
-                    // allows it through.
-                    this._frozenEventQueue.push(event);
-
-                    // Send over the input event in case the client is waiting
-                    // on an event.
-                    this._grabClient.sendEvent(event);
-                } else {
-                    // Send input events to grabs if we have one.
-                    this._grabClient.sendEvent(event);
-                }
-
+                this._grabClient.sendEvent(event);
                 return true;
             } else {
                 var clients = this._getServerClientsForEvent(event, except);
@@ -830,12 +850,6 @@
                     serverClient.sendEvent(event);
                 });
                 return clients.length > 0;
-            }
-        },
-        _flushFrozenEventQueue: function() {
-            while (this._frozenEventQueue.length > 0) {
-                var event = this._frozenEventQueue.shift();
-                this.sendEvent(event);
             }
         },
 
@@ -1383,28 +1397,7 @@
             this._setInputFocus(focusWindowId, revert);
         },
         allowEvents: function(client, pointerMode) {
-            // The event queue always contains the currently processing
-            // event at the head of the queue so that we can replay it.
-
-            switch (pointerMode) {
-            case "Async":
-                // Eat the first event, unfreeze the pointer grab, and replay the rest.
-                this._frozenEventQueue.shift();
-                this._grabClient.thaw();
-                this._flushFrozenEventQueue();
-                break;
-            case "Sync":
-                // Eat the first event, and send the next one over without unthawing.
-                this._frozenEventQueue.shift();
-                this._grabClient.freeze();
-                this._processNextEvent();
-                break;
-            case "Replay":
-                // Ungrab the pointer grab, and send the full queue over.
-                this._ungrabPointer();
-                this._flushFrozenEventQueue();
-                break;
-            }
+            this._grabClient.allowEvents(pointerMode);
         },
 
         invalidateWindow: function(client, windowId) {
