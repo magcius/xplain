@@ -1290,67 +1290,70 @@
                 return otherClient.isInterestedInWindowEvent(windowId, eventType);
             });
         },
-        selectInput: function(client, windowId, eventTypes) {
+        selectInput: function(client, props) {
+            var windowId = props.windowId;
+            var events = props.events;
             var checkEvent = (function checkEvent(eventType) {
-                if (eventTypes.indexOf(eventType) >= 0)
+                if (events.indexOf(eventType) >= 0)
                     if (this._checkOtherClientsForEvent(windowId, eventType, client))
                         throw new Error("BadAccess");
             }).bind(this);
             checkEvent("SubstructureRedirect");
             checkEvent("ButtonPress");
 
-            client.selectInput(windowId, eventTypes);
+            client.selectInput(windowId, events);
         },
         createWindow: function(client, props) {
             var serverWindow = this._createWindowInternal(props);
             serverWindow.parentWindow(this._rootWindow);
             return serverWindow.windowId;
         },
-        destroyWindow: function(client, windowId) {
-            var serverWindow = this.getServerWindow(windowId);
+        destroyWindow: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.destroy();
             serverWindow.finalize();
             this._windowsById[windowId] = null;
         },
-        reparentWindow: function(client, windowId, newParentId) {
-            var serverWindow = this.getServerWindow(windowId);
-            var newServerParentWindow = this.getServerWindow(newParentId);
+        reparentWindow: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
+            var newServerParentWindow = this.getServerWindow(props.newParentId);
             serverWindow.parentWindow(newServerParentWindow);
         },
-        mapWindow: function(client, windowId) {
-            var serverWindow = this.getServerWindow(windowId);
+        mapWindow: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.map(client);
         },
-        unmapWindow: function(client, windowId) {
-            var serverWindow = this.getServerWindow(windowId);
+        unmapWindow: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.unmap();
         },
-        configureWindow: function(client, windowId, props) {
-            var serverWindow = this.getServerWindow(windowId);
+        configureWindow: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.configureWindow(client, props);
         },
-        getGeometry: function(client, windowId) {
-            var serverWindow = this.getServerWindow(windowId);
+        getGeometry: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
             return serverWindow.getGeometry();
         },
-        translateCoordinates: function(client, srcWindowId, destWindowId, x, y) {
-            var srcServerWindow = this.getServerWindow(srcWindowId);
-            var destServerWindow = this.getServerWindow(destWindowId);
-            return this._translateCoordinates(srcServerWindow, destServerWindow, x, y);
+        translateCoordinates: function(client, props) {
+            var srcServerWindow = this.getServerWindow(props.srcWindowId);
+            var destServerWindow = this.getServerWindow(props.destWindowId);
+            return this._translateCoordinates(srcServerWindow, destServerWindow, props.x, props.y);
         },
-        changeAttributes: function(client, windowId, attributes) {
-            var serverWindow = this.getServerWindow(windowId);
-            serverWindow.changeAttributes(attributes);
+        changeAttributes: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
+            delete props.windowId;
+            serverWindow.changeAttributes(props);
         },
-        getProperty: function(client, windowId, name) {
-            var serverWindow = this.getServerWindow(windowId);
-            return serverWindow.getProperty(name);
+        getProperty: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
+            return serverWindow.getProperty(props.name);
         },
-        changeProperty: function(client, windowId, name, value) {
-            var serverWindow = this.getServerWindow(windowId);
-            serverWindow.changeProperty(name, value);
+        changeProperty: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
+            serverWindow.changeProperty(props.name, props.value);
         },
-        grabPointer: function(client, grabWindowId, ownerEvents, events, pointerMode, cursor) {
+        grabPointer: function(client, props) {
             // TODO: keyboardMode
             // Investigate HTML5 APIs for confineTo
 
@@ -1366,44 +1369,53 @@
                     throw new Error("AlreadyGrabbed");
             }
 
-            var grabWindow = this.getServerWindow(grabWindowId);
+            var grabWindow = this.getServerWindow(props.windowId);
             var grabInfo = { serverClient: client,
                              grabWindow: grabWindow,
-                             ownerEvents: ownerEvents,
-                             events: events,
-                             pointerMode: pointerMode,
-                             cursor: cursor };
+                             ownerEvents: props.ownerEvents,
+                             events: props.events,
+                             pointerMode: props.pointerMode,
+                             cursor: props.cursor };
             this._grabPointer(grabInfo, true);
         },
         ungrabPointer: function(client) {
             if (this._grabClient && this._grabClient.serverClient == client)
                 this._ungrabPointer();
         },
-        grabButton: function(client, grabWindowId, button, ownerEvents, events, pointerMode, cursor) {
-            var grabWindow = this.getServerWindow(grabWindowId);
+        grabButton: function(client, props) {
+            var grabWindow = this.getServerWindow(props.windowId);
             var grabInfo = { serverClient: client,
                              grabWindow: grabWindow,
-                             ownerEvents: ownerEvents,
-                             events: events,
-                             pointerMode: pointerMode,
-                             cursor: cursor };
-            grabWindow.grabButton(button, grabInfo);
+                             ownerEvents: props.ownerEvents,
+                             events: props.events,
+                             pointerMode: props.pointerMode,
+                             cursor: props.cursor };
+            grabWindow.grabButton(props.button, grabInfo);
         },
-        ungrabButton: function(client, grabWindowId, button) {
-            var grabWindow = this.getServerWindow(grabWindowId);
-            grabWindow.ungrabButton(button);
+        ungrabButton: function(client, props) {
+            var grabWindow = this.getServerWindow(props.windowId);
+            grabWindow.ungrabButton(props.button);
         },
-        setInputFocus: function(client, focusWindowId, revert) {
-            this._setInputFocus(focusWindowId, revert);
+        setInputFocus: function(client, props) {
+            this._setInputFocus(props.windowId, props.revert);
         },
-        allowEvents: function(client, pointerMode) {
-            this._grabClient.allowEvents(pointerMode);
+        allowEvents: function(client, props) {
+            this._grabClient.allowEvents(props.pointerMode);
         },
 
-        invalidateWindow: function(client, windowId) {
-            var serverWindow = this.getServerWindow(windowId);
+        invalidateWindow: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
             this.damageWindow(serverWindow);
         },
+        clearDamage: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
+            serverWindow.clearDamage(props.region);
+        },
+        setWindowShapeRegion: function(client, props) {
+            var serverWindow = this.getServerWindow(props.windowId);
+            serverWindow.setWindowShapeRegion(props.shapeType, props.region);
+        },
+
         drawWithContext: function(client, windowId, func) {
             var serverWindow = this.getServerWindow(windowId);
             if (!serverWindow.mapped)
@@ -1415,15 +1427,6 @@
             serverWindow.prepareContext(ctx);
             func(ctx);
             ctx.restore();
-        },
-        clearDamage: function(client, windowId, region) {
-            var serverWindow = this.getServerWindow(windowId);
-            serverWindow.clearDamage(region);
-        },
-
-        setWindowShapeRegion: function(client, windowId, shapeType, region) {
-            var serverWindow = this.getServerWindow(windowId);
-            serverWindow.setWindowShapeRegion(shapeType, region);
         },
     });
 

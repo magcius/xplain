@@ -19,8 +19,10 @@
             this._server = connection.server;
             this._windowId = this._server.createWindow({ x: this.x, y: this.y,
                                                          width: this.width, height: this.height });
-            this._server.changeAttributes(this._windowId, { backgroundColor: this.backgroundColor });
-            this._server.selectInput(this._windowId, ["Expose", "ConfigureNotify"]);
+            this._server.changeAttributes({ windowId: this._windowId,
+                                            backgroundColor: this.backgroundColor });
+            this._server.selectInput({ windowId: this._windowId,
+                                       events: ["Expose", "ConfigureNotify"] });
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -41,18 +43,18 @@
                 this.height = event.height;
         },
         invalidate: function() {
-            this._server.invalidateWindow(this._windowId);
+            this._server.invalidateWindow({ windowId: this._windowId });
         },
         expose: function() {
         },
         map: function() {
-            this._server.mapWindow(this._windowId);
+            this._server.mapWindow({ windowId: this._windowId });
         },
         moveResize: function(x, y, width, height) {
-            this._server.configureWindow(this._windowId, { x: x, y: y, width: width, height: height });
+            this._server.configureWindow({ windowId: this._windowId, x: x, y: y, width: width, height: height });
         },
         changeProperty: function(name, value) {
-            this._server.changeProperty(this._windowId, name, value);
+            this._server.changeProperty({ windowId: this._windowId, name: name, value: value });
         },
     });
 
@@ -86,7 +88,8 @@
             }.bind(this));
             var region = new Region();
             region.init_rect(0, 0, this.width, this.height);
-            this._server.clearDamage(this._windowId, region);
+            this._server.clearDamage({ windowId: this._windowId,
+                                       region: region });
         },
     });
 
@@ -94,7 +97,7 @@
         Extends: ImageWindow,
         connect: function(server) {
             this.parent(server);
-            this._server.changeAttributes(this._windowId, { overrideRedirect: true });
+            this._server.changeAttributes({ windowId: this._windowId, overrideRedirect: true });
             this._setImage("WoodBackground.jpg");
         },
     });
@@ -108,8 +111,9 @@
         },
         connect: function(server) {
             this.parent(server);
-            this._server.changeAttributes(this._windowId, { overrideRedirect: true, cursor: "pointer" });
-            this._server.selectInput(this._windowId, ["ButtonPress"]);
+            this._server.changeAttributes({ windowId: this._windowId, overrideRedirect: true, cursor: "pointer" });
+            this._server.selectInput({ windowId: this._windowId,
+                                       events: ["ButtonPress"] });
             this._setImage(this._imageSrc);
         },
         handleEvent: function(event) {
@@ -126,7 +130,8 @@
         Extends: ImageWindow,
         connect: function(server) {
             this.parent(server);
-            this._server.selectInput(this._windowId, ["FocusIn", "FocusOut"]);
+            this._server.selectInput({ windowId: this._windowId,
+                                       events: ["FocusIn", "FocusOut"] });
             this._handleFocusOut();
         },
         handleEvent: function(event) {
