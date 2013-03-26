@@ -67,7 +67,6 @@
                 try {
                     this._loaded = true;
                     this.moveResize(undefined, undefined, this._image.width, this._image.height);
-                    this.invalidate();
                 } catch(e) {
                     // The window might be destroyed, but we won't know about it.
                     // We'll get a FocusOut in that case, which will eventually
@@ -78,6 +77,10 @@
         _setImage: function(src) {
             this._loaded = false;
             this._image.src = src;
+        },
+        configureNotify: function(event) {
+            this.parent(event);
+            this.invalidate();
         },
         expose: function() {
             if (!this._loaded)
