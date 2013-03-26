@@ -131,7 +131,6 @@
             this._wm.register(buttonWindowId, this);
             this._server.selectInput(buttonWindowId, ["ButtonRelease"]);
             this._server.changeAttributes(buttonWindowId, { cursor: "pointer" });
-            this._server.configureWindow(buttonWindowId, geom);
             var radius = size / 2;
             var corners = { topLeft: radius, topRight: radius, bottomLeft: radius, bottomRight: radius };
             var shapeRegion = roundedRectRegion(geom, corners);
