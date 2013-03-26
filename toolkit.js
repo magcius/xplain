@@ -43,36 +43,16 @@
         invalidate: function() {
             this._server.invalidateWindow(this._windowId);
         },
-        reparent: function(newParent) {
-            this._server.reparentWindow(this._windowId, newParent._windowId);
-        },
         expose: function() {
-        },
-        raise: function() {
-            this._server.configureWindow(this._windowId, { stackMode: "Above" });
-        },
-        lower: function() {
-            this._server.configureWindow(this._windowId, { stackMode: "Below" });
-        },
-        destroy: function() {
-            this._server.destroyWindow(this._windowId);
         },
         map: function() {
             this._server.mapWindow(this._windowId);
-        },
-        unmap: function() {
-            this._server.unmapWindow(this._windowId);
         },
         moveResize: function(x, y, width, height) {
             this._server.configureWindow(this._windowId, { x: x, y: y, width: width, height: height });
         },
         changeProperty: function(name, value) {
             this._server.changeProperty(this._windowId, name, value);
-        },
-
-        getRootCoords: function() {
-            var translated = this._server.translateCoordinates(this._windowId, this._server.rootWindowId, 0, 0);
-            return { x: translated.x, y: translated.y };
         },
     });
 
