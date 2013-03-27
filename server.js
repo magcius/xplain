@@ -559,7 +559,7 @@
             this._frozenEventQueue = [];
             this._clientEvent = null;
 
-            this.allowEvents(grabInfo.pointerMode);
+            this._pointerMode = grabInfo.pointerMode;
         },
         _isEventConsideredFrozen: function(event) {
             switch (event.type) {
