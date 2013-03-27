@@ -1387,7 +1387,7 @@
                              cursor: props.cursor };
             this._grabPointer(grabInfo, false);
         },
-        ungrabPointer: function(client) {
+        ungrabPointer: function(client, props) {
             if (this._grabClient && this._grabClient.serverClient == client)
                 this._ungrabPointer();
         },
