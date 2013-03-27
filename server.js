@@ -659,11 +659,8 @@
             this._setupDOM();
             this.elem = this._container;
 
-            this._setupInputHandlers();
-
             this._backgroundColor = 'rgb(51, 110, 165)';
             this._clients = [];
-            this._grabClient = null;
 
             this._nextWindowId = 0;
             this._windowsById = {};
@@ -671,12 +668,15 @@
             // The region of the screen that needs to be updated.
             this._damagedRegion = new Region();
 
+            // Input
+            this._setupInputHandlers();
             this._cursorX = -1;
             this._cursorY = -1;
             this._cursorServerWindow = null;
 
             this._focusRevertTo = null;
             this._focusServerWindow = null;
+            this._grabClient = null;
 
             // This needs to be done after we set up everything else
             // as it uses the standard redraw and windowing machinery.
