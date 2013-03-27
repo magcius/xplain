@@ -428,7 +428,7 @@
         }
     });
 
-    var publicMethods = [
+    var publicRequests = [
         'clientConnected',
         'selectInput',
         'createWindow',
@@ -453,20 +453,21 @@
         // by letting someone use an existing expose handler.
         // This is the model used by GDK internally.
         'invalidateWindow',
-        'drawWithContext',
         'clearDamage',
 
         // SHAPE / XFixes
         'setWindowShapeRegion',
     ];
 
-    publicMethods.forEach(function(methodName) {
-        PublicServer.prototype[methodName] = function() {
-            var args = [].slice.call(arguments);
-            args.unshift(this._serverClient);
-            return this._server[methodName].apply(this._server, args);
+    publicRequests.forEach(function(requestName) {
+        PublicServer.prototype[requestName] = function(props) {
+            return this._server.handleRequest(this._serverClient, requestName, props);
         };
     });
+
+    PublicServer.prototype.drawWithContext = function(windowId, func) {
+        return this._server.drawWithContext(this._serverClient, windowId, func);
+    };
 
     // A simple container so we don't litter the DOM.
     var iframeContainer = document.createElement("message-ports");
@@ -1290,16 +1291,8 @@
             });
         },
 
-        //
-        // Public API for clients.
-        //
-        clientConnected: function(client) {
-            var serverClient = new ServerClient(this, client);
-            this._clients.push(serverClient);
-            return { clientPort: serverClient.clientPort,
-                     server: serverClient.publicServer };
-        },
-        selectInput: function(client, props) {
+        // Client request handlers.
+        _handle_selectInput: function(client, props) {
             var windowId = props.windowId;
             var events = props.events;
             var checkEvent = (function checkEvent(eventType) {
@@ -1312,57 +1305,57 @@
 
             client.selectInput(windowId, events);
         },
-        createWindow: function(client, props) {
+        _handle_createWindow: function(client, props) {
             var serverWindow = this._createWindowInternal(props);
             serverWindow.parentWindow(this._rootWindow);
             return serverWindow.windowId;
         },
-        destroyWindow: function(client, props) {
+        _handle_destroyWindow: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.destroy();
             serverWindow.finalize();
             this._windowsById[windowId] = null;
         },
-        reparentWindow: function(client, props) {
+        _handle_reparentWindow: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             var newServerParentWindow = this.getServerWindow(props.newParentId);
             serverWindow.parentWindow(newServerParentWindow);
         },
-        mapWindow: function(client, props) {
+        _handle_mapWindow: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.map(client);
         },
-        unmapWindow: function(client, props) {
+        _handle_unmapWindow: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.unmap();
         },
-        configureWindow: function(client, props) {
+        _handle_configureWindow: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.configureWindow(client, props);
         },
-        getGeometry: function(client, props) {
+        _handle_getGeometry: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             return serverWindow.getGeometry();
         },
-        translateCoordinates: function(client, props) {
+        _handle_translateCoordinates: function(client, props) {
             var srcServerWindow = this.getServerWindow(props.srcWindowId);
             var destServerWindow = this.getServerWindow(props.destWindowId);
             return this._translateCoordinates(srcServerWindow, destServerWindow, props.x, props.y);
         },
-        changeAttributes: function(client, props) {
+        _handle_changeAttributes: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             delete props.windowId;
             serverWindow.changeAttributes(props);
         },
-        getProperty: function(client, props) {
+        _handle_getProperty: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             return serverWindow.getProperty(props.name);
         },
-        changeProperty: function(client, props) {
+        _handle_changeProperty: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.changeProperty(props.name, props.value);
         },
-        grabPointer: function(client, props) {
+        _handle_grabPointer: function(client, props) {
             // TODO: keyboardMode
             // Investigate HTML5 APIs for confineTo
 
@@ -1387,11 +1380,11 @@
                              cursor: props.cursor };
             this._grabPointer(grabInfo, false);
         },
-        ungrabPointer: function(client, props) {
+        _handle_ungrabPointer: function(client, props) {
             if (this._grabClient && this._grabClient.serverClient == client)
                 this._ungrabPointer();
         },
-        grabButton: function(client, props) {
+        _handle_grabButton: function(client, props) {
             var grabWindow = this.getServerWindow(props.windowId);
             var grabInfo = { serverClient: client,
                              grabWindow: grabWindow,
@@ -1401,30 +1394,44 @@
                              cursor: props.cursor };
             grabWindow.grabButton(props.button, grabInfo);
         },
-        ungrabButton: function(client, props) {
+        _handle_ungrabButton: function(client, props) {
             var grabWindow = this.getServerWindow(props.windowId);
             grabWindow.ungrabButton(props.button);
         },
-        setInputFocus: function(client, props) {
+        _handle_setInputFocus: function(client, props) {
             this._setInputFocus(props.windowId, props.revert);
         },
-        allowEvents: function(client, props) {
+        _handle_allowEvents: function(client, props) {
             this._grabClient.allowEvents(props.pointerMode);
         },
 
-        invalidateWindow: function(client, props) {
+        _handle_invalidateWindow: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             this.damageWindow(serverWindow);
         },
-        clearDamage: function(client, props) {
+        _handle_clearDamage: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.clearDamage(props.region);
         },
-        setWindowShapeRegion: function(client, props) {
+        _handle_setWindowShapeRegion: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.setWindowShapeRegion(props.shapeType, props.region);
         },
 
+        handleRequest: function(client, requestName, props) {
+            var handler = this['_handle_' + requestName];
+            return handler.call(this, client, props);
+        },
+
+        // Called by the client to get a socket connection.
+        clientConnected: function(client) {
+            var serverClient = new ServerClient(this, client);
+            this._clients.push(serverClient);
+            return { clientPort: serverClient.clientPort,
+                     server: serverClient.publicServer };
+        },
+
+        // Not a request, as it requires custom marshalling.
         drawWithContext: function(client, windowId, func) {
             var serverWindow = this.getServerWindow(windowId);
             if (!serverWindow.mapped)
