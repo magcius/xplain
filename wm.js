@@ -350,7 +350,7 @@
                 if (frameWasReceiver)
                     return frame.handleEvent(event);
                 else
-                    this._server.allowEvents("Replay");
+                    this._server.allowEvents({ pointerMode: "Replay" });
                 break;
 
                 // These should only happen for frame windows.
