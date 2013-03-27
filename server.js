@@ -704,13 +704,6 @@
             this._rootWindow.map();
         },
 
-        queueFullRedraw: function() {
-            var fullRegion = new Region();
-            fullRegion.init_rect(0, 0, this.width, this.height);
-            this.damageRegion(fullRegion);
-            fullRegion.finalize();
-        },
-
         _translateCoordinates: function(srcServerWindow, destServerWindow, x, y) {
             var offs;
             offs = srcServerWindow.calculateAbsoluteOffset();

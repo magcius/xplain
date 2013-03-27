@@ -217,12 +217,6 @@
         w.map();
     }
 
-    window.addEventListener("keydown", function(evt) {
-        var letter = String.fromCharCode(evt.keyCode);
-        if (letter === 'R')
-            server.queueFullRedraw();
-    });
-
     window.server = server;
 
 })(window);
