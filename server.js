@@ -633,12 +633,6 @@
         },
     });
 
-    var simpleInputEventMap = {
-        "mousedown": "ButtonPress",
-        "mouseup": "ButtonRelease",
-        "mousemove": "Motion"
-    };
-
     // Is b a descendent of a?
     function isWindowDescendentOf(a, b) {
         for (b = b.parentServerWindow; b; b = b.parentServerWindow) {
@@ -874,7 +868,7 @@
                 this.syncCursor();
             }
         },
-        _handleInputBase: function(domEvent) {
+        _handleInputBase: function(eventType, domEvent) {
             // The X server should capture all input events.
             domEvent.preventDefault();
             domEvent.stopPropagation();
@@ -884,28 +878,13 @@
             var serverWindow = this._cursorServerWindow;
             var winCoords = this._translateCoordinates(this._rootWindow, serverWindow, this._cursorX, this._cursorY);
 
-            var event = { rootWindowId: this.rootWindowId,
+            var event = { type: eventType,
+                          rootWindowId: this.rootWindowId,
                           rootX: this._cursorX,
                           rootY: this._cursorY,
                           windowId: serverWindow.windowId,
                           winX: winCoords.x,
                           winY: winCoords.y };
-            return event;
-        },
-        _handleInputSimple: function(domEvent) {
-            var event = this._handleInputBase(domEvent);
-            if (!event)
-                return;
-
-            var eventType = simpleInputEventMap[domEvent.type];
-            event.type = eventType;
-
-            switch (eventType) {
-            case "ButtonPress":
-            case "ButtonRelease":
-                event.button = domEvent.which;
-                break;
-            }
             return event;
         },
         _updateCursor: function(domEvent) {
@@ -929,12 +908,13 @@
         _handleInputMouseMove: function(domEvent) {
             if (!this._updateCursor(domEvent))
                 return;
-            var event = this._handleInputSimple(domEvent);
+            var event = this._handleInputBase("Motion", domEvent);
             this.sendEvent(event);
         },
         _handleInputButtonPress: function(domEvent) {
             this._updateCursor(domEvent);
-            var event = this._handleInputSimple(domEvent);
+            var event = this._handleInputBase("ButtonPress", domEvent);
+            event.button = domEvent.which;
 
             function checkGrabRecursively(serverWindow) {
                 if (!serverWindow)
@@ -971,8 +951,10 @@
         },
         _handleInputButtonRelease: function(domEvent) {
             this._updateCursor(domEvent);
-            var event = this._handleInputSimple(domEvent);
+            var event = this._handleInputBase("ButtonRelease", domEvent);
+            event.button = domEvent.which;
             this.sendEvent(event);
+
             if (this._grabClient && this._grabClient.isPassive)
                 this._ungrabPointer();
         },
