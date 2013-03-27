@@ -134,10 +134,11 @@
         connect: function(server) {
             this.parent(server);
             this._focused = false;
+            this._buffer = "";
             this._server.configureWindow({ windowId: this._windowId,
                                            width: 700, height: 400 });
             this._server.selectInput({ windowId: this._windowId,
-                                       events: ["FocusIn", "FocusOut"] });
+                                       events: ["FocusIn", "FocusOut", "KeyPress"] });
             this._handleFocusOut();
         },
         handleEvent: function(event) {
@@ -146,6 +147,8 @@
                 return this._handleFocusIn();
             case "FocusOut":
                 return this._handleFocusOut();
+            case "KeyPress":
+                return this._handleKeyPress(event);
             default:
                 return this.parent(event);
             }
@@ -164,12 +167,7 @@
                 ctx.fillText("~ $", 240, 16);
 
                 ctx.fillStyle = '#eeeeec';
-                ctx.strokeStyle = '#eeeeec';
-                ctx.lineWidth = 1;
-                if (this._focused)
-                    ctx.fillRect(276, 4, 10, 16);
-                else
-                    ctx.strokeRect(276.5, 4.5, 10, 16);
+                ctx.fillText(this._buffer, 276, 16);
             }.bind(this));
             var region = new Region();
             region.init_rect(0, 0, this.width, this.height);
@@ -182,6 +180,11 @@
         },
         _handleFocusOut: function() {
             this._focused = false;
+            this.invalidate();
+        },
+        _handleKeyPress: function(event) {
+            console.log(event.charCode);
+            this._buffer += String.fromCharCode(event.charCode);
             this.invalidate();
         },
     });

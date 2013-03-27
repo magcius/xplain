@@ -684,7 +684,7 @@
 
         _setupDOM: function() {
             this._container = document.createElement("div");
-
+            this._container.tabIndex = 0;
             this._container.style.width = this.width + "px";
             this._container.style.height = this.height + "px";
 
@@ -851,6 +851,8 @@
             this._container.addEventListener("mousemove", this._handleInputMouseMove.bind(this));
             this._container.addEventListener("mousedown", this._handleInputButtonPress.bind(this));
             this._container.addEventListener("mouseup", this._handleInputButtonRelease.bind(this));
+            this._container.addEventListener("keypress", this._handleInputKeyPress.bind(this));
+            this._container.addEventListener("keyup", this._handleInputKeyRelease.bind(this));
             this._container.addEventListener("contextmenu", function(event) {
                 event.preventDefault();
             })
@@ -874,8 +876,21 @@
             domEvent.stopPropagation();
 
             // XXX -- actually find event window, that sort of thing.
+            var serverWindow;
+            switch (eventType) {
+                case "Motion":
+                case "ButtonPress":
+                case "ButtonRelease":
+                    serverWindow = this._cursorServerWindow;
+                break;
+                case "KeyPress":
+                case "KeyRelease":
+                    serverWindow = this._focusServerWindow;
+            }
 
-            var serverWindow = this._cursorServerWindow;
+            if (!serverWindow)
+                return null;
+
             var winCoords = this._translateCoordinates(this._rootWindow, serverWindow, this._cursorX, this._cursorY);
 
             var event = { type: eventType,
@@ -912,6 +927,8 @@
             this.sendEvent(event);
         },
         _handleInputButtonPress: function(domEvent) {
+            this._container.focus();
+
             this._updateCursor(domEvent);
             var event = this._handleInputBase("ButtonPress", domEvent);
             event.button = domEvent.which;
@@ -957,6 +974,23 @@
 
             if (this._grabClient && this._grabClient.isPassive)
                 this._ungrabPointer();
+        },
+        _handleInputKeyPress: function(domEvent) {
+            var event = this._handleInputBase("KeyPress", domEvent);
+            if (!event)
+                return;
+
+            event.charCode = domEvent.charCode;
+            this.sendEvent(event);
+        },
+        _handleInputKeyRelease: function(domEvent) {
+            var event = this._handleInputBase("KeyRelease", domEvent);
+            if (!event)
+                return;
+
+            // XXX -- doesn't work for KeyRelease. What to do?
+            event.charCode = domEvent.charCode;
+            this.sendEvent(event);
         },
 
         _sendCrossingEvents: function(eventBase, fromWin, toWin) {
