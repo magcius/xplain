@@ -1281,6 +1281,14 @@
             else
                 throw new Error("BadWindow");
         },
+        _checkOtherClientsForEvent: function(windowId, eventType, except) {
+            return this._clients.some(function(otherClient) {
+                if (otherClient === except)
+                    return false;
+
+                return otherClient.isInterestedInWindowEvent(windowId, eventType);
+            });
+        },
 
         //
         // Public API for clients.
@@ -1290,14 +1298,6 @@
             this._clients.push(serverClient);
             return { clientPort: serverClient.clientPort,
                      server: serverClient.publicServer };
-        },
-        _checkOtherClientsForEvent: function(windowId, eventType, except) {
-            return this._clients.some(function(otherClient) {
-                if (otherClient === except)
-                    return false;
-
-                return otherClient.isInterestedInWindowEvent(windowId, eventType);
-            });
         },
         selectInput: function(client, props) {
             var windowId = props.windowId;
