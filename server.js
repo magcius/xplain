@@ -869,7 +869,7 @@
                           rootY: this._cursorY };
 
             if (serverWindow != this._cursorServerWindow) {
-                this._handleInputEnterLeave(event, this._cursorServerWindow, serverWindow);
+                this._sendCrossingEvents(event, this._cursorServerWindow, serverWindow);
                 this._cursorServerWindow = serverWindow;
                 this.syncCursor();
             }
@@ -976,7 +976,8 @@
             if (this._grabClient && this._grabClient.isPassive)
                 this._ungrabPointer();
         },
-        _handleInputEnterLeave: function(eventBase, fromWin, toWin) {
+
+        _sendCrossingEvents: function(eventBase, fromWin, toWin) {
             // Adapted from Xorg server, a pre-MPX version of dix/enterleave.c
             // Under MIT license
 
@@ -1029,7 +1030,6 @@
                 EnterLeaveEvent("Enter", "Nonlinear", toWin, null);
             }
         },
-
         _sendFocusEvents: function(eventBase, fromWin, toWin) {
             // Adapted from Xorg server, a pre-MPX version of dix/events.c
             // Under MIT license
