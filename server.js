@@ -536,6 +536,7 @@
                      grabWindow: this._server.getServerWindow(event.windowId),
                      ownerEvents: false, // implement OwnerGrabEvents
                      events: this._eventWindows[event.windowId],
+                     pointerMode: "Async",
                      cursor: null };
         },
     });
