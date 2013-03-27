@@ -130,9 +130,12 @@
     });
 
     var FakeTerminalWindow = new Class({
-        Extends: ImageWindow,
+        Extends: Window,
         connect: function(server) {
             this.parent(server);
+            this._focused = false;
+            this._server.configureWindow({ windowId: this._windowId,
+                                           width: 700, height: 400 });
             this._server.selectInput({ windowId: this._windowId,
                                        events: ["FocusIn", "FocusOut"] });
             this._handleFocusOut();
@@ -147,11 +150,39 @@
                 return this.parent(event);
             }
         },
+        expose: function() {
+            this._server.drawWithContext(this._windowId, function(ctx) {
+                ctx.fillStyle = "#121212";
+                ctx.fillRect(0, 0, this.width, this.height);
+
+                ctx.font = 'bold 10pt "Droid Sans Mono Dotted"';
+
+                ctx.fillStyle = '#8ae234';
+                ctx.fillText("jstpierre@jstpierre-lappy", 4, 16);
+
+                ctx.fillStyle = '#729fcf';
+                ctx.fillText("~ $", 240, 16);
+
+                ctx.fillStyle = '#eeeeec';
+                ctx.strokeStyle = '#eeeeec';
+                ctx.lineWidth = 1;
+                if (this._focused)
+                    ctx.fillRect(276, 4, 10, 16);
+                else
+                    ctx.strokeRect(276.5, 4.5, 10, 16);
+            }.bind(this));
+            var region = new Region();
+            region.init_rect(0, 0, this.width, this.height);
+            this._server.clearDamage({ windowId: this._windowId,
+                                       region: region });
+        },
         _handleFocusIn: function() {
-            this._setImage("TerminalScreenshotFocused.png");
+            this._focused = true;
+            this.invalidate();
         },
         _handleFocusOut: function() {
-            this._setImage("TerminalScreenshotUnfocused.png");
+            this._focused = false;
+            this.invalidate();
         },
     });
 
