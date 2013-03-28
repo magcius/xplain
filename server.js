@@ -565,7 +565,6 @@
             switch (event.type) {
             case "ButtonPress":
             case "ButtonRelease":
-                // XXX - is Motion frozen or not?
                 return this._pointerMode == "Sync";
             }
             return false;
