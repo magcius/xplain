@@ -1365,6 +1365,10 @@
                 // but I like the XI2 semantics of just calling grabPointer again.
                 // I think it's cleaner, and it cuts down on the amount of duplicate
                 // code.
+                //
+                // Note that we also follow the XI2 semantics that when GrabPointer
+                // is called when there's an passive pointer grab, we change it into
+                // an active grab. This is different from ChangeActivePointerGrab.
                 if (this._grabClient.serverClient == client)
                     this.ungrabPointer();
                 else
