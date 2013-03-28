@@ -584,8 +584,7 @@
             switch (pointerMode) {
             case "Async":
                 // Unfreeze the pointer grab, and replay the rest.
-                // XXX -- private method
-                this._server._ungrabPointer();
+                this._server.ungrabPointer();
                 this._flushFrozenEventQueue();
                 break;
             case "Sync":
@@ -594,13 +593,13 @@
                 if (event)
                     this._deliverEvent(event);
                 else
-                    this._server._ungrabPointer();
+                    this._server.ungrabPointer();
                 break;
             case "Replay":
                 // Requeue the client event, unfreeze the pointer grab,
                 // and replay the rest.
                 this._frozenEventQueue.unshift(this._clientEvent);
-                this._server._ungrabPointer();
+                this._server.ungrabPointer();
                 this._flushFrozenEventQueue();
                 break;
             }
@@ -968,7 +967,7 @@
             this.sendEvent(event);
 
             if (this._grabClient && this._grabClient.isPassive)
-                this._ungrabPointer();
+                this.ungrabPointer();
         },
         _handleInputKeyPress: function(domEvent) {
             var event = this._handleInputBase("KeyPress", domEvent);
@@ -1245,7 +1244,7 @@
             this._grabClient = new ServerGrabClient(this, grabInfo, isPassive);
             this.syncCursor();
         },
-        _ungrabPointer: function() {
+        ungrabPointer: function() {
             this._grabClient = null;
             this.syncCursor();
         },
@@ -1270,7 +1269,7 @@
             // drop the grab.
             if (!serverWindow.viewable) {
                 if (this._grabClient && this._grabClient.grabWindow == serverWindow)
-                    this._ungrabPointer();
+                    this.ungrabPointer();
 
                 if (this._focusServerWindow == serverWindow)
                     this._revertInputFocus();
@@ -1367,7 +1366,7 @@
                 // I think it's cleaner, and it cuts down on the amount of duplicate
                 // code.
                 if (this._grabClient.serverClient == client)
-                    this._ungrabPointer();
+                    this.ungrabPointer();
                 else
                     throw new Error("AlreadyGrabbed");
             }
@@ -1383,7 +1382,7 @@
         },
         _handle_ungrabPointer: function(client, props) {
             if (this._grabClient && this._grabClient.serverClient == client)
-                this._ungrabPointer();
+                this.ungrabPointer();
         },
         _handle_grabButton: function(client, props) {
             var grabWindow = this.getServerWindow(props.windowId);
