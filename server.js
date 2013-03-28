@@ -573,7 +573,7 @@
         _flushFrozenEventQueue: function() {
             while (this._frozenEventQueue.length > 0) {
                 var event = this._frozenEventQueue.shift();
-                this.sendEvent(event);
+                this._server.sendEvent(event);
             }
         },
         allowEvents: function(pointerMode) {
