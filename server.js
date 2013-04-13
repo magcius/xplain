@@ -1313,7 +1313,7 @@
             var serverWindow = this.getServerWindow(props.windowId);
             serverWindow.destroy();
             serverWindow.finalize();
-            this._windowsById[windowId] = null;
+            this._windowsById[props.windowId] = null;
         },
         _handle_reparentWindow: function(client, props) {
             var serverWindow = this.getServerWindow(props.windowId);
