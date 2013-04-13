@@ -243,7 +243,7 @@
                 this.mapped = true;
                 this._server.sendEvent({ type: "MapNotify",
                                          windowId: this.windowId });
-                this._server.damageWindow(this);
+                this._server.damageWindow(this, false);
                 this.recalculateViewability();
                 this._server.syncCursorWindow();
             }
@@ -252,8 +252,8 @@
             if (!this.mapped)
                 return false;
 
-            this._server.damageWindow(this);
             this.mapped = false;
+            this._server.damageWindow(this, true);
             this._server.sendEvent({ type: "UnmapNotify",
                                      windowId: this.windowId });
             this._server.syncCursorWindow();
@@ -1264,8 +1264,8 @@
             this._windowsById[windowId] = serverWindow;
             return serverWindow;
         },
-        damageWindow: function(serverWindow) {
-            if (!serverWindow.mapped)
+        damageWindow: function(serverWindow, force) {
+            if (!serverWindow.mapped && !force)
                 return;
 
             var region = this._calculateEffectiveRegionForWindow(serverWindow);
@@ -1465,7 +1465,7 @@
             if (!serverWindow)
                 return;
 
-            this.damageWindow(serverWindow);
+            this.damageWindow(serverWindow, false);
         },
         _handle_clearDamage: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);

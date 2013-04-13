@@ -320,11 +320,11 @@
             case "ConfigureRequest":
                 return this.configureRequest(event, frame);
             case "UnmapNotify":
-                if (!frameWasReceiver)
+                if (frame && !frameWasReceiver)
                     return frame.destroy();
                 break;
             case "DestroyNotify":
-                if (!frameWasReceiver)
+                if (frame && !frameWasReceiver)
                     return frame.unregister();
                 break;
             case "ButtonPress":
