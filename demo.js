@@ -64,14 +64,8 @@
             this.parent(server);
             this._image = new Image();
             this._image.addEventListener("load", function() {
-                try {
-                    this._loaded = true;
-                    this.moveResize(undefined, undefined, this._image.width, this._image.height);
-                } catch(e) {
-                    // The window might be destroyed, but we won't know about it.
-                    // We'll get a FocusOut in that case, which will eventually
-                    // cause a "load" here. Ignore the BadWindow here.
-                }
+                this._loaded = true;
+                this.moveResize(undefined, undefined, this._image.width, this._image.height);
             }.bind(this));
         },
         _setImage: function(src) {

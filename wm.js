@@ -248,31 +248,15 @@
             this._updateGeometry({ x: newX, y: newY });
         },
         _frameFocusIn: function(event) {
-            try {
-                this._server.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'yellow' });
-                this._server.invalidateWindow({ windowId: this._frameWindowId });
-            } catch(e) {
-                // Clicking on the close button will destroy the client window,
-                // causing the focus to revert to PointerRoot. The frame isn't
-                // destroyed yet -- the UnmapNotify is still in the queue. Thus,
-                // we get a FocusIn on the button window, as that's where the
-                // pointer is. We'll process the UnmapNotify, destroy the window,
-                // and then go to process the FocusIn, but fail with a BadWindow.
-                // Ignore it.
-            }
+            this._server.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'yellow' });
+            this._server.invalidateWindow({ windowId: this._frameWindowId });
         },
         _frameFocusOut: function(event) {
             if (event.detail == "Inferior")
                 return;
 
-            try {
-                this._server.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'orange' });
-                this._server.invalidateWindow({ windowId: this._frameWindowId });
-            } catch(e) {
-                // It's possible for us to get a FocusOut event after the frame
-                // has been destroyed on the server side. In this case, just ignore
-                // the BadWindow that comes back.
-            }
+            this._server.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'orange' });
+            this._server.invalidateWindow({ windowId: this._frameWindowId });
         },
         _frameExpose: function() {
             // background color takes care of the base
