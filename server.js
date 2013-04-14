@@ -241,7 +241,6 @@
                 this.mapped = true;
                 this._server.sendEvent({ type: "MapNotify",
                                          windowId: this.windowId });
-                this._server.damageWindow(this, false, true);
                 this.recalculateViewability();
                 this._server.syncCursorWindow();
             }
@@ -1283,9 +1282,12 @@
             region.finalize();
         },
         viewabilityChanged: function(serverWindow) {
-            // If a window is becoming unviewable and we have a grab on it,
-            // drop the grab.
-            if (!serverWindow.viewable) {
+            if (serverWindow.viewable) {
+                // If a window is now viewable, damage it.
+                this.damageWindow(serverWindow, false, false);
+            } else {
+                // If a window is now unviewable and we have a grab on it,
+                // drop the grab.
                 if (this._grabClient && this._grabClient.grabWindow == serverWindow)
                     this.ungrabPointer();
 
