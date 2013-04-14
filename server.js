@@ -100,9 +100,11 @@
             // The region of the window that needs to be redrawn, in window coordinates.
             this.damagedRegion = new Region();
 
+            // The bounding region, used if the window is unshaped.
+            this._unshapedBoundingRegion = new Region();
+
             // The bounding region, as defined by the SHAPE extension, in window coordinates.
-            this.boundingRegion = new Region();
-            this._hasCustomBoundingRegion = false;
+            this._shapedBoundingRegion = null;
 
             this._properties = {};
             this._passiveGrabs = {};
@@ -117,8 +119,13 @@
             this._configureWindow(props);
         },
         finalize: function() {
-            this.boundingRegion.finalize();
-            this.boundingRegion = null;
+            this._unshapedBoundingRegion.finalize();
+            this._unshapedBoundingRegion = null;
+
+            if (this._shapedBoundingRegion) {
+                this._shapedBoundingRegion.finalize();
+                this._shapedBoundingRegion = null;
+            }
 
             this.damagedRegion.finalize();
             this.damagedRegion = null;
@@ -138,12 +145,23 @@
             });
             return { x: x, y: y };
         },
+        getBoundingRegion: function() {
+            var boundingRegion = new Region();
+
+            if (this._shapedBoundingRegion)
+                boundingRegion.intersect(this._shapedBoundingRegion, this._unshapedBoundingRegion);
+            else
+                boundingRegion.copy(this._unshapedBoundingRegion);
+
+            return boundingRegion;
+        },
         calculateTransformedBoundingRegion: function() {
-            var region = new Region();
-            region.copy(this.boundingRegion);
+            var region = this.getBoundingRegion();
             this._iterParents(function(serverWindow) {
-                region.intersect(region, serverWindow.boundingRegion);
+                var bounding = serverWindow.getBoundingRegion()
+                region.intersect(region, bounding);
                 region.translate(serverWindow.x, serverWindow.y);
+                bounding.finalize();
             });
             return region;
         },
@@ -290,7 +308,11 @@
             x -= this.x;
             y -= this.y;
 
-            if (!this.boundingRegion.contains_point(x, y))
+            var bounding = this.getBoundingRegion();
+            var containsPoint = bounding.contains_point(x, y);
+            bounding.finalize();
+
+            if (!containsPoint)
                 return null;
 
             for (var i = 0; i < this.children.length; i++) {
@@ -343,8 +365,7 @@
             if (props.height !== undefined)
                 this.height = props.height | 0;
 
-            if (!this._hasCustomBoundingRegion)
-                this._setWindowShapeRegion("Bounding", null);
+            this._unshapedBoundingRegion.init_rect(0, 0, this.width, this.height);
         },
 
         configureWindow: function(client, props) {
@@ -383,14 +404,15 @@
 
         _setWindowShapeRegion: function(shapeType, region) {
             if (shapeType === "Bounding") {
-                this.boundingRegion.clear();
-
                 if (region) {
-                    this.boundingRegion.copy(region);
-                    this._hasCustomBoundingRegion = true;
+                    if (!this._shapedBoundingRegion)
+                        this._shapedBoundingRegion = new Region();
+                    this._shapedBoundingRegion.copy(region);
                 } else {
-                    this.boundingRegion.init_rect(0, 0, this.width, this.height);
-                    this._hasCustomBoundingRegion = false;
+                    if (this._shapedBoundingRegion) {
+                        this._shapedBoundingRegion.finalize();
+                        this._shapedBoundingRegion = null;
+                    }
                 }
             }
         },
@@ -770,7 +792,9 @@
 
                 // Clip the damaged region to the bounding region to get
                 // the maximum area that's obscured.
-                obscuringRegion.intersect(inputRegion, serverWindow.boundingRegion);
+                var bounding = serverWindow.getBoundingRegion();
+                obscuringRegion.intersect(inputRegion, bounding);
+                bounding.finalize();
 
                 // We're guaranteed that the window plus children is covering
                 // this area, so subtract it out of the input region first as
