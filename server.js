@@ -163,9 +163,6 @@
             ctx.fillStyle = this._backgroundColor;
             ctx.fillRect(0, 0, this.width, this.height);
         },
-        damage: function(region) {
-            this._damagedRegion.union(this._damagedRegion, region);
-        },
         sendExpose: function() {
             if (this.damagedRegion.is_empty())
                 return;
