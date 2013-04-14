@@ -223,7 +223,7 @@
             case "FocusOut":
                 return this._frameFocusOut(event);
             case "Expose":
-                return this._frameExpose(event.ctx);
+                return this._frameExpose();
             }
         },
         _frameButtonPress: function(event) {

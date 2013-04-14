@@ -29,7 +29,7 @@
             case "ConfigureNotify":
                 return this.configureNotify(event);
             case "Expose":
-                return this.expose(event.ctx);
+                return this.expose();
             }
         },
         configureNotify: function(event) {
