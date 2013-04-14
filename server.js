@@ -722,7 +722,7 @@
         // immediately damaged if the window was removed. That is,
         // the window's shape region clipped to the areas that are
         // visible.
-        _calculateEffectiveRegionForWindow: function(serverWindow) {
+        _calculateEffectiveRegionForWindow: function(serverWindow, includeChildren) {
             var region = serverWindow.calculateTransformedBoundingRegion();
 
             function subtractWindow(aboveWindow) {
@@ -733,6 +733,9 @@
                 region.subtract(region, transformedBoundingRegion);
                 transformedBoundingRegion.finalize();
             }
+
+            if (!includeChildren)
+                serverWindow.children.forEach(subtractWindow);
 
             while (serverWindow != null && serverWindow.parentServerWindow != null) {
                 var parent = serverWindow.parentServerWindow;
@@ -1205,13 +1208,13 @@
             }
 
             // Get the old state.
-            var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+            var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow, true);
             var oldPos = serverWindow.calculateAbsoluteOffset();
             var oldW = serverWindow.width, oldH = serverWindow.height;
 
             func();
 
-            var newRegion = this._calculateEffectiveRegionForWindow(serverWindow);
+            var newRegion = this._calculateEffectiveRegionForWindow(serverWindow, true);
             var newPos = serverWindow.calculateAbsoluteOffset();
 
             var tmp = new Region();
@@ -1277,7 +1280,7 @@
             if (!serverWindow.mapped && !force)
                 return;
 
-            var region = this._calculateEffectiveRegionForWindow(serverWindow);
+            var region = this._calculateEffectiveRegionForWindow(serverWindow, false);
             this.damageRegion(region);
             region.finalize();
         },
