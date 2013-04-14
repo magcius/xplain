@@ -227,6 +227,9 @@
             }
         },
         _frameButtonPress: function(event) {
+            if (event.button != 1)
+                return;
+
             this._origMousePos = { x: event.rootX, y: event.rootY };
             var frameCoords = this._server.getGeometry({ windowId: this._frameWindowId });
             this._origWindowPos = { x: frameCoords.x, y: frameCoords.y };
@@ -237,6 +240,9 @@
                                        cursor: "-moz-grabbing" });
         },
         _frameButtonRelease: function(event) {
+            if (event.button != 1)
+                return;
+
             this._server.ungrabPointer({ windowId: this._frameWindowId });
 
             this._origMousePos = null;
