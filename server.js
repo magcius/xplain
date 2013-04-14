@@ -672,6 +672,7 @@
             this._cursorX = -1;
             this._cursorY = -1;
             this._cursorServerWindow = null;
+            this._buttonsDown = [];
 
             this._focusRevertTo = null;
             this._focusServerWindow = null;
@@ -932,6 +933,8 @@
             var event = this._handleInputBase("ButtonPress", domEvent);
             event.button = domEvent.which;
 
+            this._buttonsDown.push(event.button);
+
             function checkGrabRecursively(serverWindow) {
                 if (!serverWindow)
                     return null;
@@ -971,7 +974,13 @@
             event.button = domEvent.which;
             this.sendEvent(event);
 
-            if (this._grabClient && this._grabClient.isPassive)
+            var idx = this._buttonsDown.indexOf(event.button);
+            if (idx < 0)
+                throw new Error("Internal bad button - should not happen");
+
+            this._buttonsDown.splice(idx, 1);
+
+            if (this._grabClient && this._grabClient.isPassive && this._buttonsDown.length == 0)
                 this.ungrabPointer();
         },
         _handleInputKeyPress: function(domEvent) {
