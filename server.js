@@ -679,9 +679,6 @@
             this._nextWindowId = 0;
             this._windowsById = {};
 
-            // The region of the screen that needs to be updated.
-            this._damagedRegion = new Region();
-
             // Input
             this._setupInputHandlers();
             this._cursorX = -1;
