@@ -556,9 +556,9 @@
         },
     });
 
-    // A ServerGrabClient is a fake ServerClient that handles
-    // details if the pointer is grabbed to make event delivery
-    // and other things easier.
+    // A ServerGrabClient is a helper class that handles some
+    // details about grabs to make event delivery and other things
+    // easier.
     var ServerGrabClient = new Class({
         initialize: function(server, grabInfo, isPassive) {
             this._server = server;
