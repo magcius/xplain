@@ -396,10 +396,6 @@
         },
         setWindowShapeRegion: function(shapeType, region) {
             this._server.wrapWindowChange(this, function() {
-                // We don't actually check if the two are the same. This
-                // is assuming that this is so seldom called that the cost
-                // doesn't really matter. It probably wouldn't be too hard
-                // to check, though.
                 this._setWindowShapeRegion(shapeType, region);
             }.bind(this));
         },
