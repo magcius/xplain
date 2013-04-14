@@ -249,6 +249,9 @@
             this._origWindowPos = null;
         },
         _frameMotion: function(event) {
+            if (!this._origMousePos)
+                return;
+
             var newX = this._origWindowPos.x + event.rootX - this._origMousePos.x;
             var newY = this._origWindowPos.y + event.rootY - this._origMousePos.y;
             this._updateGeometry({ x: newX, y: newY });
