@@ -178,6 +178,7 @@
         changeAttributes: function(attributes) {
             if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
                 this._backgroundColor = attributes.backgroundColor || DEFAULT_BACKGROUND_COLOR;
+                this._server.damageWindow(this, false, false);
             }
 
             if (valueUpdated(attributes.overrideRedirect, this._overrideRedirect)) {

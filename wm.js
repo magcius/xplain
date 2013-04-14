@@ -255,14 +255,12 @@
         },
         _frameFocusIn: function(event) {
             this._server.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'yellow' });
-            this._server.invalidateWindow({ windowId: this._frameWindowId });
         },
         _frameFocusOut: function(event) {
             if (event.detail == "Inferior")
                 return;
 
             this._server.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'orange' });
-            this._server.invalidateWindow({ windowId: this._frameWindowId });
         },
         _frameExpose: function() {
             // background color takes care of the base
