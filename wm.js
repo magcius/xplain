@@ -179,6 +179,7 @@
         },
         destroy: function() {
             this._server.destroyWindow({ windowId: this._frameWindowId });
+            this._wm.focusDefaultWindow();
         },
         unregister: function() {
             this._wm.unregister(this._frameWindowId);
@@ -384,6 +385,24 @@
         },
         unregister: function(windowId) {
             this._windowFrames[windowId] = null;
+        },
+
+        _getDefaultWindow: function() {
+            var tree = this._server.queryTree({ windowId: this._server.rootWindowId });
+            var children = tree.children;
+            if (!children)
+                return null;
+            var windowId = children.slice(-1)[0];
+            var frame = this._windowFrames[windowId];
+            if (!frame)
+                return null;
+            return frame;
+        },
+        focusDefaultWindow: function() {
+            var frame = this._getDefaultWindow();
+            if (!frame)
+                return;
+            frame.focus();
         },
     });
 

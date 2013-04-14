@@ -452,6 +452,7 @@
         'mapWindow',
         'unmapWindow',
         'configureWindow',
+        'queryTree',
         'getGeometry',
         'translateCoordinates',
         'changeAttributes',
@@ -1405,6 +1406,19 @@
                 return;
 
             serverWindow.configureWindow(client, props);
+        },
+        _handle_queryTree: function(client, props) {
+            var serverWindow = this.getServerWindow(client, props.windowId);
+            if (!serverWindow)
+                return;
+
+            var reply = {};
+            reply.root = this.rootWindowId;
+            reply.parent = serverWindow.parentWindow ? serverWindow.parentWindow.windowId : null;
+            reply.children = serverWindow.children.map(function(w) {
+                return w.windowId;
+            }).reverse();
+            return reply;
         },
         _handle_getGeometry: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
