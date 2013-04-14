@@ -772,7 +772,7 @@
             this._container.style.cursor = cursor;
         },
 
-        damageRegion: function(region) {
+        damageRegion: function(region, clearRegion) {
             function recursivelyDamage(serverWindow, inputRegion) {
                 if (!serverWindow.mapped)
                     return;
@@ -786,6 +786,8 @@
                 // Transform into the child's space.
                 inputRegion.translate(-serverWindow.x, -serverWindow.y);
                 region.translate(-serverWindow.x, -serverWindow.y);
+                if (clearRegion)
+                    clearRegion.translate(-serverWindow.x, -serverWindow.y);
 
                 // Clip the damaged region to the bounding region to get
                 // the maximum area that's obscured.
@@ -804,11 +806,18 @@
                     recursivelyDamage(serverWindow, obscuringRegion);
                 });
 
+                var windowDamage = serverWindow.damagedRegion;
+
+                // The clear region is for the case where we copy the area in
+                // the pixmap without damaging windows. This area where there's
+                // stuff that was copied into should not be damaged.
+                if (clearRegion)
+                    windowDamage.subtract(windowDamage, clearRegion);
+
                 // We need to set the window's damaged region, clipped to
                 // the region that's passed into damageRegion().
                 // Do this by clearing out region, and then adding in
                 // what we want to set.
-                var windowDamage = serverWindow.damagedRegion;
                 windowDamage.subtract(windowDamage, region);
                 windowDamage.union(windowDamage, obscuringRegion);
                 serverWindow.sendExpose();
@@ -816,6 +825,8 @@
                 // And transform back.
                 inputRegion.translate(serverWindow.x, serverWindow.y);
                 region.translate(serverWindow.x, serverWindow.y);
+                if (clearRegion)
+                    clearRegion.translate(serverWindow.x, serverWindow.y);
 
                 obscuringRegion.finalize();
             }
@@ -1233,6 +1244,7 @@
 
             var tmp = new Region();
             var damagedRegion = new Region();
+            var clearedRegion = new Region();
 
             // Pixels need to be exposed under the window in places where the
             // old region is, but the new region isn't.
@@ -1257,6 +1269,10 @@
                 ctx.clip();
                 copyArea(ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, oldW, oldH);
                 ctx.restore();
+
+                // Clear the damaged region of windows where we just got
+                // the new area.
+                clearedRegion.union(clearedRegion, tmp);
             }
 
             // Pixels need to be exposed on the window in places where the
@@ -1264,11 +1280,12 @@
             tmp.subtract(newRegion, oldRegion);
             damagedRegion.union(damagedRegion, tmp);
 
-            this.damageRegion(damagedRegion);
+            this.damageRegion(damagedRegion, clearedRegion);
             this.syncCursorWindow();
 
             tmp.finalize();
             damagedRegion.finalize();
+            clearedRegion.finalize();
 
             oldRegion.finalize();
             newRegion.finalize();
@@ -1295,7 +1312,7 @@
                 return;
 
             var region = this._calculateEffectiveRegionForWindow(serverWindow, includeChildren);
-            this.damageRegion(region);
+            this.damageRegion(region, null);
             region.finalize();
         },
         viewabilityChanged: function(serverWindow) {
