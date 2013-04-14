@@ -725,7 +725,7 @@
             var region = serverWindow.calculateTransformedBoundingRegion();
 
             function subtractWindow(aboveWindow) {
-                if (!serverWindow.mapped)
+                if (!aboveWindow.mapped)
                     return;
 
                 var transformedBoundingRegion = aboveWindow.calculateTransformedBoundingRegion();
