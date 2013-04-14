@@ -741,7 +741,7 @@
             var region = serverWindow.calculateTransformedBoundingRegion();
 
             function subtractWindow(aboveWindow) {
-                if (!aboveWindow.mapped)
+                if (!aboveWindow.viewable)
                     return;
 
                 var transformedBoundingRegion = aboveWindow.calculateTransformedBoundingRegion();
@@ -1219,7 +1219,7 @@
         },
 
         wrapWindowChange: function(serverWindow, func) {
-            if (!serverWindow.mapped) {
+            if (!serverWindow.viewable) {
                 func();
                 return;
             }
@@ -1294,7 +1294,7 @@
             return serverWindow;
         },
         damageWindow: function(serverWindow, force, includeChildren) {
-            if (!serverWindow.mapped && !force)
+            if (!serverWindow.viewable && !force)
                 return;
 
             var region = this._calculateEffectiveRegionForWindow(serverWindow, includeChildren);
@@ -1530,7 +1530,7 @@
         // Not a request, as it requires custom marshalling.
         drawWithContext: function(client, windowId, func) {
             var serverWindow = this.getServerWindow(client, windowId);
-            if (!serverWindow || !serverWindow.mapped)
+            if (!serverWindow || !serverWindow.viewable)
                 return;
 
             var ctx = this._ctx;
