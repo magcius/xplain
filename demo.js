@@ -164,7 +164,6 @@
                                        region: region });
         },
         _handleKeyPress: function(event) {
-            console.log(event.charCode);
             this._buffer += String.fromCharCode(event.charCode);
             this.invalidate();
         },
