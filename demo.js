@@ -132,15 +132,10 @@
             this._server.configureWindow({ windowId: this._windowId,
                                            width: 700, height: 400 });
             this._server.selectInput({ windowId: this._windowId,
-                                       events: ["FocusIn", "FocusOut", "KeyPress"] });
-            this._handleFocusOut();
+                                       events: ["KeyPress"] });
         },
         handleEvent: function(event) {
             switch(event.type) {
-            case "FocusIn":
-                return this._handleFocusIn();
-            case "FocusOut":
-                return this._handleFocusOut();
             case "KeyPress":
                 return this._handleKeyPress(event);
             default:
@@ -167,14 +162,6 @@
             region.init_rect(0, 0, this.width, this.height);
             this._server.clearDamage({ windowId: this._windowId,
                                        region: region });
-        },
-        _handleFocusIn: function() {
-            this._focused = true;
-            this.invalidate();
-        },
-        _handleFocusOut: function() {
-            this._focused = false;
-            this.invalidate();
         },
         _handleKeyPress: function(event) {
             console.log(event.charCode);
