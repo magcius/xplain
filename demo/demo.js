@@ -133,6 +133,8 @@
                                            width: 700, height: 400 });
             this._server.selectInput({ windowId: this._windowId,
                                        events: ["KeyPress"] });
+            this._server.changeAttributes({ windowId: this._windowId,
+                                            backgroundColor: "#121212" });
         },
         handleEvent: function(event) {
             switch(event.type) {
@@ -144,9 +146,6 @@
         },
         expose: function() {
             this._server.drawWithContext(this._windowId, function(ctx) {
-                ctx.fillStyle = "#121212";
-                ctx.fillRect(0, 0, this.width, this.height);
-
                 ctx.font = 'bold 10pt "Droid Sans Mono Dotted"';
 
                 var x = 4, y = 16;
