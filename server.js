@@ -677,8 +677,8 @@
             this._backgroundColor = 'rgb(51, 110, 165)';
             this._clients = [];
 
-            this._nextWindowId = 0;
-            this._windowsById = {};
+            this._nextXid = 0;
+            this._xidToObject = {};
 
             // Input
             this._setupInputHandlers();
@@ -1303,9 +1303,9 @@
 
         // Used by _createRootWindow and createWindow.
         _createWindowInternal: function(props) {
-            var windowId = ++this._nextWindowId;
+            var windowId = ++this._nextXid;
             var serverWindow = new ServerWindow(windowId, this, props);
-            this._windowsById[windowId] = serverWindow;
+            this._xidToObject[windowId] = serverWindow;
             return serverWindow;
         },
         damageWindow: function(serverWindow, force, includeChildren) {
@@ -1331,7 +1331,7 @@
             }
         },
         getServerWindow: function(client, windowId) {
-            var serverWindow = this._windowsById[windowId];
+            var serverWindow = this._xidToObject[windowId];
             if (serverWindow) {
                 return serverWindow;
             } else if (client) {
@@ -1376,7 +1376,7 @@
 
             serverWindow.destroy();
             serverWindow.finalize();
-            this._windowsById[props.windowId] = null;
+            this._xidToObject[props.windowId] = null;
         },
         _handle_reparentWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
