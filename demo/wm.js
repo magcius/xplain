@@ -238,7 +238,7 @@
                                        ownerEvents: true,
                                        events: ["ButtonRelease", "Motion"],
                                        pointerMode: "Async",
-                                       cursor: "-moz-grabbing" });
+                                       cursor: "grabbing" });
         },
         _frameButtonRelease: function(event) {
             if (event.button != 1)

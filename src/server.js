@@ -702,6 +702,10 @@
             this._container.style.width = this.width + "px";
             this._container.style.height = this.height + "px";
 
+            // Allow querying with ".xserver.js"
+            this._container.classList.add("xserver");
+            this._container.classList.add("js");
+
             this._canvas = document.createElement("canvas");
             this._canvas.width = this.width;
             this._canvas.height = this.height;
@@ -770,7 +774,7 @@
             else
                 cursor = '';
 
-            this._container.style.cursor = cursor;
+            this._container.dataset.cursor = cursor;
         },
 
         damageRegion: function(region, clearRegion) {
