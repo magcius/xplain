@@ -149,14 +149,21 @@
 
                 ctx.font = 'bold 10pt "Droid Sans Mono Dotted"';
 
+                var x = 4, y = 16;
+                function drawText(text) {
+                    var metrics = ctx.measureText(text);
+                    ctx.fillText(text, x, y);
+                    x += metrics.width;
+                }
+
                 ctx.fillStyle = '#8ae234';
-                ctx.fillText("jstpierre@jstpierre-lappy", 4, 16);
+                drawText("jstpierre@jstpierre-lappy");
 
                 ctx.fillStyle = '#729fcf';
-                ctx.fillText("~ $", 240, 16);
+                drawText(" ~ $ ");
 
                 ctx.fillStyle = '#eeeeec';
-                ctx.fillText(this._buffer, 276, 16);
+                drawText(this._buffer);
             }.bind(this));
             var region = new Region();
             region.init_rect(0, 0, this.width, this.height);
