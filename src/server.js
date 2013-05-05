@@ -91,9 +91,9 @@
     var DEFAULT_BACKGROUND_COLOR = '#ddd';
 
     var ServerWindow = new Class({
-        initialize: function(windowId, server, props) {
+        initialize: function(xid, server, props) {
             this._server = server;
-            this.windowId = windowId;
+            this.xid = xid;
 
             this._backgroundColor = DEFAULT_BACKGROUND_COLOR;
 
@@ -185,9 +185,9 @@
             if (this.damagedRegion.is_empty())
                 return;
 
-            this._server.drawWithContext(this, this.windowId, this._drawBackground.bind(this));
+            this._server.drawWithContext(this, this.xid, this._drawBackground.bind(this));
             if (!this._server.sendEvent({ type: "Expose",
-                                          windowId: this.windowId }))
+                                          windowId: this.xid }))
                 this.clearDamage("Full");
         },
         changeAttributes: function(attributes) {
@@ -211,7 +211,7 @@
         changeProperty: function(name, value) {
             this._properties[name] = value;
             this._server.sendEvent({ type: "PropertyChanged",
-                                     windowId: this.windowId,
+                                     windowId: this.xid,
                                      name: name, value: value });
         },
         recalculateViewability: function() {
@@ -244,7 +244,7 @@
             if (this.mapped)
                 return;
 
-            var eventBase = { windowId: this.windowId };
+            var eventBase = { windowId: this.xid };
             var event;
 
             event = Object.create(eventBase);
@@ -258,7 +258,7 @@
 
                 this.mapped = true;
                 this._server.sendEvent({ type: "MapNotify",
-                                         windowId: this.windowId });
+                                         windowId: this.xid });
                 this.recalculateViewability();
                 this._server.syncCursorWindow();
             }
@@ -270,7 +270,7 @@
             this.mapped = false;
             this._server.damageWindow(this, true, true);
             this._server.sendEvent({ type: "UnmapNotify",
-                                     windowId: this.windowId });
+                                     windowId: this.xid });
             this._server.syncCursorWindow();
             this.recalculateViewability();
             return true;
@@ -288,7 +288,7 @@
             });
 
             this._server.sendEvent({ type: "DestroyNotify",
-                                     windowId: this.windowId });
+                                     windowId: this.xid });
 
             this._unparentWindowInternal();
         },
@@ -369,7 +369,7 @@
         },
 
         configureWindow: function(client, props) {
-            var eventBase = { windowId: this.windowId,
+            var eventBase = { windowId: this.xid,
                               x: props.x, y: props.y, width: props.width, height: props.height,
                               sibling: props.sibling, detail: props.stackMode };
             var event;
@@ -529,9 +529,9 @@
             var substructureRedirect = isEventSubstructureRedirect(event);
             var substructureNotify = isEventSubstructureNotify(event);
             var parent = serverWindow.parentServerWindow;
-            if (substructureRedirect && this.isInterestedInWindowEvent(parent.windowId, "SubstructureRedirect"))
+            if (substructureRedirect && this.isInterestedInWindowEvent(parent.xid, "SubstructureRedirect"))
                 return true;
-            if (substructureNotify && this.isInterestedInWindowEvent(parent.windowId, "SubstructureNotify"))
+            if (substructureNotify && this.isInterestedInWindowEvent(parent.xid, "SubstructureNotify"))
                 return true;
 
             return false;
@@ -634,7 +634,7 @@
             // to the grab window.
             if (this._events.indexOf(event.type) >= 0) {
                 var newEvent = Object.create(event);
-                newEvent.windowId = this.grabWindow.windowId;
+                newEvent.windowId = this.grabWindow.xid;
                 this.serverClient.sendEvent(newEvent);
             }
         },
@@ -716,7 +716,7 @@
 
         _createRootWindow: function() {
             this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: this.width, height: this.height });
-            this.rootWindowId = this._rootWindow.windowId;
+            this.rootWindowId = this._rootWindow.xid;
             this._rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             this._rootWindow.parentServerWindow = null;
             this._rootWindow.map();
@@ -930,7 +930,7 @@
                           rootWindowId: this.rootWindowId,
                           rootX: this._cursorX,
                           rootY: this._cursorY,
-                          windowId: serverWindow.windowId,
+                          windowId: serverWindow.xid,
                           winX: winCoords.x,
                           winY: winCoords.y };
             return event;
@@ -1047,8 +1047,8 @@
             function EnterLeaveEvent(type, detail, window, child) {
                 var event = Object.create(eventBase);
                 event.type = type;
-                event.windowId = window.windowId;
-                event.subwindowId = child ? child.windowId : null;
+                event.windowId = window.xid;
+                event.subwindowId = child ? child.xid : null;
                 event.detail = detail;
                 server.sendEvent(event);
             }
@@ -1100,7 +1100,7 @@
             function FocusEvent(type, detail, window) {
                 var event = Object.create(eventBase);
                 event.type = type;
-                event.windowId = window.windowId;
+                event.windowId = window.xid;
                 event.detail = detail;
                 server.sendEvent(event);
             }
@@ -1226,7 +1226,7 @@
             if (this._focusRevertTo === null)
                 this._setInputFocus(null, null, null);
             else if (this._focusRevertTo === "Parent")
-                this._setInputFocus(null, this._focusServerWindow.parentServerWindow.windowId, null);
+                this._setInputFocus(null, this._focusServerWindow.parentServerWindow.xid, null);
             else if (this._focusRevertTo === "PointerRoot")
                 this._setInputFocus(null, "PointerRoot", "PointerRoot");
         },
@@ -1307,9 +1307,9 @@
 
         // Used by _createRootWindow and createWindow.
         _createWindowInternal: function(props) {
-            var windowId = ++this._nextXid;
-            var serverWindow = new ServerWindow(windowId, this, props);
-            this._xidToObject[windowId] = serverWindow;
+            var xid = ++this._nextXid;
+            var serverWindow = new ServerWindow(xid, this, props);
+            this._xidToObject[xid] = serverWindow;
             return serverWindow;
         },
         damageWindow: function(serverWindow, force, includeChildren) {
@@ -1334,7 +1334,7 @@
                     this._revertInputFocus();
             }
         },
-        getServerWindow: function(client, windowId) {
+        getServerWindow: function(client, xid) {
             var serverWindow = this._xidToObject[windowId];
             if (serverWindow) {
                 return serverWindow;
@@ -1371,7 +1371,7 @@
         _handle_createWindow: function(client, props) {
             var serverWindow = this._createWindowInternal(props);
             serverWindow.parentWindow(this._rootWindow);
-            return serverWindow.windowId;
+            return serverWindow.xid;
         },
         _handle_destroyWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
