@@ -88,6 +88,35 @@
         return a !== undefined && a !== b;
     }
 
+    function newCanvas(width, height) {
+        var canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        return canvas;
+    }
+
+    var ServerPixmap = new Class({
+        initialize: function(pixmapId, server, props) {
+            this._server = server;
+            this._pixmapId = pixmapId;
+
+            var width = props.width, height = props.height;
+            this._canvas = newCanvas(width, height);
+            this._ctx = this._canvas.getContext('2d');
+        },
+        canDraw: function() {
+            return true;
+        },
+        drawWithContext: function(func) {
+            var ctx = this._ctx;
+
+            ctx.beginPath();
+            ctx.save();
+            func(ctx);
+            ctx.restore();
+        },
+    });
+
     var DEFAULT_BACKGROUND_COLOR = '#ddd';
 
     var ServerWindow = new Class({
@@ -165,11 +194,24 @@
             });
             return region;
         },
-        prepareContext: function(ctx) {
+        canDraw: function() {
+            return this.viewable;
+        },
+        drawWithContext: function(func) {
+            // XXX
+            var ctx = this._server._ctx;
+
+            ctx.beginPath();
+            ctx.save();
+
             var txform = this.calculateAbsoluteOffset();
             ctx.translate(txform.x, txform.y);
             pathFromRegion(ctx, this.damagedRegion);
             ctx.clip();
+
+            func(ctx);
+
+            ctx.restore();
         },
         clearDamage: function(region) {
             if (region === "Full")
@@ -706,9 +748,7 @@
             this._container.classList.add("xserver");
             this._container.classList.add("js");
 
-            this._canvas = document.createElement("canvas");
-            this._canvas.width = this.width;
-            this._canvas.height = this.height;
+            this._canvas = newCanvas(this.width, this.height);
             this._container.appendChild(this._canvas);
 
             this._ctx = this._canvas.getContext('2d');
@@ -1306,12 +1346,6 @@
         },
 
         // Used by _createRootWindow and createWindow.
-        _createWindowInternal: function(props) {
-            var xid = ++this._nextXid;
-            var serverWindow = new ServerWindow(xid, this, props);
-            this._xidToObject[xid] = serverWindow;
-            return serverWindow;
-        },
         damageWindow: function(serverWindow, force, includeChildren) {
             if (!serverWindow.viewable && !force)
                 return;
@@ -1334,16 +1368,34 @@
                     this._revertInputFocus();
             }
         },
-        getServerWindow: function(client, xid) {
-            var serverWindow = this._xidToObject[windowId];
-            if (serverWindow) {
-                return serverWindow;
+        _createXidObjectInternal: function(constructor, props) {
+            var xid = ++this._nextXid;
+            var obj = new constructor(xid, this, props);
+            this._xidToObject[xid] = obj;
+            return obj;
+        },
+        _createWindowInternal: function(props) {
+            return this._createXidObjectInternal(ServerWindow, props);
+        },
+        _createPixmapInternal: function(props) {
+            return this._createXidObjectInternal(ServerPixmap, props);
+        },
+        _getXidObjectInternal: function(client, drawableId, error) {
+            var obj = this._xidToObject[drawableId];
+            if (obj) {
+                return obj;
             } else if (client) {
-                this._sendError(client, "BadWindow");
+                this._sendError(client, error);
                 return null;
             } else {
-                throw new Error("Internal BadWindow - should not happen");
+                throw new Error("Internal " + error + " - should not happen");
             }
+        },
+        getServerWindow: function(client, windowId) {
+            return this._getXidObjectInternal(client, windowId, "BadWindow");
+        },
+        getDrawable: function(client, drawableId) {
+            return this._getXidObjectInternal(client, drawableId, "BadDrawable");
         },
         _checkOtherClientsForEvent: function(windowId, eventType, except) {
             return this._clients.some(function(otherClient) {
@@ -1355,6 +1407,8 @@
         },
 
         // Client request handlers.
+        _handle_createPixmap: function(client, props) {
+        },
         _handle_selectInput: function(client, props) {
             var windowId = props.windowId;
             var events = props.events;
@@ -1560,17 +1614,12 @@
         },
 
         // Not a request, as it requires custom marshalling.
-        drawWithContext: function(client, windowId, func) {
-            var serverWindow = this.getServerWindow(client, windowId);
-            if (!serverWindow || !serverWindow.viewable)
+        drawWithContext: function(client, drawableId, func) {
+            var drawable = this.getDrawable(client, drawableId);
+            if (!drawable && !drawable.canDraw())
                 return;
 
-            var ctx = this._ctx;
-            ctx.beginPath();
-            ctx.save();
-            serverWindow.prepareContext(ctx);
-            func(ctx);
-            ctx.restore();
+            drawable.drawWithContext(func);
         },
     });
 
