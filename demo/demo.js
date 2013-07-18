@@ -3,7 +3,6 @@
 
     var Window = new Class({
         initialize: function() {
-            this.backgroundColor = null;
             this.x = 0;
             this.y = 0;
             this.width = 1;
@@ -19,8 +18,6 @@
             this._server = connection.server;
             this._windowId = this._server.createWindow({ x: this.x, y: this.y,
                                                          width: this.width, height: this.height });
-            this._server.changeAttributes({ windowId: this._windowId,
-                                            backgroundColor: this.backgroundColor });
             this._server.selectInput({ windowId: this._windowId,
                                        events: ["Expose", "ConfigureNotify"] });
         },
