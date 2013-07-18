@@ -173,6 +173,27 @@
         },
     });
 
+    function ellipse(ctx, x, y, rx, ry) {
+        x -= rx;
+        y -= ry;
+
+        var kappa = .5522848;
+        var ox = rx * kappa;
+        var oy = ry * kappa;
+        var xe = x + rx * 2;
+        var ye = y + ry * 2;
+        var xm = x + rx;
+        var ym = y + ry;
+
+        ctx.beginPath();
+        ctx.moveTo(x, ym);
+        ctx.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
+        ctx.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
+        ctx.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
+        ctx.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
+        ctx.closePath();
+    }
+
     var Xeyes = new Class({
         Extends: Window,
         connect: function(server) {
@@ -203,6 +224,30 @@
 
             this._pixmapId = this._server.createPixmap({ width: this.width,
                                                          height: this.height });
+
+
+            var eyeRX = this.width / 4 - 6;
+            var eyeRY = this.height / 2 - 6;
+            var eyeCenterLX = this.width * (1/4);
+            var eyeCenterRX = this.width * (3/4);
+            var eyeCenterY = this.height / 2;
+
+            this._server.drawWithContext(this._pixmapId, function(ctx) {
+                ctx.clearRect(0, 0, this.width, this.height);
+
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 4;
+                ctx.fillStyle = '#ffffff';
+
+                // scleras
+                ellipse(ctx, eyeCenterLX, eyeCenterY, eyeRX, eyeRY);
+                ctx.fill();
+                ctx.stroke();
+
+                ellipse(ctx, eyeCenterRX, eyeCenterY, eyeRX, eyeRY);
+                ctx.fill();
+                ctx.stroke();
+            }.bind(this));
         },
         configureNotify: function(event) {
             this.parent(event);
@@ -253,45 +298,12 @@
                 return { x: pupilX, y: pupilY };
             }
 
-            function ellipse(ctx, x, y, rx, ry) {
-                x -= rx;
-                y -= ry;
-
-                var kappa = .5522848;
-                var ox = rx * kappa;
-                var oy = ry * kappa;
-                var xe = x + rx * 2;
-                var ye = y + ry * 2;
-                var xm = x + rx;
-                var ym = y + ry;
-
-                ctx.beginPath();
-                ctx.moveTo(x, ym);
-                ctx.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
-                ctx.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
-                ctx.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
-                ctx.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
-                ctx.closePath();
-            }
-
-            this._server.drawWithContext(this._pixmapId, function(ctx) {
-                ctx.clearRect(0, 0, this.width, this.height);
-
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 4;
-                ctx.fillStyle = '#ffffff';
-
-                // scleras
-                ellipse(ctx, eyeCenterLX, eyeCenterY, eyeRX, eyeRY);
-                ctx.fill();
-                ctx.stroke();
-
-                ellipse(ctx, eyeCenterRX, eyeCenterY, eyeRX, eyeRY);
-                ctx.fill();
-                ctx.stroke();
-
+            this._server.copyArea({ srcDrawableId: this._pixmapId,
+                                    destDrawableId: this._windowId,
+                                    oldX: 0, oldY: 0, newX: 0, newY: 0,
+                                    width: this.width, height: this.height });
+            this._server.drawWithContext(this._windowId, function(ctx) {
                 // pupils
-                ctx.lineWidth = 0;
                 ctx.fillStyle = '#000000';
 
                 var pos;
@@ -303,11 +315,7 @@
                 pos = getPupilPosition(eyeCenterRX);
                 ellipse(ctx, eyeCenterRX + pos.x, eyeCenterY + pos.y, pupilRX, pupilRY);
                 ctx.fill();
-            }.bind(this));
-            this._server.copyArea({ srcDrawableId: this._pixmapId,
-                                    destDrawableId: this._windowId,
-                                    oldX: 0, oldY: 0, newX: 0, newY: 0,
-                                    width: this.width, height: this.height });
+            });
             this.clearDamage();
         },
     });
