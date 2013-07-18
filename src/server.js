@@ -96,9 +96,9 @@
     }
 
     var ServerPixmap = new Class({
-        initialize: function(pixmapId, server, props) {
+        initialize: function(xid, server, props) {
+            this.xid = xid;
             this._server = server;
-            this._pixmapId = pixmapId;
 
             var width = props.width, height = props.height;
             this._canvas = newCanvas(width, height);
@@ -121,8 +121,8 @@
 
     var ServerWindow = new Class({
         initialize: function(xid, server, props) {
-            this._server = server;
             this.xid = xid;
+            this._server = server;
 
             this._backgroundColor = DEFAULT_BACKGROUND_COLOR;
 
@@ -487,7 +487,8 @@
 
     var publicRequests = [
         'clientConnected',
-        'selectInput',
+        'createPixmap',
+        'freePixmap',
         'createWindow',
         'destroyWindow',
         'reparentWindow',
@@ -500,6 +501,7 @@
         'changeAttributes',
         'getProperty',
         'changeProperty',
+        'selectInput',
         'grabPointer',
         'ungrabPointer',
         'grabButton',
@@ -1380,8 +1382,8 @@
         _createPixmapInternal: function(props) {
             return this._createXidObjectInternal(ServerPixmap, props);
         },
-        _getXidObjectInternal: function(client, drawableId, error) {
-            var obj = this._xidToObject[drawableId];
+        _getXidObjectInternal: function(client, xid, error) {
+            var obj = this._xidToObject[xid];
             if (obj) {
                 return obj;
             } else if (client) {
@@ -1390,6 +1392,9 @@
             } else {
                 throw new Error("Internal " + error + " - should not happen");
             }
+        },
+        _destroyXidObjectInternal: function(xid) {
+            this._xidToObject[xid] = null;
         },
         getServerWindow: function(client, windowId) {
             return this._getXidObjectInternal(client, windowId, "BadWindow");
@@ -1408,19 +1413,11 @@
 
         // Client request handlers.
         _handle_createPixmap: function(client, props) {
+            var serverPixmap = this._createPixmapInternal(props);
+            return serverPixmap.xid;
         },
-        _handle_selectInput: function(client, props) {
-            var windowId = props.windowId;
-            var events = props.events;
-            var checkEvent = (function checkEvent(eventType) {
-                if (events.indexOf(eventType) >= 0)
-                    if (this._checkOtherClientsForEvent(windowId, eventType, client))
-                        this._sendError(client, "BadAccess")
-            }).bind(this);
-            checkEvent("SubstructureRedirect");
-            checkEvent("ButtonPress");
-
-            client.selectInput(windowId, events);
+        _handle_freePixmap: function(client, props) {
+            this._destroyXidObjectInternal(props.drawableId);
         },
         _handle_createWindow: function(client, props) {
             var serverWindow = this._createWindowInternal(props);
@@ -1434,7 +1431,7 @@
 
             serverWindow.destroy();
             serverWindow.finalize();
-            this._xidToObject[props.windowId] = null;
+            this._destroyXidObjectInternal(props.windowId);
         },
         _handle_reparentWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
@@ -1514,6 +1511,19 @@
                 return;
 
             serverWindow.changeProperty(props.name, props.value);
+        },
+        _handle_selectInput: function(client, props) {
+            var windowId = props.windowId;
+            var events = props.events;
+            var checkEvent = (function checkEvent(eventType) {
+                if (events.indexOf(eventType) >= 0)
+                    if (this._checkOtherClientsForEvent(windowId, eventType, client))
+                        this._sendError(client, "BadAccess")
+            }).bind(this);
+            checkEvent("SubstructureRedirect");
+            checkEvent("ButtonPress");
+
+            client.selectInput(windowId, events);
         },
         _handle_grabPointer: function(client, props) {
             var grabWindow = this.getServerWindow(client, props.windowId);
