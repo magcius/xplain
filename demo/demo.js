@@ -53,6 +53,13 @@
         changeProperty: function(name, value) {
             this._server.changeProperty({ windowId: this._windowId, name: name, value: value });
         },
+        clearDamage: function() {
+            var region = new Region();
+            region.init_rect(0, 0, this.width, this.height);
+            this._server.clearDamage({ windowId: this._windowId,
+                                       region: region });
+            region.finalize();
+        },
     });
 
     var ImageWindow = new Class({
@@ -80,10 +87,7 @@
             this._server.drawWithContext(this._windowId, function(ctx) {
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
-            var region = new Region();
-            region.init_rect(0, 0, this.width, this.height);
-            this._server.clearDamage({ windowId: this._windowId,
-                                       region: region });
+            this.clearDamage();
         },
     });
 
@@ -161,10 +165,7 @@
                 ctx.fillStyle = '#eeeeec';
                 drawText(this._buffer);
             }.bind(this));
-            var region = new Region();
-            region.init_rect(0, 0, this.width, this.height);
-            this._server.clearDamage({ windowId: this._windowId,
-                                       region: region });
+            this.clearDamage();
         },
         _handleKeyPress: function(event) {
             this._buffer += String.fromCharCode(event.charCode);
@@ -307,11 +308,7 @@
                                     destDrawableId: this._windowId,
                                     oldX: 0, oldY: 0, newX: 0, newY: 0,
                                     width: this.width, height: this.height });
-
-            var region = new Region();
-            region.init_rect(0, 0, this.width, this.height);
-            this._server.clearDamage({ windowId: this._windowId,
-                                       region: region });
+            this.clearDamage();
         },
     });
 
