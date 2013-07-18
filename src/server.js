@@ -10,46 +10,48 @@
     // Workaround for browser bugs in drawImage:
     //   https://bugzilla.mozilla.org/show_bug.cgi?id=842110
     //   https://code.google.com/p/chromium/issues/detail?id=176714
-    function copyArea(ctx, oldX, oldY, newX, newY, w, h) {
-        if (newX < 0) {
-            w += newX;
-            oldX -= newX;
-            newX = 0;
+    function copyArea(src, dest, oldX, oldY, newX, newY, w, h) {
+        if (src, dest) {
+            if (newX < 0) {
+                w += newX;
+                oldX -= newX;
+                newX = 0;
+            }
+
+            if (oldX < 0) {
+                newX -= oldX;
+                w += oldX;
+                oldX = 0;
+            }
+
+            if (newY < 0) {
+                h += newY;
+                oldY -= newY;
+                newY = 0;
+            }
+
+            if (oldY < 0) {
+                newY -= oldY;
+                h += oldY;
+                oldY = 0;
+            }
+
+            var mX = Math.max(oldX, newX);
+            if (mX >= dest.canvas.width)
+                return;
+
+            if (mX + w > dest.canvas.width)
+                w = dest.canvas.width - mX;
+
+            var mY = Math.max(oldY, newY);
+            if (mY >= dest.canvas.height)
+                return;
+
+            if (mY + h > dest.canvas.height)
+                h = dest.canvas.height - mY;
         }
 
-        if (oldX < 0) {
-            newX -= oldX;
-            w += oldX;
-            oldX = 0;
-        }
-
-        if (newY < 0) {
-            h += newY;
-            oldY -= newY;
-            newY = 0;
-        }
-
-        if (oldY < 0) {
-            newY -= oldY;
-            h += oldY;
-            oldY = 0;
-        }
-
-        var mX = Math.max(oldX, newX);
-        if (mX >= ctx.canvas.width)
-            return;
-
-        if (mX + w > ctx.canvas.width)
-            w = ctx.canvas.width - mX;
-
-        var mY = Math.max(oldY, newY);
-        if (mY >= ctx.canvas.height)
-            return;
-
-        if (mY + h > ctx.canvas.height)
-            h = ctx.canvas.height - mY;
-
-        ctx.drawImage(ctx.canvas, oldX, oldY, w, h, newX, newY, w, h);
+        dest.drawImage(src.canvas, oldX, oldY, w, h, newX, newY, w, h);
     }
 
     function isEventSubstructureRedirect(event) {
@@ -509,6 +511,7 @@
         'queryPointer',
         'setInputFocus',
         'allowEvents',
+        'copyArea',
 
         // JS extension -- simplifies the case of drawing
         // by letting someone use an existing expose handler.
@@ -1354,7 +1357,7 @@
                 tmp.intersect(newRegion, oldRegion);
                 pathFromRegion(ctx, tmp);
                 ctx.clip();
-                copyArea(ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, oldW, oldH);
+                copyArea(ctx, ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, oldW, oldH);
                 ctx.restore();
 
                 // Clear the damaged region of windows where we just got
@@ -1631,6 +1634,18 @@
         },
         _handle_allowEvents: function(client, props) {
             this._grabClient.allowEvents(props.pointerMode);
+        },
+        _handle_copyArea: function(client, props) {
+            var srcDrawable = this.getDrawable(client, props.srcDrawableId);
+            var destDrawable = this.getDrawable(client, props.destDrawableId);
+            if (!destDrawable.canDraw())
+                return;
+
+            destDrawable.drawWithContext(function(dest) {
+                srcDrawable.drawWithContext(function(src) {
+                    copyArea(src, dest, props.oldX, props.oldY, props.newX, props.newY, props.width, props.height);
+                });
+            });
         },
 
         _handle_invalidateWindow: function(client, props) {
