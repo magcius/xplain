@@ -172,6 +172,122 @@
         },
     });
 
+    var Xeyes = new Class({
+        Extends: Window,
+        connect: function(server) {
+            this.parent(server);
+
+            this._server.changeAttributes({ windowId: this._windowId,
+                                            backgroundColor: "#eeeeec" });
+            this.changeProperty("WM_NAME", "xeyes.js");
+        },
+        start: function() {
+            this._intervalId = setInterval(function() {
+                this.invalidate();
+            }.bind(this), 50);
+        },
+        stop: function() {
+            clearInterval(this._intervalId);
+            this._intervalId = 0;
+        },
+        expose: function() {
+            var eyeRX = this.width / 4 - 6;
+            var eyeRY = this.height / 2 - 6;
+            var eyeCenterLX = this.width * (1/4);
+            var eyeCenterRX = this.width * (3/4);
+            var eyeCenterY = this.height / 2;
+
+            var pupilRX = eyeRX / 2;
+            var pupilRY = eyeRY / 2;
+
+            var pointer = this._server.queryPointer();
+            var pointerCoords = this._server.translateCoordinates({ srcWindowId: this._server.rootWindowId,
+                                                                    destWindowId: this._windowId,
+                                                                    x: pointer.rootX, y: pointer.rootY });
+
+            function hypot(x, y) {
+                return Math.sqrt(x*x + y*y);
+            }
+
+            function getPupilPosition(eyeCenterX) {
+                // The max distance away from the center the pupil
+                // is allowed to be.
+                var maxDistX = eyeRX - pupilRX;
+                var maxDistY = eyeRY - pupilRY;
+
+                // Normalize to center of eye.
+                var pointerX = pointerCoords.x - eyeCenterX;
+                var pointerY = pointerCoords.y - eyeCenterY;
+
+                var distance = hypot(pointerX / maxDistX, pointerY / maxDistY);
+                if (distance > 1)
+                    distance = 1;
+
+                var angle = Math.atan2(pointerY, pointerX);
+
+                // Pupil position relative to center of eye.
+                var pupilX = Math.cos(angle) * distance * maxDistX;
+                var pupilY = Math.sin(angle) * distance * maxDistY;
+
+                return { x: pupilX, y: pupilY };
+            }
+
+            function ellipse(ctx, x, y, rx, ry) {
+                x -= rx;
+                y -= ry;
+
+                var kappa = .5522848;
+                var ox = rx * kappa;
+                var oy = ry * kappa;
+                var xe = x + rx * 2;
+                var ye = y + ry * 2;
+                var xm = x + rx;
+                var ym = y + ry;
+
+                ctx.beginPath();
+                ctx.moveTo(x, ym);
+                ctx.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
+                ctx.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
+                ctx.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
+                ctx.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
+                ctx.closePath();
+            }
+
+            this._server.drawWithContext(this._windowId, function(ctx) {
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 4;
+                ctx.fillStyle = '#ffffff';
+
+                // scleras
+                ellipse(ctx, eyeCenterLX, eyeCenterY, eyeRX, eyeRY);
+                ctx.fill();
+                ctx.stroke();
+
+                ellipse(ctx, eyeCenterRX, eyeCenterY, eyeRX, eyeRY);
+                ctx.fill();
+                ctx.stroke();
+
+                // pupils
+                ctx.lineWidth = 0;
+                ctx.fillStyle = '#000000';
+
+                var pos;
+
+                pos = getPupilPosition(eyeCenterLX);
+                ellipse(ctx, eyeCenterLX + pos.x, eyeCenterY + pos.y, pupilRX, pupilRY);
+                ctx.fill();
+
+                pos = getPupilPosition(eyeCenterRX);
+                ellipse(ctx, eyeCenterRX + pos.x, eyeCenterY + pos.y, pupilRX, pupilRY);
+                ctx.fill();
+            }.bind(this));
+            var region = new Region();
+            region.init_rect(0, 0, this.width, this.height);
+            this._server.clearDamage({ windowId: this._windowId,
+                                       region: region });
+        },
+    });
+
     var server = new Server(1024, 768);
     document.querySelector(".server").appendChild(server.elem);
 
@@ -199,6 +315,12 @@
         w.changeProperty("WM_NAME", "Terminal Window " + windowNumber);
         w.map();
     }
+
+    var xeyes = new Xeyes();
+    xeyes.connect(server);
+    xeyes.moveResize(600, 400, 300, 200);
+    xeyes.map();
+    xeyes.start();
 
     window.server = server;
 
