@@ -946,14 +946,15 @@
             })
         },
 
-        syncCursorWindow: function() {
+        syncCursorWindow: function(mode) {
             var serverWindow = this._rootWindow.findDeepestChildAtPoint(this._cursorX, this._cursorY);
             if (!serverWindow)
                 serverWindow = this._rootWindow;
 
             var event = { rootWindowId: this.rootWindowId,
                           rootX: this._cursorX,
-                          rootY: this._cursorY };
+                          rootY: this._cursorY,
+                          mode: (mode || "Normal") };
 
             if (serverWindow != this._cursorServerWindow) {
                 this._sendCrossingEvents(event, this._cursorServerWindow, serverWindow);
@@ -1130,7 +1131,6 @@
             if (!fromWin)
                 fromWin = this._rootWindow;
 
-            // TODO: NotifyGrab/NotifyUngrab
             function EnterLeaveEvent(type, detail, window, child) {
                 var event = Object.create(eventBase);
                 event.type = type;
@@ -1385,11 +1385,11 @@
 
         _grabPointer: function(grabInfo, isPassive) {
             this._grabClient = new ServerGrabClient(this, grabInfo, isPassive);
-            this.syncCursor();
+            this.syncCursorWindow("Grab");
         },
         ungrabPointer: function() {
             this._grabClient = null;
-            this.syncCursor();
+            this.syncCursorWindow("Ungrab");
         },
 
         // Used by _createRootWindow and createWindow.
