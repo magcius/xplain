@@ -738,6 +738,7 @@
             // This needs to be done after we set up everything else
             // as it uses the standard redraw and windowing machinery.
             this._createRootWindow();
+            this.syncCursorWindow();
         },
 
         _setupDOM: function() {
@@ -811,10 +812,8 @@
 
             if (this._grabClient && this._grabClient.cursor)
                 cursor = this._grabClient.cursor;
-            else if (this._cursorServerWindow)
-                cursor = this._cursorServerWindow.cursor;
             else
-                cursor = '';
+                cursor = this._cursorServerWindow.cursor;
 
             this._container.dataset.cursor = cursor;
         },
@@ -943,6 +942,9 @@
 
         syncCursorWindow: function() {
             var serverWindow = this._rootWindow.findDeepestChildAtPoint(this._cursorX, this._cursorY);
+            if (!serverWindow)
+                serverWindow = this._rootWindow;
+
             var event = { rootWindowId: this.rootWindowId,
                           rootX: this._cursorX,
                           rootY: this._cursorY };
