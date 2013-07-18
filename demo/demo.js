@@ -177,6 +177,8 @@
         connect: function(server) {
             this.parent(server);
 
+            this._pixmapId = 0;
+
             this._server.changeAttributes({ windowId: this._windowId,
                                             backgroundColor: "#eeeeec" });
             this.changeProperty("WM_NAME", "xeyes.js");
@@ -190,7 +192,25 @@
             clearInterval(this._intervalId);
             this._intervalId = 0;
         },
+        _destroyPixmap: function() {
+            this._server.freePixmap({ pixmapId: this._pixmapId });
+            this._pixmapId = 0;
+        },
+        _ensurePixmap: function() {
+            if (this._pixmapId)
+                return;
+
+            this._pixmapId = this._server.createPixmap({ width: this.width,
+                                                         height: this.height });
+        },
+        configureNotify: function(event) {
+            this.parent(event);
+            this._destroyPixmap();
+            this.invalidate();
+        },
         expose: function() {
+            this._ensurePixmap();
+
             var eyeRX = this.width / 4 - 6;
             var eyeRY = this.height / 2 - 6;
             var eyeCenterLX = this.width * (1/4);
@@ -253,7 +273,9 @@
                 ctx.closePath();
             }
 
-            this._server.drawWithContext(this._windowId, function(ctx) {
+            this._server.drawWithContext(this._pixmapId, function(ctx) {
+                ctx.clearRect(0, 0, this.width, this.height);
+
                 ctx.strokeStyle = '#000000';
                 ctx.lineWidth = 4;
                 ctx.fillStyle = '#ffffff';
@@ -281,6 +303,11 @@
                 ellipse(ctx, eyeCenterRX + pos.x, eyeCenterY + pos.y, pupilRX, pupilRY);
                 ctx.fill();
             }.bind(this));
+            this._server.copyArea({ srcDrawableId: this._pixmapId,
+                                    destDrawableId: this._windowId,
+                                    oldX: 0, oldY: 0, newX: 0, newY: 0,
+                                    width: this.width, height: this.height });
+
             var region = new Region();
             region.init_rect(0, 0, this.width, this.height);
             this._server.clearDamage({ windowId: this._windowId,
