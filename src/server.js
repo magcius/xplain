@@ -885,6 +885,14 @@
             recursivelyDamage(this._rootWindow, damagedRegion);
             damagedRegion.finalize();
         },
+        _hasServerClientInterestedInWindowEvent: function(windowId, eventType) {
+            for (var i = 0; i < this._clients.length; i++) {
+                var serverClient = this._clients[i];
+                if (serverClient.isInterestedInWindowEvent(windowId, eventType))
+                    return true;
+            }
+            return false;
+        },
         _getServerClientsForEvent: function(event, except) {
             var serverWindow = this.getServerWindow(null, event.windowId);
             if (!serverWindow.filterEvent(event))
@@ -945,34 +953,55 @@
                 this.syncCursor();
             }
         },
+        _findEventAndChildWindow: function(eventType) {
+            var findInterestedWindow = (function findInterestedWindow(window, eventType, until) {
+                while (window != until) {
+                    if (this._hasServerClientInterestedInWindowEvent(window.xid, eventType))
+                        return window;
+                    window = window.parentServerWindow;
+                }
+                return null;
+            }).bind(this);
+
+            var childWindow = this._cursorServerWindow;
+            var eventWindow;
+            switch (eventType) {
+                case "Motion":
+                case "ButtonPress":
+                case "ButtonRelease":
+                    eventWindow = this._grabClient ? this._grabClient.grabWindow : findInterestedWindow(childWindow, eventType, null);
+                break;
+                case "KeyPress":
+                case "KeyRelease":
+                    if (isWindowDescendentOf(childWindow, this._focusServerWindow)) {
+                        eventWindow = findInterestedWindow(childWindow, eventType, this._focusServerWindow);
+                    } else {
+                        eventWindow = this._focusServerWindow;
+                        childWindow = null;
+                    }
+                break;
+            }
+
+            return { event: eventWindow,
+                     child: childWindow };
+        },
         _handleInputBase: function(eventType, domEvent) {
             // The X server should capture all input events.
             domEvent.preventDefault();
             domEvent.stopPropagation();
 
-            // XXX -- actually find event window, that sort of thing.
-            var serverWindow;
-            switch (eventType) {
-                case "Motion":
-                case "ButtonPress":
-                case "ButtonRelease":
-                    serverWindow = this._cursorServerWindow;
-                break;
-                case "KeyPress":
-                case "KeyRelease":
-                    serverWindow = this._focusServerWindow;
-            }
-
-            if (!serverWindow)
+            var windows = this._findEventAndChildWindow(eventType);
+            if (!windows.event)
                 return null;
 
-            var winCoords = this._translateCoordinates(this._rootWindow, serverWindow, this._cursorX, this._cursorY);
+            var winCoords = this._translateCoordinates(this._rootWindow, windows.event, this._cursorX, this._cursorY);
 
             var event = { type: eventType,
                           rootWindowId: this.rootWindowId,
                           rootX: this._cursorX,
                           rootY: this._cursorY,
-                          windowId: serverWindow.xid,
+                          windowId: windows.event.xid,
+                          childWindowId: windows.child.xid,
                           winX: winCoords.x,
                           winY: winCoords.y };
             return event;
@@ -999,16 +1028,17 @@
             if (!this._updateCursor(domEvent))
                 return;
             var event = this._handleInputBase("Motion", domEvent);
-            this.sendEvent(event);
+            if (event)
+                this.sendEvent(event);
         },
         _handleInputButtonPress: function(domEvent) {
             this._container.focus();
 
             this._updateCursor(domEvent);
             var event = this._handleInputBase("ButtonPress", domEvent);
-            event.button = domEvent.which;
+            var button = domEvent.which;
 
-            this._buttonsDown.push(event.button);
+            this._buttonsDown.push(button);
 
             function checkGrabRecursively(serverWindow) {
                 if (!serverWindow)
@@ -1018,38 +1048,47 @@
                 if (grabInfo)
                     return grabInfo;
 
-                return serverWindow.getGrab(event.button);
+                return serverWindow.getGrab(button);
             }
 
             if (!this._grabClient) {
-                var grabWindow = this.getServerWindow(null, event.windowId);
-                var grabInfo = checkGrabRecursively(grabWindow);
-                if (!grabInfo) {
-                    // Only one ButtonPress can be selected on the same window,
-                    // so this should always have length=1.
-                    var clients = this._getServerClientsForEvent(event);
-                    var firstClient = clients[0];
-                    if (firstClient)
-                        grabInfo = firstClient.makeGrabInfo(event);
-                    else
-                        // XXX -- protocol is unclear here -- who gets the grab?
-                        // For now, don't take a grab and send just the event.
-                        ;
+                var grabInfo;
+                if (event) {
+                    var grabWindow = this.getServerWindow(null, event.windowId);
+                    var grabInfo = checkGrabRecursively(grabWindow);
+                    if (!grabInfo) {
+                        // Only one ButtonPress can be selected on the same window,
+                        // so this should always have length=1.
+                        var clients = this._getServerClientsForEvent(event);
+                        var firstClient = clients[0];
+                        if (firstClient)
+                            grabInfo = firstClient.makeGrabInfo(event);
+                    }
                 }
 
                 if (grabInfo)
                     this._grabPointer(grabInfo, true);
+                else
+                    // XXX -- protocol is unclear here -- who gets the grab?
+                    // For now, don't take a grab and send just the event.
+                    ;
             }
 
-            this.sendEvent(event);
+            if (event) {
+                event.button = button;
+                this.sendEvent(event);
+            }
         },
         _handleInputButtonRelease: function(domEvent) {
             this._updateCursor(domEvent);
             var event = this._handleInputBase("ButtonRelease", domEvent);
-            event.button = domEvent.which;
-            this.sendEvent(event);
+            var button = domEvent.which;
+            if (event) {
+                event.button = button;
+                this.sendEvent(event);
+            }
 
-            var idx = this._buttonsDown.indexOf(event.button);
+            var idx = this._buttonsDown.indexOf(button);
             if (idx < 0)
                 throw new Error("Internal bad button - should not happen");
 
@@ -1060,20 +1099,18 @@
         },
         _handleInputKeyPress: function(domEvent) {
             var event = this._handleInputBase("KeyPress", domEvent);
-            if (!event)
-                return;
-
-            event.charCode = domEvent.charCode;
-            this.sendEvent(event);
+            if (event) {
+                event.charCode = domEvent.charCode;
+                this.sendEvent(event);
+            }
         },
         _handleInputKeyRelease: function(domEvent) {
             var event = this._handleInputBase("KeyRelease", domEvent);
-            if (!event)
-                return;
-
-            // XXX -- doesn't work for KeyRelease. What to do?
-            event.charCode = domEvent.charCode;
-            this.sendEvent(event);
+            if (event) {
+                // XXX -- doesn't work for KeyRelease. What to do?
+                event.charCode = domEvent.charCode;
+                this.sendEvent(event);
+            }
         },
 
         _sendCrossingEvents: function(eventBase, fromWin, toWin) {
