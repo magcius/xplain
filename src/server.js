@@ -506,6 +506,7 @@
         'ungrabPointer',
         'grabButton',
         'ungrabButton',
+        'queryPointer',
         'setInputFocus',
         'allowEvents',
 
@@ -1619,6 +1620,11 @@
                 return;
 
             grabWindow.ungrabButton(props.button);
+        },
+        _handle_queryPointer: function(client, props) {
+            return { rootX: this._cursorX,
+                     rootY: this._cursorY,
+                     buttons: this._buttonsDown };
         },
         _handle_setInputFocus: function(client, props) {
             this._setInputFocus(client, props.windowId, props.revert);
