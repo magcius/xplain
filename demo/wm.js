@@ -224,7 +224,7 @@
             case "FocusOut":
                 return this._frameFocusOut(event);
             case "Expose":
-                return this._frameExpose();
+                return this._frameExpose(event);
             }
         },
         _frameButtonPress: function(event) {
@@ -266,23 +266,24 @@
 
             this._server.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'orange' });
         },
-        _frameExpose: function() {
-            // background color takes care of the base
+        _frameExpose: function(event) {
+            this._server.drawWithContext(this._frameWindowId, function(ctx) {
+                // Draw background
+                ctx.fillStyle = event.backgroundColor;
+                ctx.fillRect(0, 0, this._frameGeometry.width, this._frameGeometry.height);
 
-            // Draw title.
-            var title = this._server.getProperty({ windowId: this._clientWindowId,
-                                                   name: "WM_NAME" });
-            if (title) {
-                var geom = this._server.getGeometry({ windowId: this._clientWindowId });
-                this._server.drawWithContext(this._frameWindowId, function(ctx) {
+                // Draw title
+                var title = this._server.getProperty({ windowId: this._clientWindowId,
+                                                       name: "WM_NAME" });
+                if (title) {
                     ctx.fillStyle = '#000';
                     ctx.textAlign = 'center';
                     ctx.font = '12pt sans-serif';
-                    ctx.fillText(title, geom.width / 2, 21);
-                });
-            }
+                    ctx.fillText(title, this._frameGeometry.width / 2, 21);
+                }
 
-            this._server.clearDamage({ windowId: this._frameWindowId, region: "Full" });
+                this._server.clearDamage({ windowId: this._frameWindowId, region: "Full" });
+            }.bind(this));
         },
         _handleButtonEvent: function(event) {
             if (event.windowId == this._closeWindowId && event.type == "ButtonRelease")

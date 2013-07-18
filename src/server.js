@@ -229,10 +229,12 @@
             if (this.damagedRegion.is_empty())
                 return;
 
-            this._server.drawWithContext(this, this.xid, this._drawBackground.bind(this));
             if (!this._server.sendEvent({ type: "Expose",
-                                          windowId: this.xid }))
+                                          backgroundColor: this._backgroundColor,
+                                          windowId: this.xid })) {
+                this._server.drawWithContext(this, this.xid, this._drawBackground.bind(this));
                 this.clearDamage("Full");
+            }
         },
         changeAttributes: function(attributes) {
             if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {

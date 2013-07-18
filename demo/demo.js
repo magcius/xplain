@@ -26,7 +26,7 @@
             case "ConfigureNotify":
                 return this.configureNotify(event);
             case "Expose":
-                return this.expose();
+                return this.expose(event);
             }
         },
         configureNotify: function(event) {
@@ -42,7 +42,11 @@
         invalidate: function() {
             this._server.invalidateWindow({ windowId: this._windowId });
         },
-        expose: function() {
+        expose: function(event) {
+            this._server.drawWithContext(this._windowId, function(ctx) {
+                ctx.fillStyle = event.backgroundColor;
+                ctx.fillRect(0, 0, this.width, this.height);
+            }.bind(this));
         },
         map: function() {
             this._server.mapWindow({ windowId: this._windowId });
@@ -80,7 +84,9 @@
             this.parent(event);
             this.invalidate();
         },
-        expose: function() {
+        expose: function(event) {
+            this.parent(event);
+
             if (!this._loaded)
                 return;
 
@@ -145,7 +151,9 @@
                 return this.parent(event);
             }
         },
-        expose: function() {
+        expose: function(event) {
+            this.parent(event);
+
             this._server.drawWithContext(this._windowId, function(ctx) {
                 ctx.font = 'bold 10pt "Droid Sans Mono Dotted"';
 
@@ -254,7 +262,9 @@
             this._destroyPixmap();
             this.invalidate();
         },
-        expose: function() {
+        expose: function(event) {
+            this.parent(event);
+
             this._ensurePixmap();
 
             var eyeRX = this.width / 4 - 6;
