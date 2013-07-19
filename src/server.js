@@ -1386,10 +1386,12 @@
         _grabPointer: function(grabInfo, isPassive) {
             this._grabClient = new ServerGrabClient(this, grabInfo, isPassive);
             this.syncCursorWindow("Grab");
+            this.syncCursor();
         },
         ungrabPointer: function() {
             this._grabClient = null;
             this.syncCursorWindow("Ungrab");
+            this.syncCursor();
         },
 
         // Used by _createRootWindow and createWindow.
