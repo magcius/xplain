@@ -147,15 +147,17 @@
             var x;
             x = padding;
             this._leftButtons.forEach(function(button) {
+                var geom = this._server.getGeometry({ windowId: button.windowId });
                 button.moveResize(x, padding, undefined, undefined);
-                x += button.width + padding;
-            });
+                x += geom.width + padding;
+            }.bind(this));
 
             x = this.width - padding;
             this._rightButtons.forEach(function(button) {
-                button.moveResize(x - button.width, padding, undefined, undefined);
-                x -= button.width + padding;
-            });
+                var geom = this._server.getGeometry({ windowId: button.windowId });
+                button.moveResize(x - geom.width, padding, undefined, undefined);
+                x -= geom.width + padding;
+            }.bind(this));
         },
         configureNotify: function(event) {
             this.parent(event);
