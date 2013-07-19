@@ -1712,7 +1712,7 @@
         // Not a request, as it requires custom marshalling.
         drawWithContext: function(client, drawableId, func) {
             var drawable = this.getDrawable(client, drawableId);
-            if (!drawable && !drawable.canDraw())
+            if (!drawable || !drawable.canDraw())
                 return;
 
             drawable.drawWithContext(func);
