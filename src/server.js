@@ -1031,7 +1031,7 @@
                           rootX: this._cursorX,
                           rootY: this._cursorY,
                           windowId: windows.event.xid,
-                          childWindowId: windows.child.xid,
+                          childWindowId: windows.child ? windows.child.xid : null,
                           winX: winCoords.x,
                           winY: winCoords.y };
             return event;
