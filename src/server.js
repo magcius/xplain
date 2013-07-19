@@ -1003,7 +1003,7 @@
                 break;
                 case "KeyPress":
                 case "KeyRelease":
-                    if (isWindowDescendentOf(childWindow, this._focusServerWindow)) {
+                    if (isWindowDescendentOf(this._focusServerWindow, childWindow)) {
                         eventWindow = findInterestedWindow(childWindow, eventType, this._focusServerWindow);
                     } else {
                         eventWindow = this._focusServerWindow;
