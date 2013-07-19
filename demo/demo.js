@@ -45,11 +45,15 @@
         invalidate: function() {
             this._server.invalidateWindow({ windowId: this.windowId });
         },
-        expose: function(event) {
+        _drawBackground: function(event) {
             this._server.drawWithContext(this.windowId, function(ctx) {
                 ctx.fillStyle = event.backgroundColor;
                 ctx.fillRect(0, 0, this.width, this.height);
             }.bind(this));
+        },
+        expose: function(event) {
+            this._drawBackground(event);
+            this.clearDamage();
         },
         map: function() {
             this._server.mapWindow({ windowId: this.windowId });
@@ -88,7 +92,7 @@
             this.invalidate();
         },
         expose: function(event) {
-            this.parent(event);
+            this._drawBackground(event);
 
             if (!this._loaded)
                 return;
@@ -203,7 +207,7 @@
             }
         },
         expose: function(event) {
-            this.parent(event);
+            this._drawBackground(event);
 
             this._server.drawWithContext(this.windowId, function(ctx) {
                 ctx.font = 'bold 10pt "Droid Sans Mono Dotted"';
@@ -327,7 +331,7 @@
             }
         },
         expose: function(event) {
-            this.parent(event);
+            this._drawBackground(event);
 
             this._ensurePixmap();
 
