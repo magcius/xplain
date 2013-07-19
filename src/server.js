@@ -577,10 +577,12 @@
             var substructureRedirect = isEventSubstructureRedirect(event);
             var substructureNotify = isEventSubstructureNotify(event);
             var parent = serverWindow.parentServerWindow;
-            if (substructureRedirect && this.isInterestedInWindowEvent(parent.xid, "SubstructureRedirect"))
-                return true;
-            if (substructureNotify && this.isInterestedInWindowEvent(parent.xid, "SubstructureNotify"))
-                return true;
+            if (parent) {
+                if (substructureRedirect && this.isInterestedInWindowEvent(parent.xid, "SubstructureRedirect"))
+                    return true;
+                if (substructureNotify && this.isInterestedInWindowEvent(parent.xid, "SubstructureNotify"))
+                    return true;
+            }
 
             return false;
         },
