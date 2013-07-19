@@ -369,17 +369,39 @@
                 frame.configureRequest(event);
             }
         },
+        _wantsFrame: function(windowId) {
+            var windowType = this._server.getProperty({ windowId: windowId,
+                                                        name: "_NET_WM_WINDOW_TYPE" });
+
+            if (!windowType)
+                windowType = "_NET_WM_WINDOW_TYPE_NORMAL";
+
+            // XXX -- support all window types
+            switch (windowType) {
+            case "_NET_WM_WINDOW_TYPE_DOCK":
+                return false;
+            case "_NET_WM_WINDOW_TYPE_NORMAL":
+                return true;
+            }
+        },
         mapRequest: function(event) {
-            var frame = new WindowFrame(this, this._server, event.windowId);
+            if (this._wantsFrame(event.windowId)) {
+                var frame = new WindowFrame(this, this._server, event.windowId);
 
-            // Reparent the original window and map the frame.
-            frame.construct();
+                // Reparent the original window and map the frame.
+                frame.construct();
 
-            // Map the original window, now that we've reparented it
-            // back into the frame.
-            this._server.mapWindow({ windowId: event.windowId });
+                // Map the original window, now that we've reparented it
+                // back into the frame.
+                this._server.mapWindow({ windowId: event.windowId });
 
-            frame.focus();
+                frame.focus();
+            } else {
+                // XXX -- we should have a Window abstraction like we do
+                // for frames.
+                this._server.mapWindow({ windowId: event.windowId });
+                this.focusDefaultWindow();
+            }
         },
         register: function(windowId, frame) {
             this._windowFrames[windowId] = frame;
