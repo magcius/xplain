@@ -102,7 +102,7 @@
         connect: function(server) {
             this.parent(server);
             this._server.changeAttributes({ windowId: this._windowId, overrideRedirect: true });
-            this._setImage("demo/data/WoodBackground.jpg");
+            this._setImage("demo/data/background.jpg");
         },
     });
 
@@ -340,7 +340,7 @@
     w.connect(server);
     w.map();
 
-    var launcher = new Launcher('demo/data/TerminalIcon.png', newWindow);
+    var launcher = new Launcher("demo/data/launcher-terminal.png", newWindow);
     launcher.connect(server);
     launcher.moveResize(10, 10, undefined, undefined);
     launcher.map();
