@@ -129,7 +129,8 @@
         },
         configureNotify: function(event) {
             this.parent(event);
-            this._relayout();
+            if (event.windowId !== this.windowId && event.width !== undefined)
+                this._relayout();
         },
         addLauncher: function(launcher) {
             this._launchers.push(launcher);
