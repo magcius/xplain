@@ -137,7 +137,7 @@
             var geom = { x: 0, y: 0, width: size, height: size };
             var buttonWindowId = this._server.createWindow(geom);
             this._wm.register(buttonWindowId, this);
-            this._server.selectInput({ windowId: buttonWindowId, events: ["ButtonRelease"] });
+            this._server.selectInput({ windowId: buttonWindowId, events: ["ButtonPress", "ButtonRelease"] });
             this._server.changeAttributes({ windowId: buttonWindowId, cursor: "pointer" });
             var radius = size / 2;
             var corners = { topLeft: radius, topRight: radius, bottomLeft: radius, bottomRight: radius };
