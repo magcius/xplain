@@ -150,10 +150,10 @@
 
     var Launcher = new Class({
         Extends: ImageWindow,
-        initialize: function(imageSrc, callback) {
+        initialize: function(imageSrc, constructor) {
             this.parent(imageSrc);
             this._imageSrc = imageSrc;
-            this._callback = callback;
+            this._constructor = constructor;
         },
         connect: function(server) {
             this.parent(server);
@@ -163,10 +163,15 @@
                                        events: ["ButtonPress"] });
             this._setImage(this._imageSrc);
         },
+        _launchApp: function() {
+            var client = new this._constructor();
+            client.connect(this._privateServer);
+            client.map();
+        },
         handleEvent: function(event) {
             switch (event.type) {
             case "ButtonPress":
-                return this._callback.call(null);
+                return this._launchApp();
             default:
                 return this.parent(event);
             }
@@ -185,6 +190,7 @@
                                        events: ["KeyPress"] });
             this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: "#121212" });
+            this.changeProperty("WM_NAME", "Fake Terminal");
         },
         handleEvent: function(event) {
             switch(event.type) {
@@ -387,23 +393,10 @@
     panel.connect(server);
     panel.map();
 
-    var launcher = new Launcher("demo/data/launcher-terminal.png", newWindow);
+    var launcher = new Launcher("demo/data/launcher-terminal.png", FakeTerminalWindow);
     launcher.connect(server);
     panel.addLauncher(launcher);
     launcher.map();
-
-    var cascade = 40;
-    var windowNumber = 0;
-
-    function newWindow() {
-        ++windowNumber;
-
-        var w = new FakeTerminalWindow();
-        w.connect(server);
-        w.moveResize(windowNumber * cascade, windowNumber * cascade, undefined, undefined);
-        w.changeProperty("WM_NAME", "Terminal Window " + windowNumber);
-        w.map();
-    }
 
     var xeyes = new Xeyes();
     xeyes.connect(server);
