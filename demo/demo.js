@@ -151,6 +151,17 @@
                                           newParentId: this._server.rootWindowId });
             this._launchers.splice(idx, 1);
         },
+        expose: function(event) {
+            this._drawBackground(event);
+
+            this._server.drawWithContext(this.windowId, function(ctx) {
+                ctx.strokeStyle = '#aaaaaa';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.rect(-1, 0, this.width + 2, this.height);
+                ctx.stroke();
+            }.bind(this));
+        },
     });
 
     var Launcher = new Class({
