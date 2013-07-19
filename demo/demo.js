@@ -410,7 +410,8 @@
         },
     });
 
-    var server = new Server(1024, 768);
+    var server = new Server();
+    server.resize(1024, 768);
     document.querySelector(".server").appendChild(server.elem);
 
     var wm = new WindowManager();

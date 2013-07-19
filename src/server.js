@@ -715,10 +715,7 @@
     }
 
     var Server = new Class({
-        initialize: function(width, height) {
-            this.width = width;
-            this.height = height;
-
+        initialize: function() {
             this._setupDOM();
             this.elem = this._container;
 
@@ -748,21 +745,45 @@
         _setupDOM: function() {
             this._container = document.createElement("div");
             this._container.tabIndex = 0;
-            this._container.style.width = this.width + "px";
-            this._container.style.height = this.height + "px";
 
             // Allow querying with ".xserver.js"
             this._container.classList.add("xserver");
             this._container.classList.add("js");
 
-            this._canvas = newCanvas(this.width, this.height);
+            this._canvas = document.createElement("canvas");
             this._container.appendChild(this._canvas);
 
             this._ctx = this._canvas.getContext('2d');
+
+            // A canvas to save data on during resizes.
+            this._tmpCanvas = document.createElement("canvas");
+            this._tmpCtx = this._tmpCanvas.getContext('2d');
+        },
+
+        resize: function(width, height) {
+            // Save the old front buffer contents
+            this._tmpCanvas.width = this._canvas.width;
+            this._tmpCanvas.height = this._canvas.height;
+            this._tmpCtx.drawImage(this._canvas, 0, 0, this._canvas.width, this._canvas.height);
+
+            // Resize the front buffer
+            this._canvas.width = width;
+            this._canvas.height = height;
+
+            // And then draw the old contents back on
+            this._ctx.drawImage(this._tmpCanvas, 0, 0, this._tmpCanvas.width, this._tmpCanvas.height);
+
+            // And then, to save memory, dump the old image contents
+            this._tmpCanvas.width = 1;
+            this._tmpCanvas.height = 1;
+
+            this._container.style.width = width + "px";
+            this._container.style.height = height + "px";
+            this._rootWindow.configureWindow(null, { width: width, height: height });
         },
 
         _createRootWindow: function() {
-            this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: this.width, height: this.height });
+            this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: 1, height: 1 });
             this.rootWindowId = this._rootWindow.xid;
             this._rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             this._rootWindow.parentServerWindow = null;
@@ -1018,8 +1039,8 @@
             var rootCoords = { x: domEvent.clientX - box.left,
                                y: domEvent.clientY - box.top };
 
-            rootCoords.x = Math.min(Math.max(rootCoords.x, 0), this.width - 1);
-            rootCoords.y = Math.min(Math.max(rootCoords.y, 0), this.height - 1);
+            rootCoords.x = Math.min(Math.max(rootCoords.x, 0), this._rootWindow.width - 1);
+            rootCoords.y = Math.min(Math.max(rootCoords.y, 0), this._rootWindow.height - 1);
 
             // This can sometimes happen after a mouseup.
             if (this._cursorX == rootCoords.x &&
