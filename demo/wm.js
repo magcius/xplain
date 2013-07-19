@@ -413,7 +413,7 @@
         _getDefaultWindow: function() {
             var tree = this._server.queryTree({ windowId: this._server.rootWindowId });
             var children = tree.children;
-            if (!children)
+            if (!children.length)
                 return null;
             var windowId = children.slice(-1)[0];
             var frame = this._windowFrames[windowId];
