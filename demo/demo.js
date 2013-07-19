@@ -73,37 +73,6 @@
         },
     });
 
-    var ImageWindow = new Class({
-        Extends: Window,
-        connect: function(server) {
-            this.parent(server);
-            this._image = new Image();
-            this._image.addEventListener("load", function() {
-                this._loaded = true;
-                this.moveResize(undefined, undefined, this._image.width, this._image.height);
-            }.bind(this));
-        },
-        _setImage: function(src) {
-            this._loaded = false;
-            this._image.src = src;
-        },
-        configureNotify: function(event) {
-            this.parent(event);
-            this.invalidate();
-        },
-        expose: function(event) {
-            this._drawBackground(event);
-
-            if (!this._loaded)
-                return;
-
-            this._server.drawWithContext(this.windowId, function(ctx) {
-                ctx.drawImage(this._image, 0, 0, this.width, this.height);
-            }.bind(this));
-            this.clearDamage();
-        },
-    });
-
     var BackgroundWindow = new Class({
         Extends: Window,
         connect: function(server) {
@@ -219,20 +188,43 @@
     });
 
     var Launcher = new Class({
-        Extends: ImageWindow,
+        Extends: Window,
         initialize: function(imageSrc, constructor) {
-            this.parent(imageSrc);
+            this.parent();
             this._imageSrc = imageSrc;
             this._constructor = constructor;
         },
+        configureNotify: function(event) {
+            this.parent(event);
+            this.invalidate();
+        },
+        expose: function(event) {
+            this._drawBackground(event);
+
+            if (!this._loaded)
+                return;
+
+            this._server.drawWithContext(this.windowId, function(ctx) {
+                ctx.drawImage(this._image, 0, 0, this.width, this.height);
+            }.bind(this));
+            this.clearDamage();
+        },
         connect: function(server) {
             this.parent(server);
+
+            this._loaded = false;
+            this._image = new Image();
+            this._image.addEventListener("load", function() {
+                this._loaded = true;
+                this.moveResize(undefined, undefined, this._image.width, this._image.height);
+            }.bind(this));
+            this._image.src = this._imageSrc;
+
             this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: "#eeeeec",
                                             cursor: "pointer" });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress"] });
-            this._setImage(this._imageSrc);
         },
         _launchApp: function() {
             var client = new this._constructor();
