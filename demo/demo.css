@@ -1,18 +1,18 @@
 
 body {
-	padding: 0;
-	margin: 0;
+    padding: 0;
+    margin: 0;
 }
 
 .xserver.js {
-	cursor: url(data/arrow.png) 10 5, auto;
-        outline: none;
+    cursor: url(data/arrow.png) 10 5, auto;
+    outline: none;
 }
 
 .xserver.js[data-cursor="pointer"] {
-	cursor: url(data/pointer.png) 14 8, auto;
+    cursor: url(data/pointer.png) 14 8, auto;
 }
 
 .xserver.js[data-cursor="grabbing"] {
-	cursor: url(data/grabbing.png) 20 17, auto;
+    cursor: url(data/grabbing.png) 20 17, auto;
 }
