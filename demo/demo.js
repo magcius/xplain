@@ -118,11 +118,17 @@
         connect: function(server) {
             this.parent(server);
             this._launchers = [];
-            var rootWindowGeometry = this._server.getGeometry({ windowId: this._server.rootWindowId });
-            this.moveResize(undefined, undefined, rootWindowGeometry.width, 30);
+            this._server.selectInput({ windowId: this._server.rootWindowId,
+                                       events: ["ConfigureNotify"] });
             this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: "#eeeeec" });
             this.changeProperty("_NET_WM_WINDOW_TYPE", "_NET_WM_WINDOW_TYPE_DOCK");
+
+            this._syncSize();
+        },
+        _syncSize: function() {
+            var rootWindowGeometry = this._server.getGeometry({ windowId: this._server.rootWindowId });
+            this.moveResize(undefined, undefined, rootWindowGeometry.width, 30);
         },
         _relayout: function() {
             var padding = 4;
@@ -134,8 +140,12 @@
         },
         configureNotify: function(event) {
             this.parent(event);
-            if (event.windowId !== this.windowId && event.width !== undefined)
+            if (event.windowId === this._server.rootWindowId) {
+                this._syncSize();
                 this._relayout();
+            } else if (event.windowId !== this.windowId && event.width !== undefined) {
+                this._relayout();
+            }
         },
         addLauncher: function(launcher) {
             this._launchers.push(launcher);
