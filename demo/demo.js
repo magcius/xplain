@@ -411,7 +411,6 @@
     });
 
     var server = new Server();
-    server.resize(1024, 768);
     document.querySelector(".server").appendChild(server.elem);
 
     var wm = new WindowManager();
@@ -438,5 +437,14 @@
     launcher.map();
 
     window.server = server;
+
+    function syncSize() {
+        var width = document.documentElement.clientWidth;
+        var height = document.documentElement.clientHeight;
+        server.resize(width, height);
+    }
+
+    window.addEventListener("resize", syncSize);
+    syncSize();
 
 })(window);
