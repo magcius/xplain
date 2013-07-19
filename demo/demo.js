@@ -158,6 +158,7 @@
         connect: function(server) {
             this.parent(server);
             this._server.changeAttributes({ windowId: this.windowId,
+                                            backgroundColor: "#eeeeec",
                                             cursor: "pointer" });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress"] });
