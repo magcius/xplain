@@ -264,6 +264,7 @@
                                             backgroundColor: "#eeeeec" });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["MapNotify", "UnmapNotify"] });
+            this.moveResize(undefined, undefined, 200, 150);
             this.changeProperty("WM_NAME", "xeyes.js");
         },
         _start: function() {
