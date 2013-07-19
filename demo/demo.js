@@ -16,9 +16,9 @@
                 this.handleEvent(messageEvent.data);
             }.bind(this));
             this._server = connection.server;
-            this._windowId = this._server.createWindow({ x: this.x, y: this.y,
-                                                         width: this.width, height: this.height });
-            this._server.selectInput({ windowId: this._windowId,
+            this.windowId = this._server.createWindow({ x: this.x, y: this.y,
+                                                        width: this.width, height: this.height });
+            this._server.selectInput({ windowId: this.windowId,
                                        events: ["Expose", "ConfigureNotify"] });
         },
         handleEvent: function(event) {
@@ -40,27 +40,27 @@
                 this.height = event.height;
         },
         invalidate: function() {
-            this._server.invalidateWindow({ windowId: this._windowId });
+            this._server.invalidateWindow({ windowId: this.windowId });
         },
         expose: function(event) {
-            this._server.drawWithContext(this._windowId, function(ctx) {
+            this._server.drawWithContext(this.windowId, function(ctx) {
                 ctx.fillStyle = event.backgroundColor;
                 ctx.fillRect(0, 0, this.width, this.height);
             }.bind(this));
         },
         map: function() {
-            this._server.mapWindow({ windowId: this._windowId });
+            this._server.mapWindow({ windowId: this.windowId });
         },
         moveResize: function(x, y, width, height) {
-            this._server.configureWindow({ windowId: this._windowId, x: x, y: y, width: width, height: height });
+            this._server.configureWindow({ windowId: this.windowId, x: x, y: y, width: width, height: height });
         },
         changeProperty: function(name, value) {
-            this._server.changeProperty({ windowId: this._windowId, name: name, value: value });
+            this._server.changeProperty({ windowId: this.windowId, name: name, value: value });
         },
         clearDamage: function() {
             var region = new Region();
             region.init_rect(0, 0, this.width, this.height);
-            this._server.clearDamage({ windowId: this._windowId,
+            this._server.clearDamage({ windowId: this.windowId,
                                        region: region });
             region.finalize();
         },
@@ -90,7 +90,7 @@
             if (!this._loaded)
                 return;
 
-            this._server.drawWithContext(this._windowId, function(ctx) {
+            this._server.drawWithContext(this.windowId, function(ctx) {
                 ctx.drawImage(this._image, 0, 0, this.width, this.height);
             }.bind(this));
             this.clearDamage();
@@ -101,7 +101,7 @@
         Extends: ImageWindow,
         connect: function(server) {
             this.parent(server);
-            this._server.changeAttributes({ windowId: this._windowId, overrideRedirect: true });
+            this._server.changeAttributes({ windowId: this.windowId, overrideRedirect: true });
             this._setImage("demo/data/background.jpg");
         },
     });
@@ -115,8 +115,8 @@
         },
         connect: function(server) {
             this.parent(server);
-            this._server.changeAttributes({ windowId: this._windowId, overrideRedirect: true, cursor: "pointer" });
-            this._server.selectInput({ windowId: this._windowId,
+            this._server.changeAttributes({ windowId: this.windowId, overrideRedirect: true, cursor: "pointer" });
+            this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress"] });
             this._setImage(this._imageSrc);
         },
@@ -136,11 +136,11 @@
             this.parent(server);
             this._focused = false;
             this._buffer = "";
-            this._server.configureWindow({ windowId: this._windowId,
+            this._server.configureWindow({ windowId: this.windowId,
                                            width: 700, height: 400 });
-            this._server.selectInput({ windowId: this._windowId,
+            this._server.selectInput({ windowId: this.windowId,
                                        events: ["KeyPress"] });
-            this._server.changeAttributes({ windowId: this._windowId,
+            this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: "#121212" });
         },
         handleEvent: function(event) {
@@ -154,7 +154,7 @@
         expose: function(event) {
             this.parent(event);
 
-            this._server.drawWithContext(this._windowId, function(ctx) {
+            this._server.drawWithContext(this.windowId, function(ctx) {
                 ctx.font = 'bold 10pt "Droid Sans Mono Dotted"';
 
                 var x = 4, y = 16;
@@ -209,7 +209,7 @@
 
             this._pixmapId = 0;
 
-            this._server.changeAttributes({ windowId: this._windowId,
+            this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: "#eeeeec" });
             this.changeProperty("WM_NAME", "xeyes.js");
         },
@@ -278,7 +278,7 @@
 
             var pointer = this._server.queryPointer();
             var pointerCoords = this._server.translateCoordinates({ srcWindowId: this._server.rootWindowId,
-                                                                    destWindowId: this._windowId,
+                                                                    destWindowId: this.windowId,
                                                                     x: pointer.rootX, y: pointer.rootY });
 
             function hypot(x, y) {
@@ -309,10 +309,10 @@
             }
 
             this._server.copyArea({ srcDrawableId: this._pixmapId,
-                                    destDrawableId: this._windowId,
+                                    destDrawableId: this.windowId,
                                     oldX: 0, oldY: 0, newX: 0, newY: 0,
                                     width: this.width, height: this.height });
-            this._server.drawWithContext(this._windowId, function(ctx) {
+            this._server.drawWithContext(this.windowId, function(ctx) {
                 // pupils
                 ctx.fillStyle = '#000000';
 
