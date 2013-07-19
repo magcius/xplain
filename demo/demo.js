@@ -128,7 +128,8 @@
         Extends: Window,
         connect: function(server) {
             this.parent(server);
-            this._launchers = [];
+            this._leftButtons = [];
+            this._rightButtons = [];
             this._server.selectInput({ windowId: this._server.rootWindowId,
                                        events: ["ConfigureNotify"] });
             this._server.changeAttributes({ windowId: this.windowId,
@@ -143,10 +144,17 @@
         },
         _relayout: function() {
             var padding = 4;
-            var x = padding;
-            this._launchers.forEach(function(launcher) {
-                launcher.moveResize(x, padding, undefined, undefined);
-                x += launcher.width + padding;
+            var x;
+            x = padding;
+            this._leftButtons.forEach(function(button) {
+                button.moveResize(x, padding, undefined, undefined);
+                x += button.width + padding;
+            });
+
+            x = this.width - padding;
+            this._rightButtons.forEach(function(button) {
+                button.moveResize(x - button.width, padding, undefined, undefined);
+                x -= button.width + padding;
             });
         },
         configureNotify: function(event) {
@@ -158,20 +166,32 @@
                 this._relayout();
             }
         },
-        addLauncher: function(launcher) {
-            this._launchers.push(launcher);
-            this._server.selectInput({ windowId: launcher.windowId,
+        _addButton: function(box, button) {
+            box.push(button);
+            this._server.selectInput({ windowId: button.windowId,
                                        events: ["ConfigureNotify"] });
-            this._server.reparentWindow({ windowId: launcher.windowId,
+            this._server.reparentWindow({ windowId: button.windowId,
                                           newParentId: this.windowId });
             this._relayout();
         },
-        removeLauncher: function(launcher) {
-            var idx = this._launchers.indexOf(launcher);
+        _removeButton: function(box, button) {
+            var idx = box.indexOf(button);
             // XXX -- way to unselect for input
-            this._server.reparentWindow({ windowId: launcher.windowId,
+            this._server.reparentWindow({ windowId: button.windowId,
                                           newParentId: this._server.rootWindowId });
-            this._launchers.splice(idx, 1);
+            box.splice(idx, 1);
+        },
+        addLauncher: function(launcher) {
+            this._addButton(this._leftButtons, launcher);
+        },
+        removeLauncher: function(launcher) {
+            this._removeButton(this._leftButtons, launcher);
+        },
+        addAction: function(action) {
+            this._addButton(this._rightButtons, action);
+        },
+        removeAction: function(action) {
+            this._removeButton(this._rightButtons, action);
         },
         expose: function(event) {
             this._drawBackground(event);
@@ -187,12 +207,11 @@
         },
     });
 
-    var Launcher = new Class({
+    var Button = new Class({
         Extends: Window,
-        initialize: function(imageSrc, constructor) {
+        initialize: function(imageSrc) {
             this.parent();
             this._imageSrc = imageSrc;
-            this._constructor = constructor;
         },
         configureNotify: function(event) {
             this.parent(event);
@@ -226,18 +245,37 @@
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress"] });
         },
-        _launchApp: function() {
-            var client = new this._constructor();
-            client.connect(this._privateServer);
-            client.map();
-        },
         handleEvent: function(event) {
             switch (event.type) {
             case "ButtonPress":
-                return this._launchApp();
+                return this._clicked(event);
             default:
                 return this.parent(event);
             }
+        },
+    });
+
+    var Refresh = new Class({
+        Extends: Button,
+        initialize: function() {
+            this.parent("demo/data/refresh.png");
+        },
+        _clicked: function() {
+            this._server.invalidateWindow({ windowId: this._server.rootWindowId,
+                                            includeChildren: true });
+        },
+    });
+
+    var Launcher = new Class({
+        Extends: Button,
+        initialize: function(imageSrc, constructor) {
+            this.parent(imageSrc);
+            this._constructor = constructor;
+        },
+        _clicked: function() {
+            var client = new this._constructor();
+            client.connect(this._privateServer);
+            client.map();
         },
     });
 
@@ -480,6 +518,11 @@
     launcher.connect(server);
     panel.addLauncher(launcher);
     launcher.map();
+
+    var refresh = new Refresh();
+    refresh.connect(server);
+    panel.addAction(refresh);
+    refresh.map();
 
     window.server = server;
 

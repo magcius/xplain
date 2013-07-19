@@ -1678,7 +1678,8 @@
             if (!serverWindow)
                 return;
 
-            this.damageWindow(serverWindow, false, false);
+            var includeChildren = !!props.includeChildren;
+            this.damageWindow(serverWindow, false, includeChildren);
         },
         _handle_clearDamage: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
