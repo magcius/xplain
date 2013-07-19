@@ -159,12 +159,18 @@
         },
         configureNotify: function(event) {
             this.parent(event);
-            if (event.windowId === this._server.rootWindowId) {
+
+            // Try and resize if the root window changes size
+            if (event.windowId === this._server.rootWindowId)
                 this._syncSize();
+
+            // If we've changed width, relayout.
+            else if (event.windowId === this.windowId && event.width !== undefined)
                 this._relayout();
-            } else if (event.windowId !== this.windowId && event.width !== undefined) {
+
+            // And if a button changes width, relayout as well.
+            else if (event.windowId !== this.windowId && event.width !== undefined)
                 this._relayout();
-            }
         },
         _addButton: function(box, button) {
             box.push(button);
