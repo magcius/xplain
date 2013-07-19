@@ -260,14 +260,16 @@
 
             this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: "#eeeeec" });
+            this._server.selectInput({ windowId: this.windowId,
+                                       events: ["MapNotify", "UnmapNotify"] });
             this.changeProperty("WM_NAME", "xeyes.js");
         },
-        start: function() {
+        _start: function() {
             this._intervalId = setInterval(function() {
                 this.invalidate();
             }.bind(this), 50);
         },
-        stop: function() {
+        _stop: function() {
             clearInterval(this._intervalId);
             this._intervalId = 0;
         },
@@ -310,6 +312,16 @@
             this.parent(event);
             this._destroyPixmap();
             this.invalidate();
+        },
+        handleEvent: function(event) {
+            switch(event.type) {
+            case "MapNotify":
+                return this._start();
+            case "UnmapNotify":
+                return this._stop();
+            default:
+                return this.parent(event);
+            }
         },
         expose: function(event) {
             this.parent(event);
@@ -393,16 +405,17 @@
     panel.connect(server);
     panel.map();
 
-    var launcher = new Launcher("demo/data/launcher-terminal.png", FakeTerminalWindow);
+    var launcher;
+
+    launcher = new Launcher("demo/data/launcher-terminal.png", FakeTerminalWindow);
     launcher.connect(server);
     panel.addLauncher(launcher);
     launcher.map();
 
-    var xeyes = new Xeyes();
-    xeyes.connect(server);
-    xeyes.moveResize(600, 400, 300, 200);
-    xeyes.map();
-    xeyes.start();
+    launcher = new Launcher("demo/data/launcher-xeyes.png", Xeyes);
+    launcher.connect(server);
+    panel.addLauncher(launcher);
+    launcher.map();
 
     window.server = server;
 
