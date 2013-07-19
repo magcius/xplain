@@ -30,6 +30,9 @@
             }
         },
         configureNotify: function(event) {
+            if (event.windowId !== this.windowId)
+                return;
+
             if (event.x !== undefined)
                 this.x = event.x;
             if (event.y !== undefined)
@@ -106,6 +109,45 @@
         },
     });
 
+    var Panel = new Class({
+        Extends: Window,
+        connect: function(server) {
+            this.parent(server);
+            this._launchers = [];
+            this.moveResize(undefined, undefined, this._server.width, 30);
+            this._server.changeAttributes({ windowId: this.windowId,
+                                            overrideRedirect: true,
+                                            backgroundColor: "#eeeeec" });
+        },
+        _relayout: function() {
+            var padding = 4;
+            var x = padding;
+            this._launchers.forEach(function(launcher) {
+                launcher.moveResize(x, padding, undefined, undefined);
+                x += launcher.width + padding;
+            });
+        },
+        configureNotify: function(event) {
+            this.parent(event);
+            this._relayout();
+        },
+        addLauncher: function(launcher) {
+            this._launchers.push(launcher);
+            this._server.selectInput({ windowId: launcher.windowId,
+                                       events: ["ConfigureNotify"] });
+            this._server.reparentWindow({ windowId: launcher.windowId,
+                                          newParentId: this.windowId });
+            this._relayout();
+        },
+        removeLauncher: function(launcher) {
+            var idx = this._launchers.indexOf(launcher);
+            // XXX -- way to unselect for input
+            this._server.reparentWindow({ windowId: launcher.windowId,
+                                          newParentId: this._server.rootWindowId });
+            this._launchers.splice(idx, 1);
+        },
+    });
+
     var Launcher = new Class({
         Extends: ImageWindow,
         initialize: function(imageSrc, callback) {
@@ -115,7 +157,8 @@
         },
         connect: function(server) {
             this.parent(server);
-            this._server.changeAttributes({ windowId: this.windowId, overrideRedirect: true, cursor: "pointer" });
+            this._server.changeAttributes({ windowId: this.windowId,
+                                            cursor: "pointer" });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress"] });
             this._setImage(this._imageSrc);
@@ -340,9 +383,13 @@
     w.connect(server);
     w.map();
 
+    var panel = new Panel();
+    panel.connect(server);
+    panel.map();
+
     var launcher = new Launcher("demo/data/launcher-terminal.png", newWindow);
     launcher.connect(server);
-    launcher.moveResize(10, 10, undefined, undefined);
+    panel.addLauncher(launcher);
     launcher.map();
 
     var cascade = 40;
