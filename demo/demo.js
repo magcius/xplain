@@ -169,7 +169,8 @@
                 ctx.strokeStyle = '#aaaaaa';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.rect(-1, 0, this.width + 2, this.height);
+                ctx.moveTo(0, this.height);
+                ctx.lineTo(this.width, this.height);
                 ctx.stroke();
             }.bind(this));
         },
