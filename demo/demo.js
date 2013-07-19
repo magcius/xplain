@@ -118,7 +118,8 @@
         connect: function(server) {
             this.parent(server);
             this._launchers = [];
-            this.moveResize(undefined, undefined, this._server.width, 30);
+            var rootWindowGeometry = this._server.getGeometry({ windowId: this._server.rootWindowId });
+            this.moveResize(undefined, undefined, rootWindowGeometry.width, 30);
             this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: "#eeeeec" });
             this.changeProperty("_NET_WM_WINDOW_TYPE", "_NET_WM_WINDOW_TYPE_DOCK");

@@ -483,8 +483,6 @@
         initialize: function(serverClient, server) {
             this._serverClient = serverClient;
             this._server = server;
-            this.width = this._server.width;
-            this.height = this._server.height;
             this.rootWindowId = this._server.rootWindowId;
         }
     });
