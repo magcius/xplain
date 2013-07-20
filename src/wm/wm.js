@@ -268,12 +268,14 @@
         },
         _frameFocusIn: function(event) {
             this._focused = true;
+            this._server.invalidateWindow({ windowId: this._frameWindowId });
         },
         _frameFocusOut: function(event) {
             if (event.detail == "Inferior")
                 return;
 
             this._focused = false;
+            this._server.invalidateWindow({ windowId: this._frameWindowId });
         },
         _frameExpose: function(event) {
             this._server.drawWithContext(this._frameWindowId, function(ctx) {
