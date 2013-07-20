@@ -63,6 +63,9 @@
         map: function() {
             this._server.mapWindow({ windowId: this.windowId });
         },
+        unmap: function() {
+            this._server.unmapWindow({ windowId: this.windowId });
+        },
         moveResize: function(x, y, width, height) {
             this._server.configureWindow({ windowId: this.windowId, x: x, y: y, width: width, height: height });
         },
@@ -222,12 +225,73 @@
         },
     });
 
+    var Menu = new Class({
+        Extends: Window,
+        connect: function(server) {
+            this.parent(server);
+            this._server.changeAttributes({ windowId: this.windowId,
+                                            overrideRedirect: true,
+                                            backgroundColor: "#ffffff" });
+            this._server.selectInput({ windowId: this.windowId,
+                                       events: ["ButtonPress", "ButtonRelease"] });
+        },
+        _syncGeometry: function(openerWindowId) {
+            var tree = this._server.queryTree({ windowId: openerWindowId });
+            var geometry = this._server.getGeometry({ windowId: openerWindowId });
+            var rootCoords = this._server.translateCoordinates({ srcWindowId: tree.parent,
+                                                                 destWindowId: this._server.rootWindowId,
+                                                                 x: geometry.x, y: geometry.y });
+
+            var width = 200;
+            var height = 200;
+
+            // XXX: hardcoded anchor to the bottom right
+            var openerRight = rootCoords.x + geometry.width;
+            var openerBottom = rootCoords.y + geometry.height;
+
+            var x = openerRight - width;
+            var y = openerBottom;
+
+            this.moveResize(x, y, width, height);
+        },
+        _grab: function() {
+            this._server.grabPointer({ windowId: this.windowId,
+                                       ownerEvents: true,
+                                       events: [],
+                                       pointerMode: "Async",
+                                       cursor: "" });
+        },
+        _ungrab: function() {
+            this._server.ungrabPointer({ windowId: this.windowId });
+        },
+        open: function(openerWindowId, closedCallback) {
+            this._syncGeometry(openerWindowId);
+            this.map();
+            this._grab();
+            this._closedCallback = closedCallback;
+       },
+        close: function() {
+            this.unmap();
+            this._closedCallback();
+        },
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "ButtonRelease":
+                return this.close();
+            default:
+                return this.parent(event);
+            }
+        },
+    });
+
     var MenuButton = new Class({
         Extends: Window,
         initialize: function(label) {
             this.parent();
             this._label = label;
-            this._isClicked = false;
+            this._isMenuOpen = false;
+
+            this.menu = new Menu();
         },
         connect: function(server) {
             this.parent(server);
@@ -235,6 +299,8 @@
             this._syncBackground();
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress"] });
+
+            this.menu.connect(server);
         },
         _syncSize: function() {
             var padding = 4;
@@ -246,7 +312,7 @@
             this.moveResize(undefined, undefined, width, undefined);
         },
         _syncBackground: function() {
-            var color = this._isClicked ? "#ffffff" : "#eeeeec";
+            var color = this._isMenuOpen ? "#ffffff" : "#eeeeec";
 
             this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: color });
@@ -268,8 +334,13 @@
             }.bind(this));
             this.clearDamage();
         },
+        _onMenuClosed: function() {
+            this._isMenuOpen = false;
+            this._syncBackground();
+        },
         _clicked: function() {
-            this._isClicked = !this._isClicked;
+            this.menu.open(this.windowId, this._onMenuClosed.bind(this));
+            this._isMenuOpen = true;
             this._syncBackground();
         },
         handleEvent: function(event) {
