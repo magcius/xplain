@@ -1412,8 +1412,6 @@
             this.syncCursorWindow("Ungrab");
             this.syncCursor();
         },
-
-        // Used by _createRootWindow and createWindow.
         damageWindow: function(serverWindow, force, includeChildren) {
             if (!serverWindow.viewable && !force)
                 return;
