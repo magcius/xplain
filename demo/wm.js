@@ -230,6 +230,12 @@
             if (event.button != 1)
                 return;
 
+            // If a client window doesn't select for ButtonPress / ButtonRelease,
+            // then it will bubble up to us. Make sure that we don't start a grab
+            // in that case.
+            if (event.childWindowId != this._frameWindowId)
+                return;
+
             this._origMousePos = { x: event.rootX, y: event.rootY };
             var frameCoords = this._server.getGeometry({ windowId: this._frameWindowId });
             this._origWindowPos = { x: frameCoords.x, y: frameCoords.y };
@@ -241,6 +247,10 @@
         },
         _frameButtonRelease: function(event) {
             if (event.button != 1)
+                return;
+
+            // See above.
+            if (event.childWindowId != this._frameWindowId)
                 return;
 
             this._server.ungrabPointer({ windowId: this._frameWindowId });
