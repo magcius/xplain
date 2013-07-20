@@ -205,11 +205,11 @@
             this._drawBackground(event);
 
             this._server.drawWithContext(this.windowId, function(ctx) {
-                ctx.strokeStyle = '#aaaaaa';
+                ctx.strokeStyle = '#bec0c0';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(0, this.height);
-                ctx.lineTo(this.width, this.height);
+                ctx.moveTo(0, this.height - 0.5);
+                ctx.lineTo(this.width, this.height - 0.5);
                 ctx.stroke();
             }.bind(this));
         },
