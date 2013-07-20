@@ -97,6 +97,7 @@
                                        events: ["ConfigureNotify"] });
             this._server.changeAttributes({ windowId: this.windowId, overrideRedirect: true });
             this._syncSize();
+            this.map();
         },
         _syncSize: function() {
             var rootWindowGeometry = this._server.getGeometry({ windowId: this._server.rootWindowId });
@@ -143,8 +144,8 @@
             this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: "#eeeeec" });
             this.changeProperty("_NET_WM_WINDOW_TYPE", "_NET_WM_WINDOW_TYPE_DOCK");
-
             this._syncSize();
+            this.map();
         },
         _syncSize: function() {
             var rootWindowGeometry = this._server.getGeometry({ windowId: this._server.rootWindowId });
@@ -190,6 +191,7 @@
                                        events: ["ConfigureNotify"] });
             this._server.reparentWindow({ windowId: button.windowId,
                                           newParentId: this.windowId });
+            this._server.mapWindow({ windowId: button.windowId });
             this._relayout();
         },
         _removeButton: function(box, button) {
@@ -423,7 +425,6 @@
         _clicked: function() {
             var client = new this._constructor();
             client.connect(this._privateServer);
-            client.map();
         },
     });
 
@@ -440,6 +441,7 @@
             this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: "#121212" });
             this.changeProperty("WM_NAME", "Fake Terminal");
+            this.map();
         },
         handleEvent: function(event) {
             switch(event.type) {
@@ -513,6 +515,7 @@
                                        events: ["MapNotify", "UnmapNotify"] });
             this.moveResize(undefined, undefined, 200, 150);
             this.changeProperty("WM_NAME", "xeyes.js");
+            this.map();
         },
         _start: function() {
             this._intervalId = setInterval(function() {
@@ -649,33 +652,27 @@
 
     var w = new BackgroundWindow();
     w.connect(server);
-    w.map();
 
     var panel = new Panel();
     panel.connect(server);
-    panel.map();
 
     var launcher;
 
     launcher = new Launcher("demo/data/launcher-terminal.png", FakeTerminalWindow);
     launcher.connect(server);
     panel.addLauncher(launcher);
-    launcher.map();
 
     launcher = new Launcher("demo/data/launcher-xeyes.png", Xeyes);
     launcher.connect(server);
     panel.addLauncher(launcher);
-    launcher.map();
 
     var refresh = new Refresh();
     refresh.connect(server);
     panel.addAction(refresh);
-    refresh.map();
 
     var menu = new MenuButton("Menu");
     menu.connect(server);
     panel.addAction(menu);
-    menu.map();
 
     window.server = server;
 
