@@ -76,7 +76,7 @@
         },
 
         _updateGeometry: function(clientGeometry) {
-            var border = { top: 30, left: 5, right: 5, bottom: 5 };
+            var border = { top: 30, left: 1, right: 1, bottom: 1 };
             var positionUpdated = false;
             var sizeUpdated = false;
 
