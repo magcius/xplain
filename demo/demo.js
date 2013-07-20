@@ -1,6 +1,11 @@
 (function(exports) {
     "use strict";
 
+    // Used for operations like measureText which require
+    // a 2D context but we don't really draw anything to.
+    var tmpCanvas = document.createElement("canvas");
+    var tmpCtx = tmpCanvas.getContext("2d");
+
     var Window = new Class({
         initialize: function() {
             this.x = 0;
@@ -212,6 +217,60 @@
                 ctx.lineTo(this.width, this.height - 0.5);
                 ctx.stroke();
             }.bind(this));
+        },
+    });
+
+    var MenuButton = new Class({
+        Extends: Window,
+        initialize: function(label) {
+            this.parent();
+            this._label = label;
+            this._isClicked = false;
+        },
+        connect: function(server) {
+            this.parent(server);
+            this._syncSize();
+            this._syncBackground();
+            this._server.selectInput({ windowId: this.windowId,
+                                       events: ["ButtonPress"] });
+        },
+        _syncSize: function() {
+            var padding = 4;
+            tmpCtx.save();
+            tmpCtx.font = '11pt sans';
+            var metrics = tmpCtx.measureText(this._label);
+            tmpCtx.restore();
+            var width = metrics.width + padding * 2;
+            this.moveResize(undefined, undefined, width, 22);
+        },
+        _syncBackground: function() {
+            var color = this._isClicked ? "#ffffff" : "#eeeeec";
+
+            this._server.changeAttributes({ windowId: this.windowId,
+                                            backgroundColor: color });
+        },
+        expose: function(event) {
+            this._drawBackground(event);
+
+            var padding = 4;
+            this._server.drawWithContext(this.windowId, function(ctx) {
+                ctx.font = '11pt sans';
+                ctx.fillStyle = '#000000';
+                ctx.fillText(this._label, padding, 16);
+            }.bind(this));
+            this.clearDamage();
+        },
+        _clicked: function() {
+            this._isClicked = !this._isClicked;
+            this._syncBackground();
+        },
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "ButtonPress":
+                return this._clicked(event);
+            default:
+                return this.parent(event);
+            }
         },
     });
 
@@ -531,6 +590,11 @@
     refresh.connect(server);
     panel.addAction(refresh);
     refresh.map();
+
+    var menu = new MenuButton("Menu");
+    menu.connect(server);
+    panel.addAction(menu);
+    menu.map();
 
     window.server = server;
 
