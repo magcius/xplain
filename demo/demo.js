@@ -405,7 +405,7 @@
                 ctx.clearRect(0, 0, this.width, this.height);
 
                 ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 4;
+                ctx.lineWidth = 10;
                 ctx.fillStyle = '#ffffff';
 
                 // scleras
@@ -444,8 +444,8 @@
             var eyeCenterRX = this.width * (3/4);
             var eyeCenterY = this.height / 2;
 
-            var pupilRX = eyeRX / 2;
-            var pupilRY = eyeRY / 2;
+            var pupilRX = eyeRX / 4;
+            var pupilRY = eyeRY / 4;
 
             var pointer = this._server.queryPointer();
             var pointerCoords = this._server.translateCoordinates({ srcWindowId: this._server.rootWindowId,
@@ -459,8 +459,8 @@
             function getPupilPosition(eyeCenterX) {
                 // The max distance away from the center the pupil
                 // is allowed to be.
-                var maxDistX = eyeRX - pupilRX;
-                var maxDistY = eyeRY - pupilRY;
+                var maxDistX = eyeRX - pupilRX - 20;
+                var maxDistY = eyeRY - pupilRY - 20;
 
                 // Normalize to center of eye.
                 var pointerX = pointerCoords.x - eyeCenterX;
