@@ -151,16 +151,18 @@
             var padding = 4;
             var x;
             x = padding;
+
+            var buttonHeight = this.height - 1;
             this._leftButtons.forEach(function(button) {
                 var geom = this._server.getGeometry({ windowId: button.windowId });
-                button.moveResize(x, padding, undefined, undefined);
+                button.moveResize(x, 0, undefined, buttonHeight);
                 x += geom.width + padding;
             }.bind(this));
 
             x = this.width - padding;
             this._rightButtons.forEach(function(button) {
                 var geom = this._server.getGeometry({ windowId: button.windowId });
-                button.moveResize(x - geom.width, padding, undefined, undefined);
+                button.moveResize(x - geom.width, 0, undefined, buttonHeight);
                 x -= geom.width + padding;
             }.bind(this));
         },
@@ -241,7 +243,7 @@
             var metrics = tmpCtx.measureText(this._label);
             tmpCtx.restore();
             var width = metrics.width + padding * 2;
-            this.moveResize(undefined, undefined, width, 22);
+            this.moveResize(undefined, undefined, width, undefined);
         },
         _syncBackground: function() {
             var color = this._isClicked ? "#ffffff" : "#eeeeec";
@@ -256,7 +258,13 @@
             this._server.drawWithContext(this.windowId, function(ctx) {
                 ctx.font = '11pt sans';
                 ctx.fillStyle = '#000000';
-                ctx.fillText(this._label, padding, 16);
+                // XXX: Browsers can't measure alphabetic baseline yet,
+                // so just hardcode it for now.
+                // var metrics = ctx.measureText(this._label);
+                // var baseline = metrics.alphabeticBaseline;
+                var baseline = 11;
+                var y = (this.height - baseline) / 2 + baseline;
+                ctx.fillText(this._label, padding, y);
             }.bind(this));
             this.clearDamage();
         },
@@ -291,7 +299,9 @@
                 return;
 
             this._server.drawWithContext(this.windowId, function(ctx) {
-                ctx.drawImage(this._image, 0, 0, this.width, this.height);
+                var x = (this.width - this._image.width) / 2;
+                var y = (this.height - this._image.height) / 2;
+                ctx.drawImage(this._image, x, y, this._image.width, this._image.height);
             }.bind(this));
             this.clearDamage();
         },
