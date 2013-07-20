@@ -47,9 +47,6 @@
             if (event.height !== undefined)
                 this.height = event.height;
         },
-        invalidate: function() {
-            this._server.invalidateWindow({ windowId: this.windowId });
-        },
         _drawBackground: function(event) {
             this._server.drawWithContext(this.windowId, function(ctx) {
                 ctx.fillStyle = event.backgroundColor;
@@ -59,18 +56,6 @@
         expose: function(event) {
             this._drawBackground(event);
             this.clearDamage();
-        },
-        map: function() {
-            this._server.mapWindow({ windowId: this.windowId });
-        },
-        unmap: function() {
-            this._server.unmapWindow({ windowId: this.windowId });
-        },
-        moveResize: function(x, y, width, height) {
-            this._server.configureWindow({ windowId: this.windowId, x: x, y: y, width: width, height: height });
-        },
-        changeProperty: function(name, value) {
-            this._server.changeProperty({ windowId: this.windowId, name: name, value: value });
         },
         clearDamage: function() {
             var region = new Region();
@@ -97,11 +82,13 @@
                                        events: ["ConfigureNotify"] });
             this._server.changeAttributes({ windowId: this.windowId, overrideRedirect: true });
             this._syncSize();
-            this.map();
+            this._server.mapWindow({ windowId: this.windowId });
         },
         _syncSize: function() {
             var rootWindowGeometry = this._server.getGeometry({ windowId: this._server.rootWindowId });
-            this.moveResize(undefined, undefined, rootWindowGeometry.width, rootWindowGeometry.height);
+            this._server.configureWindow({ windowId: this.windowId,
+                                           width: rootWindowGeometry.width,
+                                           height: rootWindowGeometry.height });
         },
         configureNotify: function(event) {
             this.parent(event);
@@ -109,7 +96,7 @@
             if (event.windowId === this._server.rootWindowId)
                 this._syncSize();
 
-            this.invalidate();
+            this._server.invalidateWindow({ windowId: this.windowId });
         },
         expose: function(event) {
             this._drawBackground(event);
@@ -143,13 +130,17 @@
                                        events: ["ConfigureNotify"] });
             this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: "#eeeeec" });
-            this.changeProperty("_NET_WM_WINDOW_TYPE", "_NET_WM_WINDOW_TYPE_DOCK");
+            this._server.changeProperty({ windowId: this.windowId,
+                                          name: "_NET_WM_WINDOW_TYPE",
+                                          value: "_NET_WM_WINDOW_TYPE_DOCK" });
             this._syncSize();
-            this.map();
+            this._server.mapWindow({ windowId: this.windowId });
         },
         _syncSize: function() {
             var rootWindowGeometry = this._server.getGeometry({ windowId: this._server.rootWindowId });
-            this.moveResize(undefined, undefined, rootWindowGeometry.width, 30);
+            this._server.configureWindow({ windowId: this.windowId,
+                                           width: rootWindowGeometry.width,
+                                           height: 30 });
         },
         _relayout: function() {
             var padding = 4;
@@ -159,15 +150,18 @@
             var buttonHeight = this.height - 1;
             this._leftButtons.forEach(function(button) {
                 var geom = this._server.getGeometry({ windowId: button.windowId });
-                button.moveResize(x, 0, undefined, buttonHeight);
+                this._server.configureWindow({ windowId: button.windowId,
+                                               x: x, y: 0, height: buttonHeight });
                 x += geom.width + padding;
             }.bind(this));
 
             x = this.width - padding;
             this._rightButtons.forEach(function(button) {
                 var geom = this._server.getGeometry({ windowId: button.windowId });
-                button.moveResize(x - geom.width, 0, undefined, buttonHeight);
-                x -= geom.width + padding;
+                x -= geom.width;
+                this._server.configureWindow({ windowId: button.windowId,
+                                               x: x, y: 0, height: buttonHeight });
+                x -= padding;
             }.bind(this));
         },
         configureNotify: function(event) {
@@ -254,7 +248,8 @@
             var x = openerRight - width;
             var y = openerBottom;
 
-            this.moveResize(x, y, width, height);
+            this._server.configureWindow({ windowId: this.windowId,
+                                           x: x, y: y, width: width, height: height });
         },
         _grab: function() {
             this._server.grabPointer({ windowId: this.windowId,
@@ -268,12 +263,12 @@
         },
         open: function(openerWindowId, closedCallback) {
             this._syncGeometry(openerWindowId);
-            this.map();
+            this._server.mapWindow({ windowId: this.windowId });
             this._grab();
             this._closedCallback = closedCallback;
        },
         close: function() {
-            this.unmap();
+            this._server.unmapWindow({ windowId: this.windowId });
             this._closedCallback();
         },
         handleEvent: function(event) {
@@ -311,7 +306,8 @@
             var metrics = tmpCtx.measureText(this._label);
             tmpCtx.restore();
             var width = metrics.width + padding * 2;
-            this.moveResize(undefined, undefined, width, undefined);
+            this._server.configureWindow({ windowId: this.windowId,
+                                           width: width });
         },
         _syncBackground: function() {
             var color = this._isMenuOpen ? "#ffffff" : "#eeeeec";
@@ -363,7 +359,7 @@
         },
         configureNotify: function(event) {
             this.parent(event);
-            this.invalidate();
+            this._server.invalidateWindow({ windowId: this.windowId });
         },
         expose: function(event) {
             this._drawBackground(event);
@@ -385,7 +381,9 @@
             this._image = new Image();
             this._image.addEventListener("load", function() {
                 this._loaded = true;
-                this.moveResize(undefined, undefined, this._image.width, this._image.height);
+                this._server.configureWindow({ windowId: this.windowId,
+                                               width: this._image.width,
+                                               height: this._image.height });
             }.bind(this));
             this._image.src = this._imageSrc;
 
@@ -440,8 +438,10 @@
                                        events: ["KeyPress"] });
             this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: "#121212" });
-            this.changeProperty("WM_NAME", "Fake Terminal");
-            this.map();
+            this._server.changeProperty({ windowId: this.windowId,
+                                          name: "WM_NAME",
+                                          value: "Fake Terminal" });
+            this._server.mapWindow({ windowId: this.windowId });
         },
         handleEvent: function(event) {
             switch(event.type) {
@@ -477,7 +477,7 @@
         },
         _handleKeyPress: function(event) {
             this._buffer += String.fromCharCode(event.charCode);
-            this.invalidate();
+            this._server.invalidateWindow({ windowId: this.windowId });
         },
     });
 
@@ -513,13 +513,16 @@
                                             backgroundColor: "#eeeeec" });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["MapNotify", "UnmapNotify"] });
-            this.moveResize(undefined, undefined, 200, 150);
-            this.changeProperty("WM_NAME", "xeyes.js");
-            this.map();
+            this._server.configureWindow({ windowId: this.windowId,
+                                           width: 200, height: 150 });
+            this._server.changeProperty({ windowId: this.windowId,
+                                          name: "WM_NAME",
+                                          value: "xeyes.js" });
+            this._server.mapWindow({ windowId: this.windowId });
         },
         _start: function() {
             this._intervalId = setInterval(function() {
-                this.invalidate();
+                this._server.invalidateWindow({ windowId: this.windowId });
             }.bind(this), 50);
         },
         _stop: function() {
@@ -564,7 +567,7 @@
         configureNotify: function(event) {
             this.parent(event);
             this._destroyPixmap();
-            this.invalidate();
+            this._server.invalidateWindow({ windowId: this.windowId });
         },
         handleEvent: function(event) {
             switch(event.type) {
