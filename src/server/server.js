@@ -738,8 +738,14 @@
 
             this._canvas = document.createElement("canvas");
             this._container.appendChild(this._canvas);
-
             this._ctx = this._canvas.getContext('2d');
+
+            this._debugCanvas = document.createElement("canvas");
+            this._container.appendChild(this._debugCanvas);
+            this._debugCtx = this._debugCanvas.getContext("2d");
+
+            this._canvas.style.position = "absolute";
+            this._debugCanvas.style.position = "absolute";
 
             // A canvas to save data on during resizes.
             this._tmpCanvas = document.createElement("canvas");
@@ -762,6 +768,9 @@
             // And then, to save memory, dump the old image contents
             this._tmpCanvas.width = 1;
             this._tmpCanvas.height = 1;
+
+            this._debugCanvas.width = width;
+            this._debugCanvas.height = height;
 
             this._container.style.width = width + "px";
             this._container.style.height = height + "px";
@@ -886,6 +895,12 @@
 
                 obscuringRegion.finalize();
             }
+
+            this._debugCtx.clearRect(0, 0, this._debugCanvas.width, this._debugCanvas.height);
+            this._debugCtx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+            this._debugCtx.beginPath();
+            pathFromRegion(this._debugCtx, region);
+            this._debugCtx.fill();
 
             // The caller owns the damaged region, so make sure
             // none of our subtractions take effect.
