@@ -1537,9 +1537,9 @@
 
             var reply = {};
             reply.root = this.rootWindowId;
-            reply.parent = serverWindow.parentWindow ? serverWindow.parentWindow.windowId : null;
+            reply.parent = serverWindow.parentServerWindow ? serverWindow.parentServerWindow.xid : null;
             reply.children = serverWindow.children.map(function(w) {
-                return w.windowId;
+                return w.xid;
             }).reverse();
             return reply;
         },
