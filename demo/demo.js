@@ -442,7 +442,7 @@
                 ctx.fillStyle = "#121212";
                 ctx.fillRect(0, 0, this.width, this.height);
 
-                ctx.font = 'bold 10pt "Droid Sans Mono Dotted"';
+                ctx.font = 'bold 10pt monospace';
 
                 var x = 4, y = 16;
                 function drawText(text) {
