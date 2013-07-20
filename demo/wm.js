@@ -137,7 +137,7 @@
             var geom = { x: 0, y: 0, width: size, height: size };
             var buttonWindowId = this._server.createWindow(geom);
             this._wm.register(buttonWindowId, this);
-            this._server.selectInput({ windowId: buttonWindowId, events: ["ButtonPress", "ButtonRelease"] });
+            this._server.selectInput({ windowId: buttonWindowId, events: ["ButtonPress", "ButtonRelease", "Expose"] });
             this._server.changeAttributes({ windowId: buttonWindowId, cursor: "pointer" });
             var radius = size / 2;
             var corners = { topLeft: radius, topRight: radius, bottomLeft: radius, bottomRight: radius };
@@ -166,10 +166,9 @@
             this._wm.register(this._frameWindowId, this);
             this._server.selectInput({ windowId: this._frameWindowId,
                                        events: ["SubstructureRedirect", "SubstructureNotify", "Expose", "ButtonPress", "FocusIn", "FocusOut"] });
-            this._server.changeAttributes({ windowId: this._frameWindowId, hasInput: true, backgroundColor: 'orange' });
+            this._server.changeAttributes({ windowId: this._frameWindowId, hasInput: true });
 
             this._closeWindowId = this._makeButton();
-            this._server.changeAttributes({ windowId: this._closeWindowId, backgroundColor: 'red' });
 
             this._server.reparentWindow({ windowId: this._clientWindowId,
                                           newParentId: this._frameWindowId });
@@ -258,18 +257,18 @@
             this._updateGeometry({ x: newX, y: newY });
         },
         _frameFocusIn: function(event) {
-            this._server.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'yellow' });
+            this._focused = true;
         },
         _frameFocusOut: function(event) {
             if (event.detail == "Inferior")
                 return;
 
-            this._server.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'orange' });
+            this._focused = false;
         },
         _frameExpose: function(event) {
             this._server.drawWithContext(this._frameWindowId, function(ctx) {
                 // Draw background
-                ctx.fillStyle = event.backgroundColor;
+                ctx.fillStyle = this._focused ? "yellow" : "orange";
                 ctx.fillRect(0, 0, this._frameGeometry.width, this._frameGeometry.height);
 
                 // Draw title
@@ -281,13 +280,18 @@
                     ctx.font = '12pt sans-serif';
                     ctx.fillText(title, this._frameGeometry.width / 2, 21);
                 }
-
                 this._server.clearDamage({ windowId: this._frameWindowId, region: "Full" });
             }.bind(this));
         },
         _handleButtonEvent: function(event) {
             if (event.windowId == this._closeWindowId && event.type == "ButtonRelease")
                 this._server.destroyWindow({ windowId: this._clientWindowId });
+            if (event.windowId == this._closeWindowId && event.type == "Expose")
+                this._server.drawWithContext(this._closeWindowId, function(ctx) {
+                    ctx.fillStyle = "red";
+                    ctx.fillRect(0, 0, 15, 15);
+                    this._server.clearDamage({ windowId: this._closeWindowId, region: "Full" });
+                }.bind(this));
         },
         handleEvent: function(event) {
             if (event.windowId == this._closeWindowId)

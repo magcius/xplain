@@ -47,16 +47,6 @@
             if (event.height !== undefined)
                 this.height = event.height;
         },
-        _drawBackground: function(event) {
-            this._server.drawWithContext(this.windowId, function(ctx) {
-                ctx.fillStyle = event.backgroundColor;
-                ctx.fillRect(0, 0, this.width, this.height);
-            }.bind(this));
-        },
-        expose: function(event) {
-            this._drawBackground(event);
-            this.clearDamage();
-        },
         clearDamage: function() {
             var region = new Region();
             region.init_rect(0, 0, this.width, this.height);
@@ -99,8 +89,6 @@
             this._server.invalidateWindow({ windowId: this.windowId });
         },
         expose: function(event) {
-            this._drawBackground(event);
-
             if (!this._loaded)
                 return;
 
@@ -120,6 +108,8 @@
         },
     });
 
+    var PANEL_BACKGROUND_COLOR = "#eeeeec";
+
     var Panel = new Class({
         Extends: Window,
         connect: function(server) {
@@ -128,8 +118,6 @@
             this._rightButtons = [];
             this._server.selectInput({ windowId: this._server.rootWindowId,
                                        events: ["ConfigureNotify"] });
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: "#eeeeec" });
             this._server.changeProperty({ windowId: this.windowId,
                                           name: "_NET_WM_WINDOW_TYPE",
                                           value: "_NET_WM_WINDOW_TYPE_DOCK" });
@@ -208,9 +196,10 @@
             this._removeButton(this._rightButtons, action);
         },
         expose: function(event) {
-            this._drawBackground(event);
-
             this._server.drawWithContext(this.windowId, function(ctx) {
+                ctx.fillStyle = PANEL_BACKGROUND_COLOR;
+                ctx.fillRect(0, 0, this.width, this.height);
+
                 ctx.strokeStyle = '#bec0c0';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
@@ -226,8 +215,7 @@
         connect: function(server) {
             this.parent(server);
             this._server.changeAttributes({ windowId: this.windowId,
-                                            overrideRedirect: true,
-                                            backgroundColor: "#ffffff" });
+                                            overrideRedirect: true });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress", "ButtonRelease"] });
         },
@@ -271,6 +259,12 @@
             this._server.unmapWindow({ windowId: this.windowId });
             this._closedCallback();
         },
+        expose: function(event) {
+            this._server.drawWithContext(this.windowId, function(ctx) {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, this.width, this.height);
+            }.bind(this));
+        },
         handleEvent: function(event) {
             switch (event.type) {
             case "ButtonRelease":
@@ -293,7 +287,6 @@
         connect: function(server) {
             this.parent(server);
             this._syncSize();
-            this._syncBackground();
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress"] });
 
@@ -309,17 +302,12 @@
             this._server.configureWindow({ windowId: this.windowId,
                                            width: width });
         },
-        _syncBackground: function() {
-            var color = this._isMenuOpen ? "#ffffff" : "#eeeeec";
-
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: color });
-        },
         expose: function(event) {
-            this._drawBackground(event);
-
             var padding = 4;
             this._server.drawWithContext(this.windowId, function(ctx) {
+                ctx.fillStyle = this._isMenuOpen ? "#ffffff" : "#eeeeec";
+                ctx.fillRect(0, 0, this.width, this.height);
+
                 ctx.font = '11pt sans';
                 ctx.fillStyle = '#000000';
                 // XXX: Browsers can't measure alphabetic baseline yet,
@@ -334,12 +322,12 @@
         },
         _onMenuClosed: function() {
             this._isMenuOpen = false;
-            this._syncBackground();
+            this._server.invalidateWindow({ windowId: this.windowId });
         },
         _clicked: function() {
-            this.menu.open(this.windowId, this._onMenuClosed.bind(this));
             this._isMenuOpen = true;
-            this._syncBackground();
+            this.menu.open(this.windowId, this._onMenuClosed.bind(this));
+            this._server.invalidateWindow({ windowId: this.windowId });
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -362,12 +350,13 @@
             this._server.invalidateWindow({ windowId: this.windowId });
         },
         expose: function(event) {
-            this._drawBackground(event);
-
-            if (!this._loaded)
-                return;
-
             this._server.drawWithContext(this.windowId, function(ctx) {
+                ctx.fillStyle = PANEL_BACKGROUND_COLOR;
+                ctx.fillRect(0, 0, this.width, this.height);
+
+                if (!this._loaded)
+                    return;
+
                 var x = (this.width - this._image.width) / 2;
                 var y = (this.height - this._image.height) / 2;
                 ctx.drawImage(this._image, x, y, this._image.width, this._image.height);
@@ -388,7 +377,6 @@
             this._image.src = this._imageSrc;
 
             this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: "#eeeeec",
                                             cursor: "pointer" });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress"] });
@@ -436,8 +424,6 @@
                                            width: 700, height: 400 });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["KeyPress"] });
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: "#121212" });
             this._server.changeProperty({ windowId: this.windowId,
                                           name: "WM_NAME",
                                           value: "Fake Terminal" });
@@ -452,9 +438,10 @@
             }
         },
         expose: function(event) {
-            this._drawBackground(event);
-
             this._server.drawWithContext(this.windowId, function(ctx) {
+                ctx.fillStyle = "#121212";
+                ctx.fillRect(0, 0, this.width, this.height);
+
                 ctx.font = 'bold 10pt "Droid Sans Mono Dotted"';
 
                 var x = 4, y = 16;
@@ -509,8 +496,6 @@
 
             this._pixmapId = 0;
 
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: "#eeeeec" });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["MapNotify", "UnmapNotify"] });
             this._server.configureWindow({ windowId: this.windowId,
@@ -540,7 +525,6 @@
             this._pixmapId = this._server.createPixmap({ width: this.width,
                                                          height: this.height });
 
-
             var eyeRX = this.width / 4 - 6;
             var eyeRY = this.height / 2 - 6;
             var eyeCenterLX = this.width * (1/4);
@@ -548,7 +532,8 @@
             var eyeCenterY = this.height / 2;
 
             this._server.drawWithContext(this._pixmapId, function(ctx) {
-                ctx.clearRect(0, 0, this.width, this.height);
+                ctx.fillStyle = PANEL_BACKGROUND_COLOR;
+                ctx.fillRect(0, 0, this.width, this.height);
 
                 ctx.strokeStyle = '#000000';
                 ctx.lineWidth = 10;
@@ -580,8 +565,6 @@
             }
         },
         expose: function(event) {
-            this._drawBackground(event);
-
             this._ensurePixmap();
 
             var eyeRX = this.width / 4 - 6;

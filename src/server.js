@@ -119,14 +119,10 @@
         },
     });
 
-    var DEFAULT_BACKGROUND_COLOR = '#ddd';
-
     var ServerWindow = new Class({
         initialize: function(xid, server, props) {
             this.xid = xid;
             this._server = server;
-
-            this._backgroundColor = DEFAULT_BACKGROUND_COLOR;
 
             // The region of the window that needs to be redrawn, in window coordinates.
             this.damagedRegion = new Region();
@@ -221,27 +217,15 @@
             else
                 this.damagedRegion.subtract(this.damagedRegion, region);
         },
-        _drawBackground: function(ctx) {
-            ctx.fillStyle = this._backgroundColor;
-            ctx.fillRect(0, 0, this.width, this.height);
-        },
         sendExpose: function() {
             if (this.damagedRegion.is_empty())
                 return;
 
             if (!this._server.sendEvent({ type: "Expose",
-                                          backgroundColor: this._backgroundColor,
-                                          windowId: this.xid })) {
-                this._server.drawWithContext(this, this.xid, this._drawBackground.bind(this));
+                                          windowId: this.xid }))
                 this.clearDamage("Full");
-            }
         },
         changeAttributes: function(attributes) {
-            if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
-                this._backgroundColor = attributes.backgroundColor || DEFAULT_BACKGROUND_COLOR;
-                this._server.damageWindow(this, false, false);
-            }
-
             if (valueUpdated(attributes.overrideRedirect, this._overrideRedirect)) {
                 this._overrideRedirect = attributes.overrideRedirect;
             }
@@ -787,7 +771,6 @@
         _createRootWindow: function() {
             this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: 1, height: 1 });
             this.rootWindowId = this._rootWindow.xid;
-            this._rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             this._rootWindow.parentServerWindow = null;
             this._rootWindow.map();
         },
