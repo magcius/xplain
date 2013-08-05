@@ -686,7 +686,6 @@
             this._setupDOM();
             this.elem = this._container;
 
-            this._backgroundColor = 'rgb(51, 110, 165)';
             this._clients = [];
 
             this._nextXid = 0;
