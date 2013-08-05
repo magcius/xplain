@@ -118,9 +118,6 @@
             this.xid = xid;
             this._server = server;
 
-            // The region of the window that needs to be redrawn, in window coordinates.
-            this.damagedRegion = new Region();
-
             // The bounding region, used if the window is unshaped.
             this._unshapedBoundingRegion = new Region();
 
@@ -147,9 +144,6 @@
                 this._shapedBoundingRegion.finalize();
                 this._shapedBoundingRegion = null;
             }
-
-            this.damagedRegion.finalize();
-            this.damagedRegion = null;
         },
         _iterParents: function(callback) {
             var serverWindow = this;
@@ -196,28 +190,22 @@
             ctx.beginPath();
             ctx.save();
 
+            var region = this._server.calculateEffectiveRegionForWindow(this, false);
+            pathFromRegion(ctx, region);
+            region.finalize();
             var txform = this.calculateAbsoluteOffset();
             ctx.translate(txform.x, txform.y);
-            pathFromRegion(ctx, this.damagedRegion);
+
             ctx.clip();
 
             func(ctx);
 
             ctx.restore();
         },
-        clearDamage: function(region) {
-            if (region === "Full")
-                this.damagedRegion.clear();
-            else
-                this.damagedRegion.subtract(this.damagedRegion, region);
-        },
-        sendExpose: function() {
-            if (this.damagedRegion.is_empty())
-                return;
-
-            if (!this._server.sendEvent({ type: "Expose",
-                                          windowId: this.xid }))
-                this.clearDamage("Full");
+        sendExpose: function(region) {
+            this._server.sendEvent({ type: "Expose",
+                                     windowId: this.xid,
+                                     region: region });
         },
         changeAttributes: function(attributes) {
             if (valueUpdated(attributes.overrideRedirect, this._overrideRedirect)) {
@@ -292,7 +280,7 @@
                 return false;
 
             this.mapped = false;
-            this._server.damageWindow(this, true, true);
+            this._server.exposeWindow(this, true, true);
             this._server.sendEvent({ type: "UnmapNotify",
                                      windowId: this.xid });
             this._server.syncCursorWindow();
@@ -784,10 +772,10 @@
         },
 
         // For a given window, return the region that would be
-        // immediately damaged if the window was removed. That is,
+        // immediately exposed if the window was removed. That is,
         // the window's shape region clipped to the areas that are
         // visible.
-        _calculateEffectiveRegionForWindow: function(serverWindow, includeChildren) {
+        calculateEffectiveRegionForWindow: function(serverWindow, includeChildren) {
             var region = serverWindow.calculateTransformedBoundingRegion();
 
             function subtractWindow(aboveWindow) {
@@ -823,8 +811,8 @@
             this._container.dataset.cursor = cursor;
         },
 
-        damageRegion: function(region, clearRegion) {
-            function recursivelyDamage(serverWindow, inputRegion) {
+        _exposeRegion: function(region) {
+            function recursivelyExpose(serverWindow, inputRegion) {
                 if (!serverWindow.mapped)
                     return;
 
@@ -837,10 +825,8 @@
                 // Transform into the child's space.
                 inputRegion.translate(-serverWindow.x, -serverWindow.y);
                 region.translate(-serverWindow.x, -serverWindow.y);
-                if (clearRegion)
-                    clearRegion.translate(-serverWindow.x, -serverWindow.y);
 
-                // Clip the damaged region to the bounding region to get
+                // Clip the exposed region to the bounding region to get
                 // the maximum area that's obscured.
                 var bounding = serverWindow.getBoundingRegion();
                 obscuringRegion.intersect(inputRegion, bounding);
@@ -851,43 +837,27 @@
                 // we're handling it.
                 inputRegion.subtract(inputRegion, obscuringRegion);
 
-                // Child windows need to be damaged first -- they'll subtract
-                // out parts of inputRegion that we want to not be damaged for.
+                // Child windows need to be exposed first -- they'll subtract
+                // out parts of inputRegion that we want to not be exposed for.
                 serverWindow.children.forEach(function(serverWindow) {
-                    recursivelyDamage(serverWindow, obscuringRegion);
+                    recursivelyExpose(serverWindow, obscuringRegion);
                 });
 
-                var windowDamage = serverWindow.damagedRegion;
-
-                // The clear region is for the case where we copy the area in
-                // the pixmap without damaging windows. This area where there's
-                // stuff that was copied into should not be damaged.
-                if (clearRegion)
-                    windowDamage.subtract(windowDamage, clearRegion);
-
-                // We need to set the window's damaged region, clipped to
-                // the region that's passed into damageRegion().
-                // Do this by clearing out region, and then adding in
-                // what we want to set.
-                windowDamage.subtract(windowDamage, region);
-                windowDamage.union(windowDamage, obscuringRegion);
-                serverWindow.sendExpose();
+                serverWindow.sendExpose(obscuringRegion);
 
                 // And transform back.
                 inputRegion.translate(serverWindow.x, serverWindow.y);
                 region.translate(serverWindow.x, serverWindow.y);
-                if (clearRegion)
-                    clearRegion.translate(serverWindow.x, serverWindow.y);
 
                 obscuringRegion.finalize();
             }
 
-            // The caller owns the damaged region, so make sure
+            // The caller owns the exposed region, so make sure
             // none of our subtractions take effect.
-            var damagedRegion = new Region();
-            damagedRegion.copy(region);
-            recursivelyDamage(this._rootWindow, damagedRegion);
-            damagedRegion.finalize();
+            var exposedRegion = new Region();
+            exposedRegion.copy(region);
+            recursivelyExpose(this._rootWindow, exposedRegion);
+            exposedRegion.finalize();
         },
         _hasServerClientInterestedInWindowEvent: function(windowId, eventType) {
             for (var i = 0; i < this._clients.length; i++) {
@@ -1326,23 +1296,22 @@
             }
 
             // Get the old state.
-            var oldRegion = this._calculateEffectiveRegionForWindow(serverWindow, true);
+            var oldRegion = this.calculateEffectiveRegionForWindow(serverWindow, true);
             var oldPos = serverWindow.calculateAbsoluteOffset();
             var oldW = serverWindow.width, oldH = serverWindow.height;
 
             func();
 
-            var newRegion = this._calculateEffectiveRegionForWindow(serverWindow, true);
+            var newRegion = this.calculateEffectiveRegionForWindow(serverWindow, true);
             var newPos = serverWindow.calculateAbsoluteOffset();
 
             var tmp = new Region();
-            var damagedRegion = new Region();
-            var clearedRegion = new Region();
+            var exposedRegion = new Region();
 
             // Pixels need to be exposed under the window in places where the
             // old region is, but the new region isn't.
             tmp.subtract(oldRegion, newRegion);
-            damagedRegion.union(damagedRegion, tmp);
+            exposedRegion.union(exposedRegion, tmp);
 
             function pointEqual(a, b) {
                 return a.x == b.x && a.y == b.y;
@@ -1362,23 +1331,18 @@
                 ctx.clip();
                 copyArea(ctx, ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, oldW, oldH);
                 ctx.restore();
-
-                // Clear the damaged region of windows where we just got
-                // the new area.
-                clearedRegion.union(clearedRegion, tmp);
             }
 
             // Pixels need to be exposed on the window in places where the
             // new region is, but the old region isn't.
             tmp.subtract(newRegion, oldRegion);
-            damagedRegion.union(damagedRegion, tmp);
+            exposedRegion.union(exposedRegion, tmp);
 
-            this.damageRegion(damagedRegion, clearedRegion);
+            this._exposeRegion(exposedRegion);
             this.syncCursorWindow();
 
             tmp.finalize();
-            damagedRegion.finalize();
-            clearedRegion.finalize();
+            exposedRegion.finalize();
 
             oldRegion.finalize();
             newRegion.finalize();
@@ -1394,18 +1358,18 @@
             this.syncCursorWindow("Ungrab");
             this.syncCursor();
         },
-        damageWindow: function(serverWindow, force, includeChildren) {
+        exposeWindow: function(serverWindow, force, includeChildren) {
             if (!serverWindow.viewable && !force)
                 return;
 
-            var region = this._calculateEffectiveRegionForWindow(serverWindow, includeChildren);
-            this.damageRegion(region, null);
+            var region = this.calculateEffectiveRegionForWindow(serverWindow, includeChildren);
+            this._exposeRegion(region);
             region.finalize();
         },
         viewabilityChanged: function(serverWindow) {
             if (serverWindow.viewable) {
-                // If a window is now viewable, damage it.
-                this.damageWindow(serverWindow, false, false);
+                // If a window is now viewable, expose it.
+                this.exposeWindow(serverWindow, false, false);
             } else {
                 // If a window is now unviewable and we have a grab on it,
                 // drop the grab.
@@ -1657,14 +1621,9 @@
                 return;
 
             var includeChildren = !!props.includeChildren;
-            this.damageWindow(serverWindow, false, includeChildren);
+            this.exposeWindow(serverWindow, false, includeChildren);
         },
         _handle_clearDamage: function(client, props) {
-            var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
-                return;
-
-            serverWindow.clearDamage(props.region);
         },
         _handle_setWindowShapeRegion: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
