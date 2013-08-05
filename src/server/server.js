@@ -1097,8 +1097,10 @@
             }
 
             var idx = this._buttonsDown.indexOf(button);
+            // This can happen if the user releases the button over the window, but
+            // didn't initially press on it.
             if (idx < 0)
-                throw new Error("Internal bad button - should not happen");
+                return;
 
             this._buttonsDown.splice(idx, 1);
 
