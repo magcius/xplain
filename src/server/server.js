@@ -11,7 +11,7 @@
     //   https://bugzilla.mozilla.org/show_bug.cgi?id=842110
     //   https://code.google.com/p/chromium/issues/detail?id=176714
     function copyArea(src, dest, oldX, oldY, newX, newY, w, h) {
-        if (src, dest) {
+        if (src == dest) {
             if (newX < 0) {
                 w += newX;
                 oldX -= newX;
