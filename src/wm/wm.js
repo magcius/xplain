@@ -292,7 +292,6 @@
                     ctx.font = '12pt sans-serif';
                     ctx.fillText(title, this._frameGeometry.width / 2, 21);
                 }
-                this._server.clearDamage({ windowId: this._frameWindowId, region: "Full" });
             }.bind(this));
         },
         _handleButtonEvent: function(event) {
@@ -302,7 +301,6 @@
                 this._server.drawWithContext(this._closeWindowId, function(ctx) {
                     ctx.fillStyle = "red";
                     ctx.fillRect(0, 0, 15, 15);
-                    this._server.clearDamage({ windowId: this._closeWindowId, region: "Full" });
                 }.bind(this));
         },
         handleEvent: function(event) {

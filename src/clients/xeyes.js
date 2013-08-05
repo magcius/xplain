@@ -159,7 +159,6 @@
                 ellipse(ctx, eyeCenterRX + pos.x, eyeCenterY + pos.y, pupilRX, pupilRY);
                 ctx.fill();
             });
-            this.clearDamage();
         },
     });
 

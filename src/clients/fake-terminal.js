@@ -47,7 +47,6 @@
                 ctx.fillStyle = '#eeeeec';
                 drawText(this._buffer);
             }.bind(this));
-            this.clearDamage();
         },
         _handleKeyPress: function(event) {
             this._buffer += String.fromCharCode(event.charCode);

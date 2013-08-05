@@ -483,7 +483,6 @@
         // by letting someone use an existing expose handler.
         // This is the model used by GDK internally.
         'invalidateWindow',
-        'clearDamage',
 
         // SHAPE / XFixes
         'setWindowShapeRegion',
@@ -1622,8 +1621,6 @@
 
             var includeChildren = !!props.includeChildren;
             this.exposeWindow(serverWindow, false, includeChildren);
-        },
-        _handle_clearDamage: function(client, props) {
         },
         _handle_setWindowShapeRegion: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);

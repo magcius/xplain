@@ -42,13 +42,6 @@
             if (event.height !== undefined)
                 this.height = event.height;
         },
-        clearDamage: function() {
-            var region = new Region();
-            region.init_rect(0, 0, this.width, this.height);
-            this._server.clearDamage({ windowId: this.windowId,
-                                       region: region });
-            region.finalize();
-        },
     });
 
     exports.Window = Window;

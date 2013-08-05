@@ -216,7 +216,6 @@
                 var y = (this.height - baseline) / 2 + baseline;
                 ctx.fillText(this._label, padding, y);
             }.bind(this));
-            this.clearDamage();
         },
         _onMenuClosed: function() {
             this._isMenuOpen = false;
@@ -259,7 +258,6 @@
                 var y = (this.height - this._image.height) / 2;
                 ctx.drawImage(this._image, x, y, this._image.width, this._image.height);
             }.bind(this));
-            this.clearDamage();
         },
         connect: function(server) {
             this.parent(server);

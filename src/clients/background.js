@@ -49,7 +49,6 @@
                               0, 0, this._image.width, this._image.height,
                               centerX, centerY, imageWidth, imageHeight);
             }.bind(this));
-            this.clearDamage();
         },
     });
 
