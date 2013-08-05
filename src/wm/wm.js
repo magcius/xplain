@@ -123,13 +123,13 @@
 
                 // Invalidate the frame that's already been partially painted.
                 this._server.invalidateWindow({ windowId: this._frameWindowId });
-            }
 
-            var shapeRegion = roundedRectRegion(this._frameGeometry, { topLeft: 10, topRight: 10 });
-            this._server.setWindowShapeRegion({ windowId: this._frameWindowId,
-                                                shapeType: "Bounding",
-                                                region: shapeRegion });
-            shapeRegion.finalize();
+                var shapeRegion = roundedRectRegion(this._frameGeometry, { topLeft: 10, topRight: 10 });
+                this._server.setWindowShapeRegion({ windowId: this._frameWindowId,
+                                                    shapeType: "Bounding",
+                                                    region: shapeRegion });
+                shapeRegion.finalize();
+            }
         },
 
         _makeButton: function() {
