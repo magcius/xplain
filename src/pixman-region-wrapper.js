@@ -45,7 +45,7 @@
         var size = typeInfo.flatSize;
 
         var init = props.Initialize;
-        var free = props.Finalize;
+        var finalize = props.Finalize;
 
         var constructor = function() {
             this.__construct__();
@@ -88,7 +88,8 @@
         };
 
         proto.finalize = function() {
-            this[free].apply(this, arguments);
+            this[finalize].apply(this, arguments);
+            _free(this.$internal);
         };
 
         return constructor;
