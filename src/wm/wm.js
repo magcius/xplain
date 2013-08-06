@@ -145,6 +145,7 @@
             this._server.setWindowShapeRegion({ windowId: buttonWindowId,
                                                 shapeType: "Bounding",
                                                 region: shapeRegion });
+            shapeRegion.finalize();
             this._server.reparentWindow({ windowId: buttonWindowId,
                                           newParentId: this._frameWindowId });
             this._server.mapWindow({ windowId: buttonWindowId });
