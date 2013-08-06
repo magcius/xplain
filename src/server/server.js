@@ -681,6 +681,12 @@
         return null;
     }
 
+    function clientError(error) {
+        var error = new Error(error);
+        error.isClientError = true;
+        return error;
+    }
+
     var Server = new Class({
         initialize: function() {
             this._setupDOM();
@@ -1392,14 +1398,12 @@
         },
         _getXidObjectInternal: function(client, xid, error) {
             var obj = this._xidToObject[xid];
-            if (obj) {
+            if (obj)
                 return obj;
-            } else if (client) {
-                this._sendError(client, error);
-                return null;
-            } else {
+            else if (client)
+                throw clientError(error);
+            else
                 throw new Error("Internal " + error + " - should not happen");
-            }
         },
         _destroyXidObjectInternal: function(xid) {
             this._xidToObject[xid] = null;
@@ -1526,7 +1530,7 @@
             var checkEvent = (function checkEvent(eventType) {
                 if (events.indexOf(eventType) >= 0)
                     if (this._checkOtherClientsForEvent(windowId, eventType, client))
-                        this._sendError(client, "BadAccess")
+                        throw clientError(error);
             }).bind(this);
             checkEvent("SubstructureRedirect");
             checkEvent("ButtonPress");
@@ -1554,7 +1558,7 @@
                 if (this._grabClient.serverClient == client)
                     this.ungrabPointer();
                 else
-                    this._sendError(client, "AlreadyGrabbed");
+                    throw clientError("AlreadyGrabbed");
             }
 
             var grabInfo = { serverClient: client,
@@ -1631,7 +1635,14 @@
 
         handleRequest: function(client, requestName, props) {
             var handler = this['_handle_' + requestName];
-            return handler.call(this, client, props);
+            try {
+                return handler.call(this, client, props);
+            } catch (e) {
+                if (e.isClientError)
+                    this._sendError(client, e.error);
+                else
+                    throw e;
+            }
         },
 
         // Called by the client to get a socket connection.
