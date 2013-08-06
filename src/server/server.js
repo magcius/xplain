@@ -118,14 +118,12 @@
         },
     });
 
-    var DEFAULT_BACKGROUND_COLOR = '#ddd';
-
     var ServerWindow = new Class({
         initialize: function(xid, server, props) {
             this.xid = xid;
             this._server = server;
 
-            this._backgroundColor = DEFAULT_BACKGROUND_COLOR;
+            this._backgroundColor = null;
 
             // The bounding region, used if the window is unshaped.
             this._unshapedBoundingRegion = new Region();
@@ -232,7 +230,9 @@
             if (region.is_empty())
                 return;
 
-            this._drawBackground(region);
+            if (this._backgroundColor)
+                this._drawBackground(region);
+
             this._server.sendEvent({ type: "Expose",
                                      windowId: this.xid,
                                      region: region });
