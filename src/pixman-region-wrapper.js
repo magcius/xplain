@@ -44,19 +44,7 @@
         var typeInfo = Runtime.typeInfo['%struct.' + type];
         var size = typeInfo.flatSize;
 
-        var init = props.Initialize;
-        var finalize = props.Finalize;
-
-        var constructor = function() {
-            this.__construct__();
-            this.__init__();
-        };
-
-        constructor.type = type;
-        constructor.typeInfo = typeInfo;
-        constructor.size = size;
-
-        var proto = constructor.prototype;
+        var proto = {};
         props.AutoBind.forEach(function(desc) {
             var name = desc.name;
             var args = ['this'].concat(desc.args);
@@ -79,18 +67,30 @@
             };
         });
 
-        proto.__init__ = function() {
-            this[init].apply(this, arguments);
-        };
+        function fromPointer(ptr) {
+            var obj = Object.create(proto);
+            obj.$internal = ptr;
+            return obj;
+        }
 
-        proto.__construct__ = function() {
-            this.$internal = _malloc(size);
+        var init = proto[props.Initialize];
+        var fini = proto[props.Finalize];
+
+        var constructor = function() {
+            var obj = fromPointer(_malloc(size));
+            init.apply(obj, arguments);
+            return obj;
         };
+        constructor.prototype = proto;
 
         proto.finalize = function() {
-            this[finalize].apply(this, arguments);
+            fini.apply(this, arguments);
             _free(this.$internal);
         };
+
+        constructor.type = type;
+        constructor.typeInfo = typeInfo;
+        constructor.size = size;
 
         return constructor;
     }
