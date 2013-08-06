@@ -28,6 +28,9 @@
         },
         expose: function(event) {
             this._server.drawWithContext(this.windowId, function(ctx) {
+                ctx.rect(event.x, event.y, event.width, event.height);
+                ctx.clip();
+
                 ctx.font = 'bold 10pt monospace';
 
                 var x = 4, y = 16;

@@ -235,9 +235,11 @@
             if (this._backgroundColor)
                 this._drawBackground(region);
 
+            var extents = region.extents();
             this._server.sendEvent({ type: "Expose",
                                      windowId: this.xid,
-                                     region: region });
+                                     x: extents.x, y: extents.y,
+                                     width: extents.width, height: extents.height });
         },
         changeAttributes: function(attributes) {
             if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {

@@ -279,6 +279,9 @@
         },
         _frameExpose: function(event) {
             this._server.drawWithContext(this._frameWindowId, function(ctx) {
+                ctx.rect(event.x, event.y, event.width, event.height);
+                ctx.clip();
+
                 var title = this._server.getProperty({ windowId: this._clientWindowId,
                                                        name: "WM_NAME" });
                 if (title) {
