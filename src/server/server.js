@@ -113,10 +113,14 @@
         },
     });
 
+    var DEFAULT_BACKGROUND_COLOR = '#ddd';
+
     var ServerWindow = new Class({
         initialize: function(xid, server, props) {
             this.xid = xid;
             this._server = server;
+
+            this._backgroundColor = DEFAULT_BACKGROUND_COLOR;
 
             // The bounding region, used if the window is unshaped.
             this._unshapedBoundingRegion = new Region();
@@ -183,6 +187,24 @@
         canDraw: function() {
             return this.viewable;
         },
+        _drawBackground: function(region) {
+            // XXX
+            // TODO: cleanup and merge with below
+            var ctx = this._server._ctx;
+
+            ctx.beginPath();
+            ctx.save();
+
+            var txform = this.calculateAbsoluteOffset();
+            ctx.translate(txform.x, txform.y);
+            pathFromRegion(ctx, region);
+            ctx.clip();
+
+            ctx.fillStyle = this._backgroundColor;
+            ctx.fillRect(0, 0, this.width, this.height);
+
+            ctx.restore();
+        },
         drawWithContext: function(func) {
             // XXX
             var ctx = this._server._ctx;
@@ -193,21 +215,29 @@
             var region = this._server.calculateEffectiveRegionForWindow(this, false);
             pathFromRegion(ctx, region);
             region.finalize();
+            ctx.clip();
             var txform = this.calculateAbsoluteOffset();
             ctx.translate(txform.x, txform.y);
-
-            ctx.clip();
 
             func(ctx);
 
             ctx.restore();
         },
         sendExpose: function(region) {
+            if (region.is_empty())
+                return;
+
+            this._drawBackground(region);
             this._server.sendEvent({ type: "Expose",
                                      windowId: this.xid,
                                      region: region });
         },
         changeAttributes: function(attributes) {
+            if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
+                this._backgroundColor = attributes.backgroundColor || DEFAULT_BACKGROUND_COLOR;
+                this._server.exposeWindow(this, false, false);
+            }
+
             if (valueUpdated(attributes.overrideRedirect, this._overrideRedirect)) {
                 this._overrideRedirect = attributes.overrideRedirect;
             }
@@ -758,6 +788,7 @@
         _createRootWindow: function() {
             this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: 1, height: 1 });
             this.rootWindowId = this._rootWindow.xid;
+            this._rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             this._rootWindow.parentServerWindow = null;
             this._rootWindow.map();
         },

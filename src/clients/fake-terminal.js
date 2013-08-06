@@ -9,6 +9,8 @@
             this._buffer = "";
             this._server.configureWindow({ windowId: this.windowId,
                                            width: 700, height: 400 });
+            this._server.changeAttributes({ windowId: this.windowId,
+                                            backgroundColor: "#121212" });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["KeyPress"] });
             this._server.changeProperty({ windowId: this.windowId,
@@ -26,9 +28,6 @@
         },
         expose: function(event) {
             this._server.drawWithContext(this.windowId, function(ctx) {
-                ctx.fillStyle = "#121212";
-                ctx.fillRect(0, 0, this.width, this.height);
-
                 ctx.font = 'bold 10pt monospace';
 
                 var x = 4, y = 16;

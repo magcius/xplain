@@ -29,6 +29,8 @@
 
             this._pixmapId = 0;
 
+            this._server.changeAttributes({ windowId: this.windowId,
+                                            backgroundColor: "#eeeeec" });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["MapNotify", "UnmapNotify"] });
             this._server.configureWindow({ windowId: this.windowId,
@@ -65,9 +67,6 @@
             var eyeCenterY = this.height / 2;
 
             this._server.drawWithContext(this._pixmapId, function(ctx) {
-                ctx.fillStyle = "#eeeeec";
-                ctx.fillRect(0, 0, this.width, this.height);
-
                 ctx.strokeStyle = '#000000';
                 ctx.lineWidth = 10;
                 ctx.fillStyle = '#ffffff';

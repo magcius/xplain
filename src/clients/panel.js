@@ -9,6 +9,8 @@
             this.parent(server);
             this._leftButtons = [];
             this._rightButtons = [];
+            this._server.changeAttributes({ windowId: this.windowId,
+                                            backgroundColor: PANEL_BACKGROUND_COLOR });
             this._server.selectInput({ windowId: this._server.rootWindowId,
                                        events: ["ConfigureNotify"] });
             this._server.changeProperty({ windowId: this.windowId,
@@ -90,9 +92,6 @@
         },
         expose: function(event) {
             this._server.drawWithContext(this.windowId, function(ctx) {
-                ctx.fillStyle = PANEL_BACKGROUND_COLOR;
-                ctx.fillRect(0, 0, this.width, this.height);
-
                 ctx.strokeStyle = '#bec0c0';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
@@ -113,6 +112,7 @@
         connect: function(server) {
             this.parent(server);
             this._server.changeAttributes({ windowId: this.windowId,
+                                            backgroundColor: "#ffffff",
                                             overrideRedirect: true });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress", "ButtonRelease"] });
@@ -157,11 +157,7 @@
             this._server.unmapWindow({ windowId: this.windowId });
             this._closedCallback();
         },
-        expose: function(event) {
-            this._server.drawWithContext(this.windowId, function(ctx) {
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, this.width, this.height);
-            }.bind(this));
+        expose: function() {
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -178,13 +174,14 @@
         initialize: function(label) {
             this.parent();
             this._label = label;
-            this._isMenuOpen = false;
 
             this.menu = new Menu();
         },
         connect: function(server) {
             this.parent(server);
             this._syncSize();
+            this._server.changeAttributes({ windowId: this.windowId,
+                                            backgroundColor: PANEL_BACKGROUND_COLOR });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress"] });
 
@@ -203,9 +200,6 @@
         expose: function(event) {
             var padding = 4;
             this._server.drawWithContext(this.windowId, function(ctx) {
-                ctx.fillStyle = this._isMenuOpen ? "#ffffff" : "#eeeeec";
-                ctx.fillRect(0, 0, this.width, this.height);
-
                 ctx.font = '11pt sans';
                 ctx.fillStyle = '#000000';
                 // XXX: Browsers can't measure alphabetic baseline yet,
@@ -218,13 +212,13 @@
             }.bind(this));
         },
         _onMenuClosed: function() {
-            this._isMenuOpen = false;
-            this._server.invalidateWindow({ windowId: this.windowId });
+            this._server.changeAttributes({ windowId: this.windowId,
+                                            backgroundColor: PANEL_BACKGROUND_COLOR });
         },
         _clicked: function() {
-            this._isMenuOpen = true;
             this.menu.open(this.windowId, this._onMenuClosed.bind(this));
-            this._server.invalidateWindow({ windowId: this.windowId });
+            this._server.changeAttributes({ windowId: this.windowId,
+                                            backgroundColor: "#ffffff" });
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -242,23 +236,6 @@
             this.parent();
             this._imageSrc = imageSrc;
         },
-        configureNotify: function(event) {
-            this.parent(event);
-            this._server.invalidateWindow({ windowId: this.windowId });
-        },
-        expose: function(event) {
-            this._server.drawWithContext(this.windowId, function(ctx) {
-                ctx.fillStyle = PANEL_BACKGROUND_COLOR;
-                ctx.fillRect(0, 0, this.width, this.height);
-
-                if (!this._loaded)
-                    return;
-
-                var x = (this.width - this._image.width) / 2;
-                var y = (this.height - this._image.height) / 2;
-                ctx.drawImage(this._image, x, y, this._image.width, this._image.height);
-            }.bind(this));
-        },
         connect: function(server) {
             this.parent(server);
 
@@ -273,9 +250,24 @@
             this._image.src = this._imageSrc;
 
             this._server.changeAttributes({ windowId: this.windowId,
+                                            backgroundColor: PANEL_BACKGROUND_COLOR,
                                             cursor: "pointer" });
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress"] });
+        },
+        configureNotify: function(event) {
+            this.parent(event);
+            this._server.invalidateWindow({ windowId: this.windowId });
+        },
+        expose: function(event) {
+            this._server.drawWithContext(this.windowId, function(ctx) {
+                if (!this._loaded)
+                    return;
+
+                var x = (this.width - this._image.width) / 2;
+                var y = (this.height - this._image.height) / 2;
+                ctx.drawImage(this._image, x, y, this._image.width, this._image.height);
+            }.bind(this));
         },
         handleEvent: function(event) {
             switch (event.type) {
