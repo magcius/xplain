@@ -10,40 +10,40 @@
     // Workaround for browser bugs in drawImage:
     //   https://bugzilla.mozilla.org/show_bug.cgi?id=842110
     //   https://code.google.com/p/chromium/issues/detail?id=176714
-    function copyArea(src, dest, oldX, oldY, newX, newY, w, h) {
+    function copyArea(src, dest, srcX, srcY, destX, destY, w, h) {
         if (src == dest) {
-            if (newX < 0) {
-                w += newX;
-                oldX -= newX;
-                newX = 0;
+            if (destX < 0) {
+                w += destX;
+                srcX -= destX;
+                destX = 0;
             }
 
-            if (oldX < 0) {
-                newX -= oldX;
-                w += oldX;
-                oldX = 0;
+            if (srcX < 0) {
+                destX -= srcX;
+                w += srcX;
+                srcX = 0;
             }
 
-            if (newY < 0) {
-                h += newY;
-                oldY -= newY;
-                newY = 0;
+            if (destY < 0) {
+                h += destY;
+                srcY -= destY;
+                destY = 0;
             }
 
-            if (oldY < 0) {
-                newY -= oldY;
-                h += oldY;
-                oldY = 0;
+            if (srcY < 0) {
+                destY -= srcY;
+                h += srcY;
+                srcY = 0;
             }
 
-            var mX = Math.max(oldX, newX);
+            var mX = Math.max(srcX, destX);
             if (mX >= dest.canvas.width)
                 return;
 
             if (mX + w > dest.canvas.width)
                 w = dest.canvas.width - mX;
 
-            var mY = Math.max(oldY, newY);
+            var mY = Math.max(srcY, destY);
             if (mY >= dest.canvas.height)
                 return;
 
@@ -51,7 +51,7 @@
                 h = dest.canvas.height - mY;
         }
 
-        dest.drawImage(src.canvas, oldX, oldY, w, h, newX, newY, w, h);
+        dest.drawImage(src.canvas, srcX, srcY, w, h, destX, destY, w, h);
     }
 
     function isEventSubstructureRedirect(event) {
@@ -117,6 +117,8 @@
             ctx.restore();
         },
     });
+
+    var DEFAULT_BACKGROUND_COLOR = '#ddd';
 
     var ServerWindow = new Class({
         initialize: function(xid, server, props) {
@@ -1648,7 +1650,7 @@
 
             destDrawable.drawWithContext(function(dest) {
                 srcDrawable.drawWithContext(function(src) {
-                    copyArea(src, dest, props.oldX, props.oldY, props.newX, props.newY, props.width, props.height);
+                    copyArea(src, dest, props.srcX, props.srcY, props.destX, props.destY, props.width, props.height);
                 });
             });
         },

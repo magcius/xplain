@@ -143,7 +143,7 @@
 
             this._server.copyArea({ srcDrawableId: this._pixmapId,
                                     destDrawableId: this.windowId,
-                                    oldX: 0, oldY: 0, newX: 0, newY: 0,
+                                    srcX: 0, srcY: 0, destX: 0, destY: 0,
                                     width: this.width, height: this.height });
             this._server.drawWithContext(this.windowId, function(ctx) {
                 // pupils
