@@ -795,7 +795,6 @@
         _createRootWindow: function() {
             this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: 1, height: 1 });
             this.rootWindowId = this._rootWindow.xid;
-            this._rootWindow.changeAttributes({ backgroundColor: this._backgroundColor });
             this._rootWindow.parentServerWindow = null;
             this._rootWindow.map();
         },
