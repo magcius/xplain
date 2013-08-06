@@ -100,6 +100,11 @@
             this._canvas.height = props.height;
             this._ctx = this._canvas.getContext('2d');
         },
+        destroy: function() {
+            this._canvas.width = 0;
+            this._canvas.height = 0;
+            this._server.xidDestroyed(this.xid);
+        },
         canDraw: function() {
             return true;
         },
@@ -333,6 +338,8 @@
                                      windowId: this.xid });
 
             this._unparentWindowInternal();
+            this._server.xidDestroyed(this.xid);
+            this.finalize();
         },
         parentWindow: function(parentServerWindow) {
             var wasMapped = this.unmap();
@@ -1436,7 +1443,7 @@
             else
                 throw new Error("Internal " + error + " - should not happen");
         },
-        _destroyXidObjectInternal: function(xid) {
+        xidDestroyed: function(xid) {
             this._xidToObject[xid] = null;
         },
         getServerWindow: function(client, windowId) {
@@ -1460,7 +1467,8 @@
             return serverPixmap.xid;
         },
         _handle_freePixmap: function(client, props) {
-            this._destroyXidObjectInternal(props.drawableId);
+            var serverPixmap = this.getDrawable(client, props.drawableId);
+            serverPixmap.destroy();
         },
         _handle_createWindow: function(client, props) {
             var serverWindow = this._createWindowInternal(props);
@@ -1473,8 +1481,6 @@
                 return;
 
             serverWindow.destroy();
-            serverWindow.finalize();
-            this._destroyXidObjectInternal(props.windowId);
         },
         _handle_reparentWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
