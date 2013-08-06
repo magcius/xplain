@@ -31,9 +31,20 @@
             if (event.windowId === this._server.rootWindowId)
                 this._syncSize();
 
+            this._destroyPixmap();
             this._server.invalidateWindow({ windowId: this.windowId });
         },
-        expose: function(event) {
+        _destroyPixmap: function() {
+            this._server.freePixmap({ pixmapId: this._pixmapId });
+            this._pixmapId = 0;
+        },
+        _ensurePixmap: function() {
+            if (this._pixmapId)
+                return;
+
+            this._pixmapId = this._server.createPixmap({ width: this.width,
+                                                         height: this.height });
+
             if (!this._loaded)
                 return;
 
@@ -44,11 +55,22 @@
             var centerX = (this.width - imageWidth) / 2;
             var centerY = (this.height - imageHeight) / 2;
 
-            this._server.drawWithContext(this.windowId, function(ctx) {
+            this._server.drawWithContext(this._pixmapId, function(ctx) {
                 ctx.drawImage(this._image,
                               0, 0, this._image.width, this._image.height,
                               centerX, centerY, imageWidth, imageHeight);
             }.bind(this));
+        },
+        expose: function(event) {
+            if (!this._loaded)
+                return;
+
+            this._ensurePixmap();
+
+            this._server.copyArea({ srcDrawableId: this._pixmapId,
+                                    destDrawableId: this.windowId,
+                                    oldX: 0, oldY: 0, newX: 0, newY: 0,
+                                    width: this.width, height: this.height });
         },
     });
 
