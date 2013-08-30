@@ -11,6 +11,18 @@
     //   https://bugzilla.mozilla.org/show_bug.cgi?id=842110
     //   https://code.google.com/p/chromium/issues/detail?id=176714
     function copyArea(src, dest, srcX, srcY, destX, destY, w, h) {
+        if (srcX + w < 0 || srcX > src.canvas.width)
+            return;
+
+        if (destX + w < 0 || destX > dest.canvas.width)
+            return;
+
+        if (srcY + h < 0 || srcY > src.canvas.height)
+            return;
+
+        if (destY + h < 0 || destY > src.canvas.height)
+            return;
+
         if (src == dest) {
             if (destX < 0) {
                 w += destX;
