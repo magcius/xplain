@@ -264,8 +264,8 @@
                 if (!this._loaded)
                     return;
 
-                var x = (this.width - this._image.width) / 2;
-                var y = (this.height - this._image.height) / 2;
+                var x = ((this.width - this._image.width) / 2) | 0;
+                var y = ((this.height - this._image.height) / 2) | 0;
                 ctx.drawImage(this._image, x, y, this._image.width, this._image.height);
             }.bind(this));
         },
