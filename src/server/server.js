@@ -204,34 +204,14 @@
         canDraw: function() {
             return this.viewable;
         },
-        _drawBackground: function(region) {
-            // XXX
-            // TODO: cleanup and merge with below
-            var ctx = this._server._ctx;
-
-            ctx.beginPath();
-            ctx.save();
-
-            var txform = this.calculateAbsoluteOffset();
-            ctx.translate(txform.x, txform.y);
-            pathFromRegion(ctx, region);
-            ctx.clip();
-
-            ctx.fillStyle = this._backgroundColor;
-            ctx.fillRect(0, 0, this.width, this.height);
-
-            ctx.restore();
-        },
-        drawWithContext: function(func) {
+        _drawClippedToRegion: function(region, func) {
             // XXX
             var ctx = this._server._ctx;
 
             ctx.beginPath();
             ctx.save();
 
-            var region = this._server.calculateEffectiveRegionForWindow(this, false);
             pathFromRegion(ctx, region);
-            region.finalize();
             ctx.clip();
             var txform = this.calculateAbsoluteOffset();
             ctx.translate(txform.x, txform.y);
@@ -240,14 +220,27 @@
 
             ctx.restore();
         },
+        _drawBackground: function(ctx) {
+            if (this._backgroundColor) {
+                ctx.fillStyle = this._backgroundColor;
+                ctx.fillRect(0, 0, this.width, this.height);
+            }
+        },
+        drawWithContext: function(func) {
+            var region = this._server.calculateEffectiveRegionForWindow(this, false);
+            this._drawClippedToRegion(region, func);
+            region.finalize();
+        },
         sendExpose: function(region) {
             if (region.is_empty())
                 return;
 
-            if (this._backgroundColor)
-                this._drawBackground(region);
-
             var extents = region.extents();
+
+            var txform = this.calculateAbsoluteOffset();
+            region.translate(txform.x, txform.y);
+            this._drawClippedToRegion(region, this._drawBackground.bind(this));
+
             this._server.sendEvent({ type: "Expose",
                                      windowId: this.xid,
                                      x: extents.x, y: extents.y,
@@ -901,12 +894,11 @@
                 });
 
                 serverWindow.sendExpose(obscuringRegion);
+                obscuringRegion.finalize();
 
                 // And transform back.
                 inputRegion.translate(serverWindow.x, serverWindow.y);
                 region.translate(serverWindow.x, serverWindow.y);
-
-                obscuringRegion.finalize();
             }
 
             // The caller owns the exposed region, so make sure
