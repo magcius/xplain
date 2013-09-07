@@ -407,46 +407,6 @@
             return this;
         },
 
-        _siblingIndex: function(sibling) {
-            return sibling.parentServerWindow.children.indexOf(sibling);
-        },
-        _insertIntoStack: function(sibling, mode) {
-            var children = this.parentServerWindow.children;
-            children.splice(children.indexOf(this), 1);
-            switch (mode) {
-            case "Above":
-                if (sibling) {
-                    var siblingIndex = this._siblingIndex(sibling);
-                    children.splice(siblingIndex, 0, this);
-                } else {
-                    children.unshift(this);
-                }
-                break;
-            case "Below":
-                if (sibling) {
-                    var siblingIndex = this._siblingIndex(sibling);
-                    children.splice(siblingIndex + 1, 0, this);
-                } else {
-                    children.push(this);
-                }
-                break;
-                // TODO: TopIf, BottomIf, Opposite. Ever seen in practice?
-            }
-        },
-
-        _configureWindow: function(props) {
-            if (props.x !== undefined)
-                this.x = props.x | 0;
-            if (props.y !== undefined)
-                this.y = props.y | 0;
-            if (props.width !== undefined)
-                this.width = props.width | 0;
-            if (props.height !== undefined)
-                this.height = props.height | 0;
-
-            this._unshapedBoundingRegion.init_rect(0, 0, this.width, this.height);
-        },
-
         _wrapWindowChange: function(func) {
             if (!this.viewable) {
                 func();
@@ -502,6 +462,51 @@
             newRegion.finalize();
         },
 
+        _siblingIndex: function(sibling) {
+            return sibling.parentServerWindow.children.indexOf(sibling);
+        },
+        _insertIntoStack: function(sibling, mode) {
+            var children = this.parentServerWindow.children;
+            children.splice(children.indexOf(this), 1);
+            switch (mode) {
+            case "Above":
+                if (sibling) {
+                    var siblingIndex = this._siblingIndex(sibling);
+                    children.splice(siblingIndex, 0, this);
+                } else {
+                    children.unshift(this);
+                }
+                break;
+            case "Below":
+                if (sibling) {
+                    var siblingIndex = this._siblingIndex(sibling);
+                    children.splice(siblingIndex + 1, 0, this);
+                } else {
+                    children.push(this);
+                }
+                break;
+                // TODO: TopIf, BottomIf, Opposite. Ever seen in practice?
+            }
+        },
+
+        _configureWindow: function(props) {
+            if (props.x !== undefined)
+                this.x = props.x | 0;
+            if (props.y !== undefined)
+                this.y = props.y | 0;
+            if (props.width !== undefined)
+                this.width = props.width | 0;
+            if (props.height !== undefined)
+                this.height = props.height | 0;
+
+            this._unshapedBoundingRegion.init_rect(0, 0, this.width, this.height);
+
+            if (props.stackMode) {
+                var sibling = props.sibling ? this._server.getServerWindow(client, props.sibling) : null;
+                this._insertIntoStack(sibling, props.stackMode);
+            }
+        },
+
         configureWindow: function(client, props) {
             var eventBase = { windowId: this.xid,
                               x: props.x, y: props.y, width: props.width, height: props.height,
@@ -513,11 +518,6 @@
             if (!this._server.sendEvent(event, client)) {
                 this._wrapWindowChange(function() {
                     this._configureWindow(props);
-
-                    if (props.stackMode) {
-                        var sibling = props.sibling ? this._server.getServerWindow(client, props.sibling) : null;
-                        this._insertIntoStack(sibling, props.stackMode);
-                    }
                 }.bind(this));
 
                 event = Object.create(eventBase);
