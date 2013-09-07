@@ -518,11 +518,11 @@
                         var sibling = props.sibling ? this._server.getServerWindow(client, props.sibling) : null;
                         this._insertIntoStack(sibling, props.stackMode);
                     }
-
-                    event = Object.create(eventBase);
-                    event.type = "ConfigureNotify";
-                    this._server.sendEvent(event);
                 }.bind(this));
+
+                event = Object.create(eventBase);
+                event.type = "ConfigureNotify";
+                this._server.sendEvent(event);
             }
         },
         filterEvent: function(event) {
