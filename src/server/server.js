@@ -152,8 +152,6 @@
         }
     });
 
-    var DEFAULT_BACKGROUND_COLOR = '#ddd';
-
     var ServerWindow = new Class({
         initialize: function(xid, server, props) {
             this.xid = xid;
@@ -271,7 +269,7 @@
         },
         changeAttributes: function(attributes) {
             if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
-                this._backgroundColor = attributes.backgroundColor || DEFAULT_BACKGROUND_COLOR;
+                this._backgroundColor = attributes.backgroundColor || null;
                 this._server.exposeWindow(this, false, false);
             }
 
