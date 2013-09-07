@@ -233,23 +233,34 @@
 
                 pathFromRegion(ctx, region);
                 ctx.clip();
-                var txform = this.calculateAbsoluteOffset();
-                ctx.translate(txform.x, txform.y);
 
                 func(ctx);
-
                 ctx.restore();
             }.bind(this));
         },
         _drawBackground: function(ctx) {
+            var pos = this.calculateAbsoluteOffset();
+
             if (this._backgroundColor) {
                 ctx.fillStyle = this._backgroundColor;
-                ctx.fillRect(0, 0, this.width, this.height);
+                ctx.fillRect(pos.x, pos.y, this.width, this.height);
             }
         },
         drawWithContext: function(func) {
             var region = this._server.calculateEffectiveRegionForWindow(this, false);
-            this._drawClippedToRegion(region, func);
+            this._drawClippedToRegion(region, function(ctx) {
+                var pos = this.calculateAbsoluteOffset();
+                ctx.translate(pos.x, pos.y);
+                func(ctx);
+            }.bind(this));
+            region.finalize();
+        },
+        copyContents: function(oldRegion, newRegion, oldPos, newPos, width, height) {
+            var region = new Region();
+            region.intersect(newRegion, oldRegion);
+            this._drawClippedToRegion(region, function(ctx) {
+                copyArea(ctx, ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, width, height);
+            });
             region.finalize();
         },
         sendExpose: function(region) {
@@ -258,8 +269,8 @@
 
             var extents = region.extents();
 
-            var txform = this.calculateAbsoluteOffset();
-            region.translate(txform.x, txform.y);
+            var pos = this.calculateAbsoluteOffset();
+            region.translate(pos.x, pos.y);
             this._drawClippedToRegion(region, this._drawBackground.bind(this));
 
             this._server.sendEvent({ type: "Expose",
@@ -1375,16 +1386,7 @@
                 // the area of the new region, so translate the old region
                 // into the coordinate space of the new region.
                 oldRegion.translate(newPos.x - oldPos.x, newPos.y - oldPos.y);
-
-                this.drawToFrontBuffer(function(ctx) {
-                    ctx.beginPath();
-                    ctx.save();
-                    tmp.intersect(newRegion, oldRegion);
-                    pathFromRegion(ctx, tmp);
-                    ctx.clip();
-                    copyArea(ctx, ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, oldW, oldH);
-                    ctx.restore();
-                });
+                serverWindow.copyContents(oldRegion, newRegion, oldPos, newPos, oldW, oldH);
             }
 
             // Pixels need to be exposed on the window in places where the
