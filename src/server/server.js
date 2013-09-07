@@ -102,19 +102,23 @@
         return a !== undefined && a !== b;
     }
 
+    // A canvas to save data on during resizes.
+    var tmpCanvas = document.createElement("canvas");
+    var tmpCtx = tmpCanvas.getContext('2d');
+
     var ServerPixmap = new Class({
         initialize: function(xid, server, props) {
             this.xid = xid;
             this._server = server;
 
-            this._canvas = document.createElement("canvas");
-            this._canvas.width = props.width;
-            this._canvas.height = props.height;
-            this._ctx = this._canvas.getContext('2d');
+            this.canvas = document.createElement("canvas");
+            this.canvas.width = props.width;
+            this.canvas.height = props.height;
+            this._ctx = this.canvas.getContext('2d');
         },
         destroy: function() {
-            this._canvas.width = 0;
-            this._canvas.height = 0;
+            this.canvas.width = 0;
+            this.canvas.height = 0;
             this._server.xidDestroyed(this.xid);
         },
         canDraw: function() {
@@ -128,6 +132,24 @@
             func(ctx);
             ctx.restore();
         },
+
+        resize: function(width, height) {
+            // Save the old pixmap contents
+            tmpCanvas.width = this.canvas.width;
+            tmpCanvas.height = this.canvas.height;
+            tmpCtx.drawImage(this.canvas, 0, 0, this.canvas.width, this.canvas.height);
+
+            // Resize the pixmap canvas
+            this.canvas.width = width;
+            this.canvas.height = height;
+
+            // And then draw the old contents back on
+            this._ctx.drawImage(tmpCanvas, 0, 0, tmpCanvas.width, tmpCanvas.height);
+
+            // And then, to save memory, dump the old image contents
+            tmpCanvas.width = 1;
+            tmpCanvas.height = 1;
+        }
     });
 
     var DEFAULT_BACKGROUND_COLOR = '#ddd';
@@ -205,20 +227,19 @@
             return this.viewable;
         },
         _drawClippedToRegion: function(region, func) {
-            // XXX
-            var ctx = this._server._ctx;
+            this._server.drawToFrontBuffer(function(ctx) {
+                ctx.beginPath();
+                ctx.save();
 
-            ctx.beginPath();
-            ctx.save();
+                pathFromRegion(ctx, region);
+                ctx.clip();
+                var txform = this.calculateAbsoluteOffset();
+                ctx.translate(txform.x, txform.y);
 
-            pathFromRegion(ctx, region);
-            ctx.clip();
-            var txform = this.calculateAbsoluteOffset();
-            ctx.translate(txform.x, txform.y);
+                func(ctx);
 
-            func(ctx);
-
-            ctx.restore();
+                ctx.restore();
+            }.bind(this));
         },
         _drawBackground: function(ctx) {
             if (this._backgroundColor) {
@@ -736,6 +757,7 @@
     var Server = new Class({
         initialize: function() {
             this._setupDOM();
+            this._createFrontBuffer();
             this.elem = this._container;
 
             this._clients = [];
@@ -767,40 +789,22 @@
             // Allow querying with ".xserver.js"
             this._container.classList.add("xserver");
             this._container.classList.add("js");
-
-            this._canvas = document.createElement("canvas");
-            this._container.appendChild(this._canvas);
-            this._ctx = this._canvas.getContext('2d');
-
-            this._canvas.style.position = "absolute";
-
-            // A canvas to save data on during resizes.
-            this._tmpCanvas = document.createElement("canvas");
-            this._tmpCtx = this._tmpCanvas.getContext('2d');
         },
 
+        drawToFrontBuffer: function(func) {
+            this._frontBufferPixmap.drawWithContext(func);
+        },
+        _createFrontBuffer: function() {
+            this._frontBufferPixmap = new ServerPixmap(-1, this, { width: 1, height: 1 });
+            this._container.appendChild(this._frontBufferPixmap.canvas);
+        },
         resize: function(width, height) {
-            // Save the old front buffer contents
-            this._tmpCanvas.width = this._canvas.width;
-            this._tmpCanvas.height = this._canvas.height;
-            this._tmpCtx.drawImage(this._canvas, 0, 0, this._canvas.width, this._canvas.height);
-
-            // Resize the front buffer
-            this._canvas.width = width;
-            this._canvas.height = height;
-
-            // And then draw the old contents back on
-            this._ctx.drawImage(this._tmpCanvas, 0, 0, this._tmpCanvas.width, this._tmpCanvas.height);
-
-            // And then, to save memory, dump the old image contents
-            this._tmpCanvas.width = 1;
-            this._tmpCanvas.height = 1;
+            this._frontBufferPixmap.resize(width, height);
 
             this._container.style.width = width + "px";
             this._container.style.height = height + "px";
             this._rootWindow.configureWindow(null, { width: width, height: height });
         },
-
         _createRootWindow: function() {
             this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: 1, height: 1 });
             this.rootWindowId = this._rootWindow.xid;
@@ -1372,14 +1376,15 @@
                 // into the coordinate space of the new region.
                 oldRegion.translate(newPos.x - oldPos.x, newPos.y - oldPos.y);
 
-                var ctx = this._ctx;
-                ctx.beginPath();
-                ctx.save();
-                tmp.intersect(newRegion, oldRegion);
-                pathFromRegion(ctx, tmp);
-                ctx.clip();
-                copyArea(ctx, ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, oldW, oldH);
-                ctx.restore();
+                this.drawToFrontBuffer(function(ctx) {
+                    ctx.beginPath();
+                    ctx.save();
+                    tmp.intersect(newRegion, oldRegion);
+                    pathFromRegion(ctx, tmp);
+                    ctx.clip();
+                    copyArea(ctx, ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, oldW, oldH);
+                    ctx.restore();
+                });
             }
 
             // Pixels need to be exposed on the window in places where the
