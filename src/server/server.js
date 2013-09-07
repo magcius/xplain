@@ -260,15 +260,14 @@
                 return;
 
             var extents = region.extents();
-
-            var pos = this.calculateAbsoluteOffset();
-            region.translate(pos.x, pos.y);
-            this._drawClippedToRegion(region, this._drawBackground.bind(this));
-
             this._server.sendEvent({ type: "Expose",
                                      windowId: this.xid,
                                      x: extents.x, y: extents.y,
                                      width: extents.width, height: extents.height });
+
+            var pos = this.calculateAbsoluteOffset();
+            region.translate(pos.x, pos.y);
+            this._drawClippedToRegion(region, this._drawBackground.bind(this));
         },
         changeAttributes: function(attributes) {
             if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
