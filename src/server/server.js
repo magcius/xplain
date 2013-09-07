@@ -458,6 +458,57 @@
             this._unshapedBoundingRegion.init_rect(0, 0, this.width, this.height);
         },
 
+        _wrapWindowChange: function(func) {
+            if (!this.viewable) {
+                func();
+                return;
+            }
+
+            // Get the old state.
+            var oldRegion = this._server.calculateEffectiveRegionForWindow(this, true);
+            var oldPos = this.calculateAbsoluteOffset();
+            var oldW = this.width, oldH = this.height;
+
+            func();
+
+            var newRegion = this._server.calculateEffectiveRegionForWindow(this, true);
+            var newPos = this.calculateAbsoluteOffset();
+
+            var tmp = new Region();
+            var exposedRegion = new Region();
+
+            // Pixels need to be exposed under the window in places where the
+            // old region is, but the new region isn't.
+            tmp.subtract(oldRegion, newRegion);
+            exposedRegion.union(exposedRegion, tmp);
+
+            function pointEqual(a, b) {
+                return a.x == b.x && a.y == b.y;
+            }
+
+            if (oldRegion.not_empty() && !pointEqual(oldPos, newPos)) {
+                // We're going to copy the contents of the old region into
+                // the area of the new region, so translate the old region
+                // into the coordinate space of the new region.
+                oldRegion.translate(newPos.x - oldPos.x, newPos.y - oldPos.y);
+                this.copyContents(oldRegion, newRegion, oldPos, newPos, oldW, oldH);
+            }
+
+            // Pixels need to be exposed on the window in places where the
+            // new region is, but the old region isn't.
+            tmp.subtract(newRegion, oldRegion);
+            exposedRegion.union(exposedRegion, tmp);
+
+            this._server.exposeRegion(exposedRegion);
+            this._server.syncCursorWindow();
+
+            tmp.finalize();
+            exposedRegion.finalize();
+
+            oldRegion.finalize();
+            newRegion.finalize();
+        },
+
         configureWindow: function(client, props) {
             var eventBase = { windowId: this.xid,
                               x: props.x, y: props.y, width: props.width, height: props.height,
@@ -467,7 +518,7 @@
             event = Object.create(eventBase);
             event.type = "ConfigureRequest";
             if (!this._server.sendEvent(event, client)) {
-                this._server.wrapWindowChange(this, function() {
+                this._wrapWindowChange(function() {
                     this._configureWindow(props);
 
                     if (props.stackMode) {
@@ -507,7 +558,7 @@
             }
         },
         setWindowShapeRegion: function(shapeType, region) {
-            this._server.wrapWindowChange(this, function() {
+            this._wrapWindowChange(function() {
                 this._setWindowShapeRegion(shapeType, region);
             }.bind(this));
         },
@@ -876,7 +927,7 @@
             this._container.dataset.cursor = cursor;
         },
 
-        _exposeRegion: function(region) {
+        exposeRegion: function(region) {
             function recursivelyExpose(serverWindow, inputRegion) {
                 if (!serverWindow.mapped)
                     return;
@@ -1353,57 +1404,6 @@
                 this._setInputFocus(null, "PointerRoot", "PointerRoot");
         },
 
-        wrapWindowChange: function(serverWindow, func) {
-            if (!serverWindow.viewable) {
-                func();
-                return;
-            }
-
-            // Get the old state.
-            var oldRegion = this.calculateEffectiveRegionForWindow(serverWindow, true);
-            var oldPos = serverWindow.calculateAbsoluteOffset();
-            var oldW = serverWindow.width, oldH = serverWindow.height;
-
-            func();
-
-            var newRegion = this.calculateEffectiveRegionForWindow(serverWindow, true);
-            var newPos = serverWindow.calculateAbsoluteOffset();
-
-            var tmp = new Region();
-            var exposedRegion = new Region();
-
-            // Pixels need to be exposed under the window in places where the
-            // old region is, but the new region isn't.
-            tmp.subtract(oldRegion, newRegion);
-            exposedRegion.union(exposedRegion, tmp);
-
-            function pointEqual(a, b) {
-                return a.x == b.x && a.y == b.y;
-            }
-
-            if (oldRegion.not_empty() && !pointEqual(oldPos, newPos)) {
-                // We're going to copy the contents of the old region into
-                // the area of the new region, so translate the old region
-                // into the coordinate space of the new region.
-                oldRegion.translate(newPos.x - oldPos.x, newPos.y - oldPos.y);
-                serverWindow.copyContents(oldRegion, newRegion, oldPos, newPos, oldW, oldH);
-            }
-
-            // Pixels need to be exposed on the window in places where the
-            // new region is, but the old region isn't.
-            tmp.subtract(newRegion, oldRegion);
-            exposedRegion.union(exposedRegion, tmp);
-
-            this._exposeRegion(exposedRegion);
-            this.syncCursorWindow();
-
-            tmp.finalize();
-            exposedRegion.finalize();
-
-            oldRegion.finalize();
-            newRegion.finalize();
-        },
-
         _grabPointer: function(grabInfo, isPassive) {
             this._grabClient = new ServerGrabClient(this, grabInfo, isPassive);
             this.syncCursorWindow("Grab");
@@ -1419,7 +1419,7 @@
                 return;
 
             var region = this.calculateEffectiveRegionForWindow(serverWindow, includeChildren);
-            this._exposeRegion(region);
+            this.exposeRegion(region);
             region.finalize();
         },
         viewabilityChanged: function(serverWindow) {
