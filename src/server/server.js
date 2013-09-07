@@ -255,14 +255,6 @@
             }.bind(this));
             region.finalize();
         },
-        copyContents: function(oldRegion, newRegion, oldPos, newPos, width, height) {
-            var region = new Region();
-            region.intersect(newRegion, oldRegion);
-            this._drawClippedToRegion(region, function(ctx) {
-                copyArea(ctx, ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, width, height);
-            });
-            region.finalize();
-        },
         sendExpose: function(region) {
             if (region.is_empty())
                 return;
@@ -491,7 +483,11 @@
                 // the area of the new region, so translate the old region
                 // into the coordinate space of the new region.
                 oldRegion.translate(newPos.x - oldPos.x, newPos.y - oldPos.y);
-                this.copyContents(oldRegion, newRegion, oldPos, newPos, oldW, oldH);
+
+                tmp.intersect(newRegion, oldRegion);
+                this._drawClippedToRegion(tmp, function(ctx) {
+                    copyArea(ctx, ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, oldW, oldH);
+                });
             }
 
             // Pixels need to be exposed on the window in places where the
