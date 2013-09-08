@@ -213,7 +213,7 @@
             var serverWindow = this;
             while (serverWindow != null) {
                 callback(serverWindow);
-                serverWindow = serverWindow.parentServerWindow;
+                serverWindow = serverWindow.windowTreeParent;
             }
         },
         calculateAbsoluteOffset: function() {
@@ -350,8 +350,8 @@
                 // Else, the viewabiliy of us is the viewability
                 // of our parent, and if we don't have any, then
                 // we're directly viewable.
-                if (this.parentServerWindow)
-                    viewable = this.parentServerWindow.viewable;
+                if (this.windowTreeParent)
+                    viewable = this.windowTreeParent.viewable;
                 else
                     viewable = true;
             }
@@ -400,9 +400,9 @@
             return true;
         },
         _unparentWindowInternal: function() {
-            var children = this.parentServerWindow.children;
+            var children = this.windowTreeParent.children;
             children.splice(children.indexOf(this), 1);
-            this.parentServerWindow = null;
+            this.windowTreeParent = null;
         },
         destroy: function() {
             this.unmap();
@@ -418,13 +418,14 @@
             this._server.xidDestroyed(this.xid);
             this.finalize();
         },
-        parentWindow: function(parentServerWindow) {
+        parentWindow: function(parent) {
             var wasMapped = this.unmap();
 
-            if (this.parentServerWindow)
+            if (this.windowTreeParent)
                 this._unparentWindowInternal();
-            this.parentServerWindow = parentServerWindow;
-            this.parentServerWindow.children.unshift(this);
+
+            this.windowTreeParent = parent;
+            this.windowTreeParent.children.unshift(this);
 
             if (wasMapped)
                 this.map();
@@ -510,10 +511,10 @@
         },
 
         _siblingIndex: function(sibling) {
-            return sibling.parentServerWindow.children.indexOf(sibling);
+            return sibling.windowTreeParent.children.indexOf(sibling);
         },
         _insertIntoStack: function(sibling, mode) {
-            var children = this.parentServerWindow.children;
+            var children = this.windowTreeParent.children;
             children.splice(children.indexOf(this), 1);
             switch (mode) {
             case "Above":
@@ -713,7 +714,7 @@
             var serverWindow = this._server.getServerWindow(null, windowId);
             var substructureRedirect = isEventSubstructureRedirect(event);
             var substructureNotify = isEventSubstructureNotify(event);
-            var parent = serverWindow.parentServerWindow;
+            var parent = serverWindow.windowTreeParent;
             if (parent) {
                 if (substructureRedirect && this.isInterestedInWindowEvent(parent.xid, "SubstructureRedirect"))
                     return true;
@@ -838,7 +839,7 @@
 
     // Is b a descendent of a?
     function isWindowDescendentOf(a, b) {
-        for (b = b.parentServerWindow; b; b = b.parentServerWindow) {
+        for (b = b.windowTreeParent; b; b = b.windowTreeParent) {
             if (b === a)
                 return true;
         }
@@ -846,7 +847,7 @@
     }
 
     function commonAncestor(a, b) {
-        for (b = b.parentServerWindow; b; b = b.parentServerWindow) {
+        for (b = b.windowTreeParent; b; b = b.windowTreeParent) {
             if (isWindowDescendentOf(b, a))
                 return b;
         }
@@ -910,7 +911,6 @@
         _createRootWindow: function() {
             this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: 1, height: 1 });
             this.rootWindowId = this._rootWindow.xid;
-            this._rootWindow.parentServerWindow = null;
             this._rootWindow.map();
         },
 
@@ -946,8 +946,8 @@
             if (!includeChildren)
                 serverWindow.children.forEach(subtractWindow);
 
-            while (serverWindow != null && serverWindow.parentServerWindow != null) {
-                var parent = serverWindow.parentServerWindow;
+            while (serverWindow != null && serverWindow.windowTreeParent != null) {
+                var parent = serverWindow.windowTreeParent;
                 var idx = parent.children.indexOf(serverWindow);
                 var windowsOnTop = parent.children.slice(0, idx);
                 windowsOnTop.forEach(subtractWindow);
@@ -1091,7 +1091,7 @@
                 while (window != until) {
                     if (this._hasServerClientInterestedInWindowEvent(window.xid, eventType))
                         return window;
-                    window = window.parentServerWindow;
+                    window = window.windowTreeParent;
                 }
                 return null;
             }).bind(this);
@@ -1177,7 +1177,7 @@
                 if (!serverWindow)
                     return null;
 
-                var grabInfo = checkGrabRecursively(serverWindow.parentServerWindow);
+                var grabInfo = checkGrabRecursively(serverWindow.windowTreeParent);
                 if (grabInfo)
                     return grabInfo;
 
@@ -1267,7 +1267,7 @@
             }
 
             function EnterNotifies(ancestor, child, detail) {
-                var parent = child.parentServerWindow;
+                var parent = child.windowTreeParent;
                 if (ancestor == parent)
                     return;
 
@@ -1276,7 +1276,7 @@
             }
 
             function LeaveNotifies(child, ancestor, detail) {
-                var parent = child.parentServerWindow;
+                var parent = child.windowTreeParent;
                 if (ancestor == parent)
                     return;
 
@@ -1326,7 +1326,7 @@
                     if (doAncestor)
                         FocusEvent("FocusIn", detail, child);
                     return true;
-                } else if (FocusInEvents(ancestor, child.parentServerWindow, detail, doAncestor, skipChild)) {
+                } else if (FocusInEvents(ancestor, child.windowTreeParent, detail, doAncestor, skipChild)) {
                     if (child != skipChild)
                         FocusEvent("FocusIn", detail, child);
                     return true;
@@ -1337,7 +1337,7 @@
             function FocusOutEvents(child, ancestor, detail, doAncestor) {
                 while (child != ancestor) {
                     FocusEvent("FocusOut", detail, child);
-                    child = child.parentServerWindow;
+                    child = child.windowTreeParent;
                 }
                 if (doAncestor)
                     FocusEvent("FocusOut", detail, ancestor);
@@ -1359,7 +1359,7 @@
                     if (isWindowDescendentOf(fromWin, this._cursorServerWindow))
                         FocusOutEvents(this._cursorServerWindow, fromWin, "Pointer", false);
                     FocusEvent("FocusOut", "Nonlinear", fromWin);
-                    FocusOutEvents(fromWin.parentServerWindow, null, "NonlinearVirtual", false);
+                    FocusOutEvents(fromWin.windowTreeParent, null, "NonlinearVirtual", false);
                 }
 
                 // Notify the root
@@ -1374,7 +1374,7 @@
                     // Notify the root
                     FocusEvent("FocusOut", detailOut, this._rootWindow);
 
-                    if (toWin.parentServerWindow != null)
+                    if (toWin.windowTreeParent != null)
                         FocusInEvents(this._rootWindow, toWin, "NonlinearVirtual", true, toWin);
                     FocusEvent("FocusIn", "NonlinearVirtual", toWin);
                     if (isWindowDescendentOf(toWin, this._cursorServerWindow))
@@ -1405,9 +1405,9 @@
                 if (isWindowDescendentOf(fromWin, this._cursorServerWindow))
                     FocusOutEvents(this._cursorServerWindow, fromWin, "Pointer", false);
                 FocusEvent("FocusOut", "Nonlinear", fromWin);
-                if (fromWin.parentServerWindow != null)
-                    FocusOutEvents(fromWin.parentServerWindow, common, "NonlinearVirtual", false);
-                if (toWin.parentServerWindow != null)
+                if (fromWin.windowTreeParent != null)
+                    FocusOutEvents(fromWin.windowTreeParent, common, "NonlinearVirtual", false);
+                if (toWin.windowTreeParent != null)
                     FocusInEvents(common, toWin, "NonlinearVirtual", true, toWin);
                 FocusEvent("FocusIn", "Nonlinear", toWin);
                 if (isWindowDescendentOf(toWin, this._cursorServerWindow))
@@ -1439,7 +1439,7 @@
             if (this._focusRevertTo === null)
                 this._setInputFocus(null, null, null);
             else if (this._focusRevertTo === "Parent")
-                this._setInputFocus(null, this._focusServerWindow.parentServerWindow.xid, null);
+                this._setInputFocus(null, this._focusServerWindow.windowTreeParent.xid, null);
             else if (this._focusRevertTo === "PointerRoot")
                 this._setInputFocus(null, "PointerRoot", "PointerRoot");
         },
@@ -1575,7 +1575,7 @@
 
             var reply = {};
             reply.root = this.rootWindowId;
-            reply.parent = serverWindow.parentServerWindow ? serverWindow.parentServerWindow.xid : null;
+            reply.parent = serverWindow.windowTreeParent ? serverWindow.windowTreeParent.xid : null;
             reply.children = serverWindow.children.map(function(w) {
                 return w.xid;
             }).reverse();
