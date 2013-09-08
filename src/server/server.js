@@ -132,10 +132,13 @@
             func(ctx);
             ctx.restore();
         },
+        getGeometry: function() {
+            return { width: this.canvas.width, height: this.canvas.height };
+        },
+
         getPattern: function() {
             return tmpCtx.createPattern(this.canvas, 'repeat');
         },
-
         resize: function(width, height) {
             // Save the old pixmap contents
             tmpCanvas.width = this.canvas.width;
@@ -1563,11 +1566,11 @@
             return reply;
         },
         _handle_getGeometry: function(client, props) {
-            var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
+            var drawable = this.getDrawable(client, props.drawableId);
+            if (!drawable)
                 return;
 
-            return serverWindow.getGeometry();
+            return drawable.getGeometry();
         },
         _handle_translateCoordinates: function(client, props) {
             var srcServerWindow = this.getServerWindow(client, props.srcWindowId);

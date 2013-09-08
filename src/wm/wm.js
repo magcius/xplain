@@ -153,7 +153,7 @@
         },
 
         construct: function() {
-            var geom = this._server.getGeometry({ windowId: this._clientWindowId });
+            var geom = this._server.getGeometry({ drawableId: this._clientWindowId });
 
             this._wm.register(this._clientWindowId, this);
             this._server.grabButton({ windowId: this._clientWindowId,
@@ -239,7 +239,7 @@
                 return;
 
             this._origMousePos = { x: event.rootX, y: event.rootY };
-            var frameCoords = this._server.getGeometry({ windowId: this._frameWindowId });
+            var frameCoords = this._server.getGeometry({ drawableId: this._frameWindowId });
             this._origWindowPos = { x: frameCoords.x, y: frameCoords.y };
             this._server.grabPointer({ windowId: this._frameWindowId,
                                        ownerEvents: true,

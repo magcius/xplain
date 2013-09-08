@@ -20,7 +20,7 @@
             this._server.mapWindow({ windowId: this.windowId });
         },
         _syncSize: function() {
-            var rootWindowGeometry = this._server.getGeometry({ windowId: this._server.rootWindowId });
+            var rootWindowGeometry = this._server.getGeometry({ drawableId: this._server.rootWindowId });
             this._server.configureWindow({ windowId: this.windowId,
                                            width: rootWindowGeometry.width,
                                            height: rootWindowGeometry.height });

@@ -20,7 +20,7 @@
             this._server.mapWindow({ windowId: this.windowId });
         },
         _syncSize: function() {
-            var rootWindowGeometry = this._server.getGeometry({ windowId: this._server.rootWindowId });
+            var rootWindowGeometry = this._server.getGeometry({ drawableId: this._server.rootWindowId });
             this._server.configureWindow({ windowId: this.windowId,
                                            width: rootWindowGeometry.width,
                                            height: 30 });
@@ -32,7 +32,7 @@
 
             var buttonHeight = this.height - 1;
             this._leftButtons.forEach(function(button) {
-                var geom = this._server.getGeometry({ windowId: button.windowId });
+                var geom = this._server.getGeometry({ drawableId: button.windowId });
                 this._server.configureWindow({ windowId: button.windowId,
                                                x: x, y: 0, height: buttonHeight });
                 x += geom.width + padding;
@@ -40,7 +40,7 @@
 
             x = this.width - padding;
             this._rightButtons.forEach(function(button) {
-                var geom = this._server.getGeometry({ windowId: button.windowId });
+                var geom = this._server.getGeometry({ drawableId: button.windowId });
                 x -= geom.width;
                 this._server.configureWindow({ windowId: button.windowId,
                                                x: x, y: 0, height: buttonHeight });
@@ -119,7 +119,7 @@
         },
         _syncGeometry: function(openerWindowId) {
             var tree = this._server.queryTree({ windowId: openerWindowId });
-            var geometry = this._server.getGeometry({ windowId: openerWindowId });
+            var geometry = this._server.getGeometry({ drawableId: openerWindowId });
             var rootCoords = this._server.translateCoordinates({ srcWindowId: tree.parent,
                                                                  destWindowId: this._server.rootWindowId,
                                                                  x: geometry.x, y: geometry.y });
