@@ -106,40 +106,25 @@
     var tmpCanvas = document.createElement("canvas");
     var tmpCtx = tmpCanvas.getContext('2d');
 
-    var ServerPixmap = new Class({
-        initialize: function(xid, server, props) {
-            this.xid = xid;
-            this._server = server;
-
+    var Pixmap = new Class({
+        initialize: function() {
             this.canvas = document.createElement("canvas");
-            this.canvas.width = props.width;
-            this.canvas.height = props.height;
             this._ctx = this.canvas.getContext('2d');
         },
         destroy: function() {
             this.canvas.width = 0;
             this.canvas.height = 0;
-            this._server.xidDestroyed(this.xid);
-        },
-        canDraw: function() {
-            return true;
         },
         drawTo: function(func) {
-            var ctx = this._ctx;
-
-            ctx.beginPath();
-            ctx.save();
-            func(ctx);
-            ctx.restore();
-        },
-        getGeometry: function() {
-            return { width: this.canvas.width, height: this.canvas.height };
-        },
-
-        getPattern: function() {
-            return tmpCtx.createPattern(this.canvas, 'repeat');
+            this._ctx.beginPath();
+            this._ctx.save();
+            func(this._ctx);
+            this._ctx.restore();
         },
         resize: function(width, height) {
+            if (this.canvas.width == width && this.canvas.height == height)
+                return;
+
             // Save the old pixmap contents
             tmpCanvas.width = this.canvas.width;
             tmpCanvas.height = this.canvas.height;
@@ -156,6 +141,36 @@
             tmpCanvas.width = 0;
             tmpCanvas.height = 0;
         }
+    });
+
+    var ServerPixmap = new Class({
+        initialize: function(xid, server, props) {
+            this.xid = xid;
+            this._server = server;
+            this._pixmap = new Pixmap();
+            this._pixmap.resize(props.width, props.height);
+        },
+        destroy: function() {
+            this._pixmap.destroy();
+            this._server.xidDestroyed(this.xid);
+        },
+        canDraw: function() {
+            return true;
+        },
+        drawTo: function(func) {
+            this._pixmap.drawTo(func);
+        },
+        getGeometry: function() {
+            return { width: this._pixmap.canvas.width,
+                     height: this._pixmap.canvas.height };
+        },
+
+        getImage: function() {
+            return this._pixmap.canvas;
+        },
+        getPattern: function() {
+            return tmpCtx.createPattern(this._pixmap.canvas, 'repeat');
+        },
     });
 
     var ServerWindow = new Class({
@@ -884,7 +899,7 @@
             this._frontBufferPixmap.drawTo(func);
         },
         _createFrontBuffer: function() {
-            this._frontBufferPixmap = new ServerPixmap(-1, this, { width: 1, height: 1 });
+            this._frontBufferPixmap = new Pixmap();
             this._container.appendChild(this._frontBufferPixmap.canvas);
         },
         resize: function(width, height) {
@@ -1688,7 +1703,7 @@
 
         _handle_getPixmapImage: function(client, props) {
             var pixmap = this.getServerPixmap(client, props.pixmapId);
-            return pixmap.canvas;
+            return pixmap.getImage();
         },
 
         _handle_invalidateWindow: function(client, props) {
