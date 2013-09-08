@@ -259,6 +259,9 @@
             this._display.invalidateWindow({ windowId: this.windowId });
         },
         expose: function(event) {
+            if (!this._pixmapId)
+                return;
+
             var image = this._display.getPixmapImage({ pixmapId: this._pixmapId });
             var x = ((this.width - image.width) / 2) | 0;
             var y = ((this.height - image.height) / 2) | 0;
