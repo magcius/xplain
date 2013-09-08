@@ -356,13 +356,19 @@
                     viewable = true;
             }
 
-            if (valueUpdated(viewable, this.viewable)) {
-                this.viewable = viewable;
-                this._server.viewabilityChanged(this);
-                this.children.forEach(function(child) {
-                    child.recalculateViewability();
-                });
-            }
+            if (!valueUpdated(viewable, this.viewable))
+                return;
+
+            this.viewable = viewable;
+
+            // If the window became viewable, expose it.
+            if (this.viewable)
+                this._server.exposeWindow(this, false, false);
+
+            this._server.viewabilityChanged(this);
+            this.children.forEach(function(child) {
+                child.recalculateViewability();
+            });
         },
         map: function(client) {
             if (this.mapped)
@@ -1463,10 +1469,7 @@
             region.finalize();
         },
         viewabilityChanged: function(serverWindow) {
-            if (serverWindow.viewable) {
-                // If a window is now viewable, expose it.
-                this.exposeWindow(serverWindow, false, false);
-            } else {
+            if (!serverWindow.viewable) {
                 // If a window is now unviewable and we have a grab on it,
                 // drop the grab.
                 if (this._grabClient && this._grabClient.grabWindow == serverWindow)
