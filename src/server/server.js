@@ -173,6 +173,14 @@
         },
     });
 
+    // A draw tree manages a subtree of windows where the root owns
+    // its own backing pixmap. By default, the only draw tree is
+    // the one for the root window.
+    //
+    // When a window is redirected, it gets a new draw tree where
+    // it is the root. Subwindows, instead of painting to the front
+    // buffer pixmap, paint to this redirected pixmap instead using
+    // the standard clipping semantics.
     var ServerWindowDrawTree = new Class({
         initialize: function(server, pixmap, rootWindow) {
             this._server = server;
