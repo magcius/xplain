@@ -1,6 +1,23 @@
 (function(exports) {
     "use strict";
 
+    var Util = {};
+    Util.loadImageAsPixmap = function(server, src, callback) {
+        var image = new Image();
+        image.addEventListener("load", function() {
+            var width = image.width;
+            var height = image.height;
+
+            var pixmapId = server.createPixmap({ width: width, height: height });
+            server.drawWithContext(pixmapId, function(ctx) {
+                ctx.drawImage(image, 0, 0);
+            });
+
+            callback(pixmapId);
+        });
+        image.src = src;
+    };
+
     var Window = new Class({
         initialize: function() {
             this.x = 0;
@@ -44,6 +61,7 @@
         },
     });
 
+    exports.Util = Util;
     exports.Window = Window;
 
 })(window);

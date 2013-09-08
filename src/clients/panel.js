@@ -239,15 +239,14 @@
         connect: function(server) {
             this.parent(server);
 
-            this._loaded = false;
-            this._image = new Image();
-            this._image.addEventListener("load", function() {
-                this._loaded = true;
+            this._pixmapId = 0;
+            Util.loadImageAsPixmap(this._server, this._imageSrc, function(pixmapId) {
+                this._pixmapId = pixmapId;
+                var geom = this._server.getGeometry({ drawableId: this._pixmapId });
                 this._server.configureWindow({ windowId: this.windowId,
-                                               width: this._image.width,
-                                               height: this._image.height });
+                                               width: geom.width,
+                                               height: geom.height });
             }.bind(this));
-            this._image.src = this._imageSrc;
 
             this._server.changeAttributes({ windowId: this.windowId,
                                             backgroundColor: PANEL_BACKGROUND_COLOR,
@@ -260,14 +259,13 @@
             this._server.invalidateWindow({ windowId: this.windowId });
         },
         expose: function(event) {
-            this._server.drawWithContext(this.windowId, function(ctx) {
-                if (!this._loaded)
-                    return;
-
-                var x = ((this.width - this._image.width) / 2) | 0;
-                var y = ((this.height - this._image.height) / 2) | 0;
-                ctx.drawImage(this._image, x, y, this._image.width, this._image.height);
-            }.bind(this));
+            var geom = this._server.getGeometry({ drawableId: this._pixmapId });
+            var x = ((this.width - geom.width) / 2) | 0;
+            var y = ((this.height - geom.height) / 2) | 0;
+            this._server.copyArea({ srcDrawableId: this._pixmapId,
+                                    destDrawableId: this.windowId,
+                                    srcX: 0, srcY: 0, destX: x, destY: y,
+                                    width: geom.width, height: geom.height });
         },
         handleEvent: function(event) {
             switch (event.type) {

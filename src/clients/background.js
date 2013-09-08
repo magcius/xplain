@@ -6,12 +6,10 @@
         connect: function(server) {
             this.parent(server);
 
-            this._loaded = false;
-            this._image = new Image();
-            this._image.addEventListener("load", function() {
-                this._loaded = true;
+            this._pixmapId = 0;
+            Util.loadImageAsPixmap(this._server, "demo/data/background.jpg", function(pixmapId) {
+                this._pixmapId = pixmapId;
             }.bind(this));
-            this._image.src ="demo/data/background.jpg";
 
             this._server.selectInput({ windowId: this._server.rootWindowId,
                                        events: ["ConfigureNotify"] });
@@ -31,46 +29,28 @@
             if (event.windowId === this._server.rootWindowId)
                 this._syncSize();
 
-            this._destroyPixmap();
             this._server.invalidateWindow({ windowId: this.windowId });
         },
-        _destroyPixmap: function() {
-            this._server.freePixmap({ pixmapId: this._pixmapId });
-            this._pixmapId = 0;
-        },
-        _ensurePixmap: function() {
-            if (this._pixmapId)
+        expose: function(event) {
+            if (!this._pixmapId)
                 return;
 
-            this._pixmapId = this._server.createPixmap({ width: this.width,
-                                                         height: this.height });
-
-            if (!this._loaded)
-                return;
-
-            var ratio = Math.max(this.width / this._image.width,
-                                 this.height / this._image.height);
-            var imageWidth = this._image.width * ratio;
-            var imageHeight = this._image.height * ratio;
+            var geom = this._server.getGeometry({ drawableId: this._pixmapId });
+            var ratio = Math.max(this.width / geom.width,
+                                 this.height / geom.height);
+            var imageWidth = geom.width * ratio;
+            var imageHeight = geom.height * ratio;
             var centerX = (this.width - imageWidth) / 2;
             var centerY = (this.height - imageHeight) / 2;
 
-            this._server.drawWithContext(this._pixmapId, function(ctx) {
-                ctx.drawImage(this._image,
-                              0, 0, this._image.width, this._image.height,
-                              centerX, centerY, imageWidth, imageHeight);
+            this._server.drawWithContext(this.windowId, function(dest) {
+                this._server.drawWithContext(this._pixmapId, function(src) {
+                    // XXX -- this is exploiting how pixmaps work
+                    dest.drawImage(src.canvas,
+                                   0, 0, geom.width, geom.height,
+                                   centerX, centerY, imageWidth, imageHeight);
+                }.bind(this));
             }.bind(this));
-        },
-        expose: function(event) {
-            if (!this._loaded)
-                return;
-
-            this._ensurePixmap();
-
-            this._server.copyArea({ srcDrawableId: this._pixmapId,
-                                    destDrawableId: this.windowId,
-                                    srcX: 0, srcY: 0, destX: 0, destY: 0,
-                                    width: this.width, height: this.height });
         },
     });
 
