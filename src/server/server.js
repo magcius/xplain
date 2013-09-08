@@ -1537,45 +1537,27 @@
         },
         _handle_destroyWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
-                return;
-
             serverWindow.destroy();
         },
         _handle_reparentWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             var newServerParentWindow = this.getServerWindow(client, props.newParentId);
-            if (!serverWindow || !newServerParentWindow)
-                return;
-
             serverWindow.parentWindow(newServerParentWindow);
         },
         _handle_mapWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
-                return;
-
             serverWindow.map(client);
         },
         _handle_unmapWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
-                return;
-
             serverWindow.unmap();
         },
         _handle_configureWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
-                return;
-
             serverWindow.configureWindow(client, props);
         },
         _handle_queryTree: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
-                return;
-
             var reply = {};
             reply.root = this.rootWindowId;
             reply.parent = serverWindow.windowTreeParent ? serverWindow.windowTreeParent.xid : null;
@@ -1586,39 +1568,24 @@
         },
         _handle_getGeometry: function(client, props) {
             var drawable = this.getDrawable(client, props.drawableId);
-            if (!drawable)
-                return;
-
             return drawable.getGeometry();
         },
         _handle_translateCoordinates: function(client, props) {
             var srcServerWindow = this.getServerWindow(client, props.srcWindowId);
             var destServerWindow = this.getServerWindow(client, props.destWindowId);
-            if (!srcServerWindow || !destServerWindow)
-                return;
-
             return this._translateCoordinates(srcServerWindow, destServerWindow, props.x, props.y);
         },
         _handle_changeAttributes: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
-                return;
-
             delete props.windowId;
             serverWindow.changeAttributes(client, props);
         },
         _handle_getProperty: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
-                return;
-
             return serverWindow.getProperty(props.name);
         },
         _handle_changeProperty: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
-                return;
-
             serverWindow.changeProperty(props.name, props.value);
         },
         _handle_selectInput: function(client, props) {
@@ -1636,8 +1603,6 @@
         },
         _handle_grabPointer: function(client, props) {
             var grabWindow = this.getServerWindow(client, props.windowId);
-            if (!grabWindow)
-                return;
 
             // TODO: keyboardMode
             // Investigate HTML5 APIs for confineTo
@@ -1672,9 +1637,6 @@
         },
         _handle_grabButton: function(client, props) {
             var grabWindow = this.getServerWindow(client, props.windowId);
-            if (!grabWindow)
-                return;
-
             var grabInfo = { serverClient: client,
                              grabWindow: grabWindow,
                              ownerEvents: props.ownerEvents,
@@ -1685,9 +1647,6 @@
         },
         _handle_ungrabButton: function(client, props) {
             var grabWindow = this.getServerWindow(client, props.windowId);
-            if (!grabWindow)
-                return;
-
             grabWindow.ungrabButton(props.button);
         },
         _handle_queryPointer: function(client, props) {
@@ -1709,17 +1668,11 @@
 
         _handle_invalidateWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
-                return;
-
             var includeChildren = !!props.includeChildren;
             this.exposeWindow(serverWindow, false, includeChildren);
         },
         _handle_setWindowShapeRegion: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
-            if (!serverWindow)
-                return;
-
             serverWindow.setWindowShapeRegion(props.shapeType, props.region);
         },
 
@@ -1746,8 +1699,8 @@
         // Not a request, as it requires custom marshalling.
         drawTo: function(client, drawableId, func) {
             var drawable = this.getDrawable(client, drawableId);
-            if (!drawable || !drawable.canDraw())
-                return;
+            if (!drawable.canDraw())
+                throw clientError("BadDrawable");
 
             drawable.drawTo(func);
         },
