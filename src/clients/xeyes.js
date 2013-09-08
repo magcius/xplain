@@ -29,6 +29,9 @@
 
             this._pixmapId = 0;
 
+            this._pointerRootX = -1;
+            this._pointerRootY = -1;
+
             this._server.selectInput({ windowId: this.windowId,
                                        events: ["MapNotify", "UnmapNotify"] });
             this._server.configureWindow({ windowId: this.windowId,
@@ -40,6 +43,13 @@
         },
         _start: function() {
             this._intervalId = setInterval(function() {
+                var pointer = this._server.queryPointer();
+                if (pointer.rootX == this._pointerRootX &&
+                    pointer.rootY == this._pointerRootY)
+                    return;
+
+                this._pointerRootX = pointer.rootX;
+                this._pointerRootY = pointer.rootY;
                 this._server.invalidateWindow({ windowId: this.windowId });
             }.bind(this), 50);
         },
@@ -111,10 +121,10 @@
             var pupilRX = eyeRX / 4;
             var pupilRY = eyeRY / 4;
 
-            var pointer = this._server.queryPointer();
             var pointerCoords = this._server.translateCoordinates({ srcWindowId: this._server.rootWindowId,
                                                                     destWindowId: this.windowId,
-                                                                    x: pointer.rootX, y: pointer.rootY });
+                                                                    x: this._pointerRootX,
+                                                                    y: this._pointerRootY });
 
             function hypot(x, y) {
                 return Math.sqrt(x*x + y*y);
