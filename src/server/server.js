@@ -247,23 +247,24 @@
         canDraw: function() {
             return this.viewable;
         },
+        _getDrawPixmap: function() {
+            return this._server.frontBufferPixmap;
+        },
+        _getDrawOffset: function() {
+            return this.calculateAbsoluteOffset();
+        },
         _drawClippedToRegion: function(region, func) {
-            this._server.drawToFrontBuffer(function(ctx) {
-                ctx.beginPath();
-                ctx.save();
-
+            this._getDrawPixmap().drawTo(function(ctx) {
                 pathFromRegion(ctx, region);
                 ctx.clip();
-
                 func(ctx);
-                ctx.restore();
             }.bind(this));
         },
         _drawBackground: function(ctx) {
             if (!this._backgroundPattern)
                 return;
 
-            var pos = this.calculateAbsoluteOffset();
+            var pos = this._getDrawOffset();
             ctx.translate(pos.x, pos.y);
             ctx.fillStyle = this._backgroundPattern;
             ctx.fillRect(0, 0, this.width, this.height);
@@ -271,7 +272,7 @@
         drawTo: function(func) {
             var region = this._server.calculateEffectiveRegionForWindow(this, false);
             this._drawClippedToRegion(region, function(ctx) {
-                var pos = this.calculateAbsoluteOffset();
+                var pos = this._getDrawOffset();
                 ctx.translate(pos.x, pos.y);
                 func(ctx);
             }.bind(this));
@@ -287,7 +288,7 @@
                                      x: extents.x, y: extents.y,
                                      width: extents.width, height: extents.height });
 
-            var pos = this.calculateAbsoluteOffset();
+            var pos = this._getDrawOffset();
             region.translate(pos.x, pos.y);
             this._drawClippedToRegion(region, this._drawBackground.bind(this));
         },
@@ -461,13 +462,13 @@
 
             // Get the old state.
             var oldRegion = this._server.calculateEffectiveRegionForWindow(this, true);
-            var oldPos = this.calculateAbsoluteOffset();
+            var oldPos = this._getDrawOffset();
             var oldW = this.width, oldH = this.height;
 
             func();
 
             var newRegion = this._server.calculateEffectiveRegionForWindow(this, true);
-            var newPos = this.calculateAbsoluteOffset();
+            var newPos = this._getDrawOffset();
 
             var tmp = new Region();
             var exposedRegion = new Region();
@@ -895,15 +896,12 @@
             this._container.classList.add("js");
         },
 
-        drawToFrontBuffer: function(func) {
-            this._frontBufferPixmap.drawTo(func);
-        },
         _createFrontBuffer: function() {
-            this._frontBufferPixmap = new Pixmap();
-            this._container.appendChild(this._frontBufferPixmap.canvas);
+            this.frontBufferPixmap = new Pixmap();
+            this._container.appendChild(this.frontBufferPixmap.canvas);
         },
         resize: function(width, height) {
-            this._frontBufferPixmap.resize(width, height);
+            this.frontBufferPixmap.resize(width, height);
 
             this._container.style.width = width + "px";
             this._container.style.height = height + "px";
