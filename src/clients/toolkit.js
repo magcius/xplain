@@ -59,6 +59,8 @@
             if (event.height !== undefined)
                 this.height = event.height;
         },
+        expose: function(event) {
+        },
     });
 
     exports.Util = Util;
