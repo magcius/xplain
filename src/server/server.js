@@ -1491,26 +1491,31 @@
         _createPixmapInternal: function(props) {
             return this._createXidObjectInternal(ServerPixmap, props);
         },
-        _getXidObjectInternal: function(client, xid, error) {
+        _getXidObjectInternal: function(client, xid, error, types) {
             var obj = this._xidToObject[xid];
-            if (obj)
+
+            var valid = obj && types.some(function(T) { return obj instanceof T; });
+
+            if (valid) {
                 return obj;
-            else if (client)
-                throw clientError(error);
-            else
-                throw new Error("Internal " + error + " - should not happen");
+            } else {
+                if (client)
+                    throw clientError(error);
+                else
+                    throw new Error("Internal " + error + " - should not happen");
+            }
         },
         xidDestroyed: function(xid) {
             this._xidToObject[xid] = null;
         },
         getServerWindow: function(client, windowId) {
-            return this._getXidObjectInternal(client, windowId, "BadWindow");
+            return this._getXidObjectInternal(client, windowId, "BadWindow", [ServerWindow]);
         },
         getServerPixmap: function(client, pixmapId) {
-            return this._getXidObjectInternal(client, pixmapId, "BadPixmap");
+            return this._getXidObjectInternal(client, pixmapId, "BadPixmap", [ServerPixmap]);
         },
         getDrawable: function(client, drawableId) {
-            return this._getXidObjectInternal(client, drawableId, "BadDrawable");
+            return this._getXidObjectInternal(client, drawableId, "BadDrawable", [ServerWindow, ServerPixmap]);
         },
         _checkOtherClientsForEvent: function(windowId, eventType, except) {
             return this._clients.some(function(otherClient) {
