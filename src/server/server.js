@@ -182,11 +182,16 @@
     // buffer pixmap, paint to this redirected pixmap instead using
     // the standard clipping semantics.
     var ServerWindowDrawTree = new Class({
-        initialize: function(server, pixmap, rootWindow) {
+        initialize: function(server, rootWindow) {
             this._server = server;
-            this._rootWindow = rootWindow;
+            this.rootWindow = rootWindow;
 
-            this.pixmap = pixmap;
+            this.pixmap = new Pixmap();
+            this.rootReconfigured();
+        },
+
+        rootReconfigured: function() {
+            this.pixmap.resize(this.rootWindow.width, this.rootWindow.height);
         },
 
         exposeWindow: function(serverWindow, force, includeChildren) {
@@ -242,7 +247,7 @@
             // none of our subtractions take effect.
             var exposedRegion = new Region();
             exposedRegion.copy(region);
-            recursivelyExpose(this._rootWindow, exposedRegion);
+            recursivelyExpose(this.rootWindow, exposedRegion);
             exposedRegion.finalize();
         },
 
@@ -701,6 +706,9 @@
                     this._configureWindow(props);
                 }.bind(this));
 
+                if (this.drawTree && this.drawTree.rootWindow == this)
+                    this.drawTree.rootReconfigured();
+
                 event = Object.create(eventBase);
                 event.type = "ConfigureNotify";
                 this._server.sendEvent(event);
@@ -1029,19 +1037,15 @@
         },
 
         _createRootDrawTree: function() {
-            this._frontBufferPixmap = new Pixmap();
-            this._container.appendChild(this._frontBufferPixmap.canvas);
-
             this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: 1, height: 1 });
             this.rootWindowId = this._rootWindow.xid;
 
-            this.frontBufferDrawTree = new ServerWindowDrawTree(this, this._frontBufferPixmap, this._rootWindow);
-            this._rootWindow.drawTree = this.frontBufferDrawTree;
+            this._rootDrawTree = new ServerWindowDrawTree(this, this._rootWindow);
+            this._container.appendChild(this._rootDrawTree.pixmap.canvas);
+            this._rootWindow.drawTree = this._rootDrawTree;
             this._rootWindow.map();
         },
         resize: function(width, height) {
-            this._frontBufferPixmap.resize(width, height);
-
             this._container.style.width = width + "px";
             this._container.style.height = height + "px";
             this._rootWindow.configureWindow(null, { width: width, height: height });
