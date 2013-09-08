@@ -184,14 +184,14 @@
     var ServerWindowDrawTree = new Class({
         initialize: function(server, rootWindow) {
             this._server = server;
-            this.rootWindow = rootWindow;
+            this._rootWindow = rootWindow;
 
             this.pixmap = new Pixmap();
             this.rootReconfigured();
         },
 
         rootReconfigured: function() {
-            this.pixmap.resize(this.rootWindow.width, this.rootWindow.height);
+            this.pixmap.resize(this._rootWindow.width, this._rootWindow.height);
         },
 
         exposeWindow: function(serverWindow, force, includeChildren) {
@@ -247,7 +247,7 @@
             // none of our subtractions take effect.
             var exposedRegion = new Region();
             exposedRegion.copy(region);
-            recursivelyExpose(this.rootWindow, exposedRegion);
+            recursivelyExpose(this._rootWindow, exposedRegion);
             exposedRegion.finalize();
         },
 
@@ -706,7 +706,7 @@
                     this._configureWindow(props);
                 }.bind(this));
 
-                if (this.drawTree && this.drawTree.rootWindow == this)
+                if (this.drawTree && !this.drawTreeParent)
                     this.drawTree.rootReconfigured();
 
                 event = Object.create(eventBase);
