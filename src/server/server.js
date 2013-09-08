@@ -153,8 +153,8 @@
             this._ctx.drawImage(tmpCanvas, 0, 0, tmpCanvas.width, tmpCanvas.height);
 
             // And then, to save memory, dump the old image contents
-            tmpCanvas.width = 1;
-            tmpCanvas.height = 1;
+            tmpCanvas.width = 0;
+            tmpCanvas.height = 0;
         }
     });
 
