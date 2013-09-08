@@ -173,6 +173,101 @@
         },
     });
 
+    var ServerWindowDrawTree = new Class({
+        initialize: function(server, pixmap, rootWindow) {
+            this._server = server;
+            this._rootWindow = rootWindow;
+
+            this.pixmap = pixmap;
+        },
+
+        exposeWindow: function(serverWindow, force, includeChildren) {
+            if (!serverWindow.viewable && !force)
+                return;
+
+            var region = this.calculateEffectiveRegionForWindow(serverWindow, includeChildren);
+            this.exposeRegion(region);
+            region.finalize();
+        },
+
+        exposeRegion: function(region) {
+            function recursivelyExpose(serverWindow, inputRegion) {
+                if (!serverWindow.mapped)
+                    return;
+
+                // The obscuring region is the part of @inputRegion that
+                // will obscure other windows. It doesn't include its child
+                // windows obscuring regions either, as the window shouldn't
+                // draw into the region owned by its children.
+                var obscuringRegion = new Region();
+
+                // Transform into the child's space.
+                inputRegion.translate(-serverWindow.x, -serverWindow.y);
+                region.translate(-serverWindow.x, -serverWindow.y);
+
+                // Clip the exposed region to the bounding region to get
+                // the maximum area that's obscured.
+                var bounding = serverWindow.getBoundingRegion();
+                obscuringRegion.intersect(inputRegion, bounding);
+                bounding.finalize();
+
+                // We're guaranteed that the window plus children is covering
+                // this area, so subtract it out of the input region first as
+                // we're handling it.
+                inputRegion.subtract(inputRegion, obscuringRegion);
+
+                // Child windows need to be exposed first -- they'll subtract
+                // out parts of inputRegion that we want to not be exposed for.
+                serverWindow.children.forEach(function(serverWindow) {
+                    recursivelyExpose(serverWindow, obscuringRegion);
+                });
+
+                serverWindow.sendExpose(obscuringRegion);
+                obscuringRegion.finalize();
+
+                // And transform back.
+                inputRegion.translate(serverWindow.x, serverWindow.y);
+                region.translate(serverWindow.x, serverWindow.y);
+            }
+
+            // The caller owns the exposed region, so make sure
+            // none of our subtractions take effect.
+            var exposedRegion = new Region();
+            exposedRegion.copy(region);
+            recursivelyExpose(this._rootWindow, exposedRegion);
+            exposedRegion.finalize();
+        },
+
+        // For a given window, return the region that would be
+        // immediately exposed if the window was removed. That is,
+        // the window's shape region clipped to the areas that are
+        // visible.
+        calculateEffectiveRegionForWindow: function(serverWindow, includeChildren) {
+            var region = serverWindow.calculateTransformedBoundingRegion();
+
+            function subtractWindow(aboveWindow) {
+                if (!aboveWindow.viewable)
+                    return;
+
+                var transformedBoundingRegion = aboveWindow.calculateTransformedBoundingRegion();
+                region.subtract(region, transformedBoundingRegion);
+                transformedBoundingRegion.finalize();
+            }
+
+            if (!includeChildren)
+                serverWindow.children.forEach(subtractWindow);
+
+            while (serverWindow != null && serverWindow.windowTreeParent != null) {
+                var parent = serverWindow.windowTreeParent;
+                var idx = parent.children.indexOf(serverWindow);
+                var windowsOnTop = parent.children.slice(0, idx);
+                windowsOnTop.forEach(subtractWindow);
+                serverWindow = parent;
+            }
+            return region;
+        }
+    });
+
     var ServerWindow = new Class({
         initialize: function(xid, server, props) {
             this.xid = xid;
@@ -187,6 +282,8 @@
 
             // The bounding region, as defined by the SHAPE extension, in window coordinates.
             this._shapedBoundingRegion = null;
+
+            this.drawTree = null;
 
             this._properties = {};
             this._passiveGrabs = {};
@@ -209,6 +306,17 @@
                 this._shapedBoundingRegion = null;
             }
         },
+
+        _syncDrawTree: function() {
+            if (this.windowTreeParent) {
+                this.drawTree = this.windowTreeParent.drawTree;
+            } else {
+                // We are an unparented window or the root window;
+                // we have no draw tree.
+                this.drawTree = null;
+            }
+        },
+
         _iterParents: function(callback) {
             var serverWindow = this;
             while (serverWindow != null) {
@@ -247,14 +355,11 @@
         canDraw: function() {
             return this.viewable;
         },
-        _getDrawPixmap: function() {
-            return this._server.frontBufferPixmap;
-        },
         _getDrawOffset: function() {
             return this.calculateAbsoluteOffset();
         },
         _drawClippedToRegion: function(region, func) {
-            this._getDrawPixmap().drawTo(function(ctx) {
+            this.drawTree.pixmap.drawTo(function(ctx) {
                 pathFromRegion(ctx, region);
                 ctx.clip();
                 func(ctx);
@@ -270,7 +375,7 @@
             ctx.fillRect(0, 0, this.width, this.height);
         },
         drawTo: function(func) {
-            var region = this._server.calculateEffectiveRegionForWindow(this, false);
+            var region = this.drawTree.calculateEffectiveRegionForWindow(this, false);
             this._drawClippedToRegion(region, function(ctx) {
                 var pos = this._getDrawOffset();
                 ctx.translate(pos.x, pos.y);
@@ -303,7 +408,7 @@
                 pattern = null;
             }
             this._backgroundPattern = pattern;
-            this._server.exposeWindow(this, false, false);
+            this.drawTree.exposeWindow(this, false, false);
         },
         changeAttributes: function(client, attributes) {
             var newBackground = false;
@@ -363,7 +468,7 @@
 
             // If the window became viewable, expose it.
             if (this.viewable)
-                this._server.exposeWindow(this, false, false);
+                this.drawTree.exposeWindow(this, false, false);
 
             this._server.viewabilityChanged(this);
             this.children.forEach(function(child) {
@@ -398,7 +503,7 @@
                 return false;
 
             this.mapped = false;
-            this._server.exposeWindow(this, true, true);
+            this.drawTree.exposeWindow(this, true, true);
             this._server.sendEvent({ type: "UnmapNotify",
                                      windowId: this.xid });
             this._server.syncCursorWindow();
@@ -432,6 +537,7 @@
 
             this.windowTreeParent = parent;
             this.windowTreeParent.children.unshift(this);
+            this._syncDrawTree();
 
             if (wasMapped)
                 this.map();
@@ -468,13 +574,13 @@
             }
 
             // Get the old state.
-            var oldRegion = this._server.calculateEffectiveRegionForWindow(this, true);
+            var oldRegion = this.drawTree.calculateEffectiveRegionForWindow(this, true);
             var oldPos = this._getDrawOffset();
             var oldW = this.width, oldH = this.height;
 
             func();
 
-            var newRegion = this._server.calculateEffectiveRegionForWindow(this, true);
+            var newRegion = this.drawTree.calculateEffectiveRegionForWindow(this, true);
             var newPos = this._getDrawOffset();
 
             var tmp = new Region();
@@ -506,7 +612,7 @@
             tmp.subtract(newRegion, oldRegion);
             exposedRegion.union(exposedRegion, tmp);
 
-            this._server.exposeRegion(exposedRegion);
+            this.drawTree.exposeRegion(exposedRegion);
             this._server.syncCursorWindow();
 
             tmp.finalize();
@@ -869,7 +975,6 @@
     var Server = new Class({
         initialize: function() {
             this._setupDOM();
-            this._createFrontBuffer();
             this.elem = this._container;
 
             this._clients = [];
@@ -888,9 +993,8 @@
             this._focusServerWindow = null;
             this._grabClient = null;
 
-            // This needs to be done after we set up everything else
-            // as it uses the standard redraw and windowing machinery.
-            this._createRootWindow();
+            this._createRootDrawTree();
+
             this.syncCursorWindow();
         },
 
@@ -903,21 +1007,23 @@
             this._container.classList.add("js");
         },
 
-        _createFrontBuffer: function() {
-            this.frontBufferPixmap = new Pixmap();
-            this._container.appendChild(this.frontBufferPixmap.canvas);
+        _createRootDrawTree: function() {
+            this._frontBufferPixmap = new Pixmap();
+            this._container.appendChild(this._frontBufferPixmap.canvas);
+
+            this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: 1, height: 1 });
+            this.rootWindowId = this._rootWindow.xid;
+
+            this.frontBufferDrawTree = new ServerWindowDrawTree(this, this._frontBufferPixmap, this._rootWindow);
+            this._rootWindow.drawTree = this.frontBufferDrawTree;
+            this._rootWindow.map();
         },
         resize: function(width, height) {
-            this.frontBufferPixmap.resize(width, height);
+            this._frontBufferPixmap.resize(width, height);
 
             this._container.style.width = width + "px";
             this._container.style.height = height + "px";
             this._rootWindow.configureWindow(null, { width: width, height: height });
-        },
-        _createRootWindow: function() {
-            this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: 1, height: 1 });
-            this.rootWindowId = this._rootWindow.xid;
-            this._rootWindow.map();
         },
 
         _translateCoordinates: function(srcServerWindow, destServerWindow, x, y) {
@@ -933,35 +1039,6 @@
             return { x: x, y: y };
         },
 
-        // For a given window, return the region that would be
-        // immediately exposed if the window was removed. That is,
-        // the window's shape region clipped to the areas that are
-        // visible.
-        calculateEffectiveRegionForWindow: function(serverWindow, includeChildren) {
-            var region = serverWindow.calculateTransformedBoundingRegion();
-
-            function subtractWindow(aboveWindow) {
-                if (!aboveWindow.viewable)
-                    return;
-
-                var transformedBoundingRegion = aboveWindow.calculateTransformedBoundingRegion();
-                region.subtract(region, transformedBoundingRegion);
-                transformedBoundingRegion.finalize();
-            }
-
-            if (!includeChildren)
-                serverWindow.children.forEach(subtractWindow);
-
-            while (serverWindow != null && serverWindow.windowTreeParent != null) {
-                var parent = serverWindow.windowTreeParent;
-                var idx = parent.children.indexOf(serverWindow);
-                var windowsOnTop = parent.children.slice(0, idx);
-                windowsOnTop.forEach(subtractWindow);
-                serverWindow = parent;
-            }
-            return region;
-        },
-
         syncCursor: function() {
             var cursor;
 
@@ -973,53 +1050,6 @@
             this._container.dataset.cursor = cursor;
         },
 
-        exposeRegion: function(region) {
-            function recursivelyExpose(serverWindow, inputRegion) {
-                if (!serverWindow.mapped)
-                    return;
-
-                // The obscuring region is the part of @inputRegion that
-                // will obscure other windows. It doesn't include its child
-                // windows obscuring regions either, as the window shouldn't
-                // draw into the region owned by its children.
-                var obscuringRegion = new Region();
-
-                // Transform into the child's space.
-                inputRegion.translate(-serverWindow.x, -serverWindow.y);
-                region.translate(-serverWindow.x, -serverWindow.y);
-
-                // Clip the exposed region to the bounding region to get
-                // the maximum area that's obscured.
-                var bounding = serverWindow.getBoundingRegion();
-                obscuringRegion.intersect(inputRegion, bounding);
-                bounding.finalize();
-
-                // We're guaranteed that the window plus children is covering
-                // this area, so subtract it out of the input region first as
-                // we're handling it.
-                inputRegion.subtract(inputRegion, obscuringRegion);
-
-                // Child windows need to be exposed first -- they'll subtract
-                // out parts of inputRegion that we want to not be exposed for.
-                serverWindow.children.forEach(function(serverWindow) {
-                    recursivelyExpose(serverWindow, obscuringRegion);
-                });
-
-                serverWindow.sendExpose(obscuringRegion);
-                obscuringRegion.finalize();
-
-                // And transform back.
-                inputRegion.translate(serverWindow.x, serverWindow.y);
-                region.translate(serverWindow.x, serverWindow.y);
-            }
-
-            // The caller owns the exposed region, so make sure
-            // none of our subtractions take effect.
-            var exposedRegion = new Region();
-            exposedRegion.copy(region);
-            recursivelyExpose(this._rootWindow, exposedRegion);
-            exposedRegion.finalize();
-        },
         _hasServerClientInterestedInWindowEvent: function(windowId, eventType) {
             for (var i = 0; i < this._clients.length; i++) {
                 var serverClient = this._clients[i];
@@ -1460,14 +1490,6 @@
             this.syncCursorWindow("Ungrab");
             this.syncCursor();
         },
-        exposeWindow: function(serverWindow, force, includeChildren) {
-            if (!serverWindow.viewable && !force)
-                return;
-
-            var region = this.calculateEffectiveRegionForWindow(serverWindow, includeChildren);
-            this.exposeRegion(region);
-            region.finalize();
-        },
         viewabilityChanged: function(serverWindow) {
             if (!serverWindow.viewable) {
                 // If a window is now unviewable and we have a grab on it,
@@ -1674,7 +1696,7 @@
         _handle_invalidateWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             var includeChildren = !!props.includeChildren;
-            this.exposeWindow(serverWindow, false, includeChildren);
+            serverWindow.drawTree.exposeWindow(serverWindow, false, includeChildren);
         },
         _handle_setWindowShapeRegion: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
