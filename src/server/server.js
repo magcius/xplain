@@ -132,6 +132,9 @@
             func(ctx);
             ctx.restore();
         },
+        getPattern: function() {
+            return tmpCtx.createPattern(this.canvas, 'repeat');
+        },
 
         resize: function(width, height) {
             // Save the old pixmap contents
@@ -158,6 +161,8 @@
             this._server = server;
 
             this._backgroundColor = null;
+            this._backgroundPixmap = null;
+            this._backgroundPattern = null;
 
             // The bounding region, used if the window is unshaped.
             this._unshapedBoundingRegion = new Region();
@@ -237,12 +242,13 @@
             }.bind(this));
         },
         _drawBackground: function(ctx) {
-            var pos = this.calculateAbsoluteOffset();
+            if (!this._backgroundPattern)
+                return;
 
-            if (this._backgroundColor) {
-                ctx.fillStyle = this._backgroundColor;
-                ctx.fillRect(pos.x, pos.y, this.width, this.height);
-            }
+            var pos = this.calculateAbsoluteOffset();
+            ctx.translate(pos.x, pos.y);
+            ctx.fillStyle = this._backgroundPattern;
+            ctx.fillRect(0, 0, this.width, this.height);
         },
         drawWithContext: function(func) {
             var region = this._server.calculateEffectiveRegionForWindow(this, false);
@@ -267,11 +273,33 @@
             region.translate(pos.x, pos.y);
             this._drawClippedToRegion(region, this._drawBackground.bind(this));
         },
-        changeAttributes: function(attributes) {
+        _syncBackgroundPattern: function(client) {
+            var pattern;
+            if (this._backgroundColor) {
+                pattern = this._backgroundColor;
+            } else if (this._backgroundPixmap) {
+                var pixmap = this._server.getServerPixmap(client, this._backgroundPixmap);
+                pattern = pixmap.getPattern();
+            } else {
+                pattern = null;
+            }
+            this._backgroundPattern = pattern;
+            this._server.exposeWindow(this, false, false);
+        },
+        changeAttributes: function(client, attributes) {
+            var newBackground = false;
             if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
                 this._backgroundColor = attributes.backgroundColor || null;
-                this._server.exposeWindow(this, false, false);
+                newBackground = true;
             }
+
+            if (valueUpdated(attributes.backgroundPixmap, this._backgroundPixmap)) {
+                this._backgroundPixmap = attributes.backgroundPixmap || null;
+                newBackground = true;
+            }
+
+            if (newBackground)
+                this._syncBackgroundPattern(client);
 
             if (valueUpdated(attributes.overrideRedirect, this._overrideRedirect)) {
                 this._overrideRedirect = attributes.overrideRedirect;
@@ -1456,6 +1484,9 @@
         getServerWindow: function(client, windowId) {
             return this._getXidObjectInternal(client, windowId, "BadWindow");
         },
+        getServerPixmap: function(client, pixmapId) {
+            return this._getXidObjectInternal(client, pixmapId, "BadPixmap");
+        },
         getDrawable: function(client, drawableId) {
             return this._getXidObjectInternal(client, drawableId, "BadDrawable");
         },
@@ -1474,7 +1505,7 @@
             return serverPixmap.xid;
         },
         _handle_freePixmap: function(client, props) {
-            var serverPixmap = this.getDrawable(client, props.drawableId);
+            var serverPixmap = this.getServerPixmap(client, props.drawableId);
             serverPixmap.destroy();
         },
         _handle_createWindow: function(client, props) {
@@ -1552,7 +1583,7 @@
                 return;
 
             delete props.windowId;
-            serverWindow.changeAttributes(props);
+            serverWindow.changeAttributes(client, props);
         },
         _handle_getProperty: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);

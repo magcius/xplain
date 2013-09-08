@@ -81,6 +81,8 @@
                 ctx.fill();
                 ctx.stroke();
             }.bind(this));
+            this._server.changeAttributes({ windowId: this.windowId,
+                                            backgroundPixmap: this._pixmapId });
         },
         configureNotify: function(event) {
             this.parent(event);
@@ -141,10 +143,6 @@
                 return { x: pupilX, y: pupilY };
             }
 
-            this._server.copyArea({ srcDrawableId: this._pixmapId,
-                                    destDrawableId: this.windowId,
-                                    srcX: 0, srcY: 0, destX: 0, destY: 0,
-                                    width: this.width, height: this.height });
             this._server.drawWithContext(this.windowId, function(ctx) {
                 // pupils
                 ctx.fillStyle = '#000000';
