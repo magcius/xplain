@@ -174,6 +174,7 @@
         initialize: function(label) {
             this.parent();
             this._label = label;
+            this._font = '11pt sans-serif';
 
             this.menu = new Menu();
         },
@@ -190,7 +191,7 @@
         _syncSize: function() {
             var padding = 4;
             tmpCtx.save();
-            tmpCtx.font = '11pt sans';
+            tmpCtx.font = this._font;
             var metrics = tmpCtx.measureText(this._label);
             tmpCtx.restore();
             var width = metrics.width + padding * 2;
@@ -200,7 +201,7 @@
         expose: function(event) {
             var padding = 4;
             this._display.drawTo(this.windowId, function(ctx) {
-                ctx.font = '11pt sans';
+                ctx.font = this._font;
                 ctx.fillStyle = '#000000';
                 // XXX: Browsers can't measure alphabetic baseline yet,
                 // so just hardcode it for now.
