@@ -9,7 +9,7 @@
             var height = image.height;
 
             var pixmapId = server.createPixmap({ width: width, height: height });
-            server.drawWithContext(pixmapId, function(ctx) {
+            server.drawTo(pixmapId, function(ctx) {
                 ctx.drawImage(image, 0, 0);
             });
 

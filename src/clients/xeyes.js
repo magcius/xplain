@@ -74,7 +74,7 @@
             var eyeCenterRX = this.width * (3/4);
             var eyeCenterY = this.height / 2;
 
-            this._server.drawWithContext(this._pixmapId, function(ctx) {
+            this._server.drawTo(this._pixmapId, function(ctx) {
                 ctx.fillStyle = '#eeeeec';
                 ctx.fillRect(0, 0, this.width, this.height);
 
@@ -153,7 +153,7 @@
                 return { x: pupilX, y: pupilY };
             }
 
-            this._server.drawWithContext(this.windowId, function(ctx) {
+            this._server.drawTo(this.windowId, function(ctx) {
                 // pupils
                 ctx.fillStyle = '#000000';
 

@@ -278,7 +278,7 @@
             this._server.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'orange' });
         },
         _frameExpose: function(event) {
-            this._server.drawWithContext(this._frameWindowId, function(ctx) {
+            this._server.drawTo(this._frameWindowId, function(ctx) {
                 ctx.rect(event.x, event.y, event.width, event.height);
                 ctx.clip();
 

@@ -43,7 +43,7 @@
             var centerX = (this.width - imageWidth) / 2;
             var centerY = (this.height - imageHeight) / 2;
 
-            this._server.drawWithContext(this.windowId, function(ctx) {
+            this._server.drawTo(this.windowId, function(ctx) {
                 ctx.drawImage(image,
                               0, 0, image.width, image.height,
                               centerX, centerY, imageWidth, imageHeight);

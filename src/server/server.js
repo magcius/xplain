@@ -124,7 +124,7 @@
         canDraw: function() {
             return true;
         },
-        drawWithContext: function(func) {
+        drawTo: function(func) {
             var ctx = this._ctx;
 
             ctx.beginPath();
@@ -253,7 +253,7 @@
             ctx.fillStyle = this._backgroundPattern;
             ctx.fillRect(0, 0, this.width, this.height);
         },
-        drawWithContext: function(func) {
+        drawTo: function(func) {
             var region = this._server.calculateEffectiveRegionForWindow(this, false);
             this._drawClippedToRegion(region, function(ctx) {
                 var pos = this.calculateAbsoluteOffset();
@@ -650,8 +650,8 @@
         };
     });
 
-    PublicServer.prototype.drawWithContext = function(windowId, func) {
-        return this._server.drawWithContext(this._serverClient, windowId, func);
+    PublicServer.prototype.drawTo = function(windowId, func) {
+        return this._server.drawTo(this._serverClient, windowId, func);
     };
 
     // A simple container so we don't litter the DOM.
@@ -881,7 +881,7 @@
         },
 
         drawToFrontBuffer: function(func) {
-            this._frontBufferPixmap.drawWithContext(func);
+            this._frontBufferPixmap.drawTo(func);
         },
         _createFrontBuffer: function() {
             this._frontBufferPixmap = new ServerPixmap(-1, this, { width: 1, height: 1 });
@@ -1728,12 +1728,12 @@
         },
 
         // Not a request, as it requires custom marshalling.
-        drawWithContext: function(client, drawableId, func) {
+        drawTo: function(client, drawableId, func) {
             var drawable = this.getDrawable(client, drawableId);
             if (!drawable || !drawable.canDraw())
                 return;
 
-            drawable.drawWithContext(func);
+            drawable.drawTo(func);
         },
     });
 

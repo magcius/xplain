@@ -27,7 +27,7 @@
             }
         },
         expose: function(event) {
-            this._server.drawWithContext(this.windowId, function(ctx) {
+            this._server.drawTo(this.windowId, function(ctx) {
                 ctx.rect(event.x, event.y, event.width, event.height);
                 ctx.clip();
 

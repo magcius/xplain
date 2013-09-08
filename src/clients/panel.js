@@ -91,7 +91,7 @@
             this._removeButton(this._rightButtons, action);
         },
         expose: function(event) {
-            this._server.drawWithContext(this.windowId, function(ctx) {
+            this._server.drawTo(this.windowId, function(ctx) {
                 ctx.strokeStyle = '#bec0c0';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
@@ -199,7 +199,7 @@
         },
         expose: function(event) {
             var padding = 4;
-            this._server.drawWithContext(this.windowId, function(ctx) {
+            this._server.drawTo(this.windowId, function(ctx) {
                 ctx.font = '11pt sans';
                 ctx.fillStyle = '#000000';
                 // XXX: Browsers can't measure alphabetic baseline yet,
@@ -262,7 +262,7 @@
             var image = this._server.getPixmapImage({ pixmapId: this._pixmapId });
             var x = ((this.width - image.width) / 2) | 0;
             var y = ((this.height - image.height) / 2) | 0;
-            this._server.drawWithContext(this.windowId, function(ctx) {
+            this._server.drawTo(this.windowId, function(ctx) {
                 ctx.drawImage(image, x, y, image.width, image.height);
             });
         },
