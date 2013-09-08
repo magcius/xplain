@@ -630,12 +630,15 @@
         'queryPointer',
         'setInputFocus',
         'allowEvents',
-        'copyArea',
 
         // JS extension -- simplifies the case of drawing
         // by letting someone use an existing expose handler.
         // This is the model used by GDK internally.
         'invalidateWindow',
+
+        // JS extension -- allows manipulating pixmaps when
+        // drawing them, like transforms or similar.
+        'getPixmapImage',
 
         // SHAPE / XFixes
         'setWindowShapeRegion',
@@ -1682,17 +1685,10 @@
         _handle_allowEvents: function(client, props) {
             this._grabClient.allowEvents(props.pointerMode);
         },
-        _handle_copyArea: function(client, props) {
-            var srcDrawable = this.getDrawable(client, props.srcDrawableId);
-            var destDrawable = this.getDrawable(client, props.destDrawableId);
-            if (!destDrawable.canDraw())
-                return;
 
-            destDrawable.drawWithContext(function(dest) {
-                srcDrawable.drawWithContext(function(src) {
-                    copyArea(src, dest, props.srcX, props.srcY, props.destX, props.destY, props.width, props.height);
-                });
-            });
+        _handle_getPixmapImage: function(client, props) {
+            var pixmap = this.getServerPixmap(client, props.pixmapId);
+            return pixmap.canvas;
         },
 
         _handle_invalidateWindow: function(client, props) {

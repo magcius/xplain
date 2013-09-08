@@ -35,21 +35,18 @@
             if (!this._pixmapId)
                 return;
 
-            var geom = this._server.getGeometry({ drawableId: this._pixmapId });
-            var ratio = Math.max(this.width / geom.width,
-                                 this.height / geom.height);
-            var imageWidth = geom.width * ratio;
-            var imageHeight = geom.height * ratio;
+            var image = this._server.getPixmapImage({ pixmapId: this._pixmapId });
+            var ratio = Math.max(this.width / image.width,
+                                 this.height / image.height);
+            var imageWidth = image.width * ratio;
+            var imageHeight = image.height * ratio;
             var centerX = (this.width - imageWidth) / 2;
             var centerY = (this.height - imageHeight) / 2;
 
-            this._server.drawWithContext(this.windowId, function(dest) {
-                this._server.drawWithContext(this._pixmapId, function(src) {
-                    // XXX -- this is exploiting how pixmaps work
-                    dest.drawImage(src.canvas,
-                                   0, 0, geom.width, geom.height,
-                                   centerX, centerY, imageWidth, imageHeight);
-                }.bind(this));
+            this._server.drawWithContext(this.windowId, function(ctx) {
+                ctx.drawImage(image,
+                              0, 0, image.width, image.height,
+                              centerX, centerY, imageWidth, imageHeight);
             }.bind(this));
         },
     });

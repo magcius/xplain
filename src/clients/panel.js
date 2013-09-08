@@ -259,13 +259,12 @@
             this._server.invalidateWindow({ windowId: this.windowId });
         },
         expose: function(event) {
-            var geom = this._server.getGeometry({ drawableId: this._pixmapId });
-            var x = ((this.width - geom.width) / 2) | 0;
-            var y = ((this.height - geom.height) / 2) | 0;
-            this._server.copyArea({ srcDrawableId: this._pixmapId,
-                                    destDrawableId: this.windowId,
-                                    srcX: 0, srcY: 0, destX: x, destY: y,
-                                    width: geom.width, height: geom.height });
+            var image = this._server.getPixmapImage({ pixmapId: this._pixmapId });
+            var x = ((this.width - image.width) / 2) | 0;
+            var y = ((this.height - image.height) / 2) | 0;
+            this._server.drawWithContext(this.windowId, function(ctx) {
+                ctx.drawImage(image, x, y, image.width, image.height);
+            });
         },
         handleEvent: function(event) {
             switch (event.type) {
