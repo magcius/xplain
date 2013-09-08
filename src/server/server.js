@@ -265,8 +265,8 @@
             if (!includeChildren)
                 serverWindow.children.forEach(subtractWindow);
 
-            while (serverWindow != null && serverWindow.windowTreeParent != null) {
-                var parent = serverWindow.windowTreeParent;
+            while (serverWindow != null && serverWindow.drawTreeParent != null) {
+                var parent = serverWindow.drawTreeParent;
                 var idx = parent.children.indexOf(serverWindow);
                 var windowsOnTop = parent.children.slice(0, idx);
                 windowsOnTop.forEach(subtractWindow);
@@ -292,6 +292,11 @@
             this._shapedBoundingRegion = null;
 
             this.drawTree = null;
+            // The draw tree parent is the same as the window tree parent if
+            // we share the same draw tree. If our window tree parent doesn't
+            // share the same draw tree, then that means we are the root window
+            // of our own draw tree.
+            this.drawTreeParent = null;
 
             this._properties = {};
             this._passiveGrabs = {};
@@ -318,6 +323,7 @@
         _syncDrawTree: function() {
             if (this.windowTreeParent) {
                 this.drawTree = this.windowTreeParent.drawTree;
+                this.drawTreeParent = this.windowTreeParent;
             } else {
                 // We are an unparented window or the root window;
                 // we have no draw tree.
@@ -325,21 +331,27 @@
             }
         },
 
-        _iterParents: function(callback) {
-            var serverWindow = this;
-            while (serverWindow != null) {
-                callback(serverWindow);
-                serverWindow = serverWindow.windowTreeParent;
-            }
-        },
         calculateAbsoluteOffset: function() {
             var x = 0, y = 0;
-            this._iterParents(function(serverWindow) {
+            var serverWindow = this;
+            while (serverWindow != null) {
                 x += serverWindow.x;
                 y += serverWindow.y;
-            });
+                serverWindow = serverWindow.windowTreeParent;
+            }
             return { x: x, y: y };
         },
+        _getDrawOffset: function() {
+            var x = 0, y = 0;
+            var serverWindow = this;
+            while (serverWindow != null) {
+                x += serverWindow.x;
+                y += serverWindow.y;
+                serverWindow = serverWindow.drawTreeParent;
+            }
+            return { x: x, y: y };
+        },
+
         getBoundingRegion: function() {
             var boundingRegion = new Region();
 
@@ -352,19 +364,19 @@
         },
         calculateTransformedBoundingRegion: function() {
             var region = this.getBoundingRegion();
-            this._iterParents(function(serverWindow) {
-                var bounding = serverWindow.getBoundingRegion()
+            var serverWindow = this;
+            while (serverWindow != null) {
+                var bounding = serverWindow.getBoundingRegion();
                 region.intersect(region, bounding);
                 region.translate(serverWindow.x, serverWindow.y);
                 bounding.finalize();
-            });
+                serverWindow = serverWindow.drawTreeParent;
+            }
             return region;
         },
+
         canDraw: function() {
             return this.viewable;
-        },
-        _getDrawOffset: function() {
-            return this.calculateAbsoluteOffset();
         },
         _drawClippedToRegion: function(region, func) {
             this.drawTree.pixmap.drawTo(function(ctx) {
@@ -522,6 +534,7 @@
             var children = this.windowTreeParent.children;
             children.splice(children.indexOf(this), 1);
             this.windowTreeParent = null;
+            this._syncDrawTree();
         },
         destroy: function() {
             this.unmap();
