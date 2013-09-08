@@ -1,0 +1,12 @@
+
+.demo-server {
+	margin: 1em;
+}
+
+.demo-server.test {
+	height: 2em;
+}
+
+.demo-server.demo1 {
+	height: 100px;
+}

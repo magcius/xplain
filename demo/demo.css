@@ -4,16 +4,3 @@ body {
     margin: 0;
     overflow: hidden;
 }
-
-.xserver.js {
-    cursor: url(data/arrow.png) 10 5, auto;
-    outline: none;
-}
-
-.xserver.js[data-cursor="pointer"] {
-    cursor: url(data/pointer.png) 14 8, auto;
-}
-
-.xserver.js[data-cursor="grabbing"] {
-    cursor: url(data/grabbing.png) 20 17, auto;
-}

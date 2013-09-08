@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset=utf8>
+	<link rel="stylesheet" href="article.css">
+	<link rel="stylesheet" href="demos.css">
+	<link rel="stylesheet" href="../data/xserver.css">
+	<title>Xplain</title>
+</head>
+<body><div class="main">
+	<header>
+		<h1>Xplain</h1>
+		<h2>Explaining X11 for the rest of us</h2>
+	</header>
+
+	<article>
+		<p class="warning">
+			This article relies a lot of interactive demos that use JavaScript to show
+			how the X Window System works. The article unfortunately won't work properly
+			without these interactive demos, so if you feel like you're missing out,
+			try enabling JavaScript?
+		</p>
+
+		<hr>
+		<h3 id="introduction">Introduction <a href="#introduction">&para;</a></h3>
+		<p>
+			Last year, I wrote <a href="http://blog.mecheye.net/2012/06/the-linux-graphics-stack/">
+			an article</a> describing the free and open-source graphics
+			stack, explaining all of the interconnected pieces: X11, graphics drivers,
+			DRM, and DRI, and their roles in getting pixels placed on the screen. In
+			the year since, I've answered a lot of really good questions from the
+			community which made me think and learn and grow, and I've also started
+			helping out on a port of GNOME to Wayland.
+		</p>
+		<p>
+			Compared to some of my coworkers, I'm relatively new to the Linux development
+			scene, with only five or so years of experience. I've also arrived late,
+			way after we've added lots of hacks to keep the X Window System fresh,
+			like RENDER and COMPOSITE.
+		</p>
+		<p>
+			The X Window System has clearly outgrown its original purpose with clever hacks,
+			but that doesn't mean it's unworkable. After all, Microsoft Windows made all the
+			same design decisions in their display server technology back when they were
+			developing Windows 95, and they've either adapted or reinvented most of the same
+			clever hacks to modernize their operating system. As anybody who reads
+			<a href="http://blogs.msdn.com/b/oldnewthing/">Raymond Chen's excellent blog</a>
+			knows, Microsoft takes backwards compatibility extremely seriously, so they cannot
+			introduce any changes that would break existing applications.
+		</p>
+		<p>
+			My purpose here isn't to prove a point about how new display server technologies
+			like Wayland and Mir are future (even though I personally believe they are).
+			Think of this article as a history lesson, starting back at the X Window System
+			in the 80s, and accelerating all the way to modern day versions of the X Window
+			System, with a modern composited window manager. For comparison purposes, I'll
+			also end with a modern display server, modelled after Wayland, to show how we
+			can unravel all of the incremental improvements we've done over the years to
+			build something fresh and exciting.
+		</p>
+
+		<hr>
+		<h3 id="self-test">But before we begin... <a href="#self-test">&para;</a></h3>
+		<p>
+			Since this article contains a lot of interactive demos relying on fairly modern
+			browser technology, let's make sure that everything is OK before continuing. I've
+			been testing this on modern versions of Firefox Nightly and Chrome Canary.
+		</p>
+		<div class="demo-server test"></div>
+		<p>
+			If you can see the stipple pattern above, that means that your browser is modern
+			enough to see the interactive demos.
+		</p>
+		<p>
+			You might have noticed that when you ran your mouse over the stipple, your cursor
+			changed. That's because this isn't just any old stipple image, that stipple is
+			actually the background of a full X server session running in your browser using
+			HTML5 canvas. All of the interactive demos will use this.
+		</p>
+		<p>
+			The source code to this article and the framework I've is freely available under
+			the MIT/X11 license at <a href="http://github.com/magcius/xserver.js">my GitHub</a>
+			for inspection. Some of the more tricky code in there has been ported from the
+			<a href="http://cgit.freedesktop.org/xorg/xserver">Xorg server</a> itself, and
+			the code doing region calculations has been compiled from the
+			<a href="http://cgit.freedesktop.org/pixman/">pixman</a> graphics library.
+		</p>
+
+		<hr>
+		<h3 id="basic-architecture">Basic Architecture <a href="#basic-architecture">&para;</a></h3>
+		<p>
+			Although it may sound a bit stilted, notice how I keep saying "the X Window System"
+			instead of the more traditional shorthands "X", "X11", or "Xorg"? I want to be very
+			careful to separate the ideas and design of the system from its component parts.
+		</p>
+		<p>
+			The X Window System is a networked display system. A server component, the
+			<strong>X server</strong>, is responsible for coordinating between all of the clients
+			connected, and for taking input from the mouse and keyboard, and for pushing pixels
+			on the output. The most popular X server implementation is the <a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a>, developed by the X.Org Foundation. There are other X
+			server implementations, such as <a href="http://en.wikipedia.org/wiki/Xsun">Xsun</a>,
+			and this <a href="http://microxwin.com/">extremely scary X server</a> implemented
+			as a Linux kernel module!
+		</p>
+		<p>
+			X servers and X clients all talk a standardized network protocol to each other,
+			known as <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html">X11</a>.
+			These network protocols are implemented by libraries like
+			<a href="http://www.x.org/releases/current/doc/libX11/specs/libX11/libX11.html">Xlib</a>
+			and <a href="http://xcb.freedesktop.org/">xcb</a>.
+		</p>
+		<p>
+			I need to be extremely careful during this article.
+		</p>
+		<p>
+			When I talk about a feature	or design decision in the overall system, I will say "X Window System".
+		</p>
+		<p>
+			When I talk about features or details of the network protocol, I will say "X11 protocol".
+		</p>
+		<p>
+			When I talk about the behavior of a client or a server, I'll say "X client" or "X server".
+		</p>
+		<p>
+			When I talk about an implementation detail in the Xorg X server, I'll say "Xorg X server".
+		</p>
+		<p>
+			If I ever say "such-and-such is a feature of X", it's a bug.
+		</p>
+
+		<hr>
+		<h3 id="lets-go">Let's go <a href="#lets-go">&para;</a></h3>
+		<div class="demo-server demo1"></div>
+	</article>
+
+	<script src="../src/pixman-region.js"></script>
+	<script src="../src/pixman-region-wrapper.js"></script>
+	<script src="../src/class.js"></script>
+	<script src="../src/server/server.js"></script>
+	<script src="../src/wm/wm.js"></script>
+	<script src="../src/clients/toolkit.js"></script>
+	<script src="demos.js"></script>
+</div></body>
+</html>

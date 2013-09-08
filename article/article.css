@@ -1,0 +1,73 @@
+
+html, body {
+	height: 100%;
+	margin: 0;
+	background-color: #eee;
+}
+
+.main {
+	min-height: 100%;
+	width: 800px;
+	margin: 0 auto;
+	background-color: white;
+}
+
+h1, h2, h3 {
+	font-family: "Adobe Garamond Pro";
+	text-align: center;
+	margin: 0;
+}
+
+header {
+	padding: 1em;
+}
+
+h1 {
+	font-size: 48pt;
+	text-transform: uppercase;
+}
+
+h2 {
+	font-style: italic;
+	font-weight: normal;
+}
+
+hr {
+	height: 1em;
+	background-color: #eee;
+	border: 0;
+	margin: 0;
+	padding: 0;
+}
+
+h3 {
+	text-align: left;
+	padding: 1em 1em 0em 1em;
+	text-transform: uppercase;
+	font-size: 16pt;
+	font-weight: normal;
+}
+
+h3 a {
+	text-decoration: none;
+	color: #aaa;
+	float: right;
+}
+
+p {
+	margin: 1em 0;
+	padding: 0 3em;
+	font-size: 14pt;
+	text-align: justify;
+	text-indent: 1em;
+	line-height: 1.5;
+}
+
+p.warning {
+	background: #ffaaaa;
+	text-align: center;
+	text-indent: 0;
+	padding-top: 1em;
+	padding-bottom: 1em;
+	margin: 0;
+}
