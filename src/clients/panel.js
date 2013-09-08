@@ -9,21 +9,21 @@
             this.parent(server);
             this._leftButtons = [];
             this._rightButtons = [];
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: PANEL_BACKGROUND_COLOR });
-            this._server.selectInput({ windowId: this._server.rootWindowId,
-                                       events: ["ConfigureNotify"] });
-            this._server.changeProperty({ windowId: this.windowId,
-                                          name: "_NET_WM_WINDOW_TYPE",
-                                          value: "_NET_WM_WINDOW_TYPE_DOCK" });
+            this._display.changeAttributes({ windowId: this.windowId,
+                                             backgroundColor: PANEL_BACKGROUND_COLOR });
+            this._display.selectInput({ windowId: this._display.rootWindowId,
+                                        events: ["ConfigureNotify"] });
+            this._display.changeProperty({ windowId: this.windowId,
+                                           name: "_NET_WM_WINDOW_TYPE",
+                                           value: "_NET_WM_WINDOW_TYPE_DOCK" });
             this._syncSize();
-            this._server.mapWindow({ windowId: this.windowId });
+            this._display.mapWindow({ windowId: this.windowId });
         },
         _syncSize: function() {
-            var rootWindowGeometry = this._server.getGeometry({ drawableId: this._server.rootWindowId });
-            this._server.configureWindow({ windowId: this.windowId,
-                                           width: rootWindowGeometry.width,
-                                           height: 30 });
+            var rootWindowGeometry = this._display.getGeometry({ drawableId: this._display.rootWindowId });
+            this._display.configureWindow({ windowId: this.windowId,
+                                            width: rootWindowGeometry.width,
+                                            height: 30 });
         },
         _relayout: function() {
             var padding = 4;
@@ -32,17 +32,17 @@
 
             var buttonHeight = this.height - 1;
             this._leftButtons.forEach(function(button) {
-                var geom = this._server.getGeometry({ drawableId: button.windowId });
-                this._server.configureWindow({ windowId: button.windowId,
-                                               x: x, y: 0, height: buttonHeight });
+                var geom = this._display.getGeometry({ drawableId: button.windowId });
+                this._display.configureWindow({ windowId: button.windowId,
+                                                x: x, y: 0, height: buttonHeight });
                 x += geom.width + padding;
             }.bind(this));
 
             x = this.width - padding;
             this._rightButtons.forEach(function(button) {
-                var geom = this._server.getGeometry({ drawableId: button.windowId });
+                var geom = this._display.getGeometry({ drawableId: button.windowId });
                 x -= geom.width;
-                this._server.configureWindow({ windowId: button.windowId,
+                this._display.configureWindow({ windowId: button.windowId,
                                                x: x, y: 0, height: buttonHeight });
                 x -= padding;
             }.bind(this));
@@ -51,7 +51,7 @@
             this.parent(event);
 
             // Try and resize if the root window changes size
-            if (event.windowId === this._server.rootWindowId)
+            if (event.windowId === this._display.rootWindowId)
                 this._syncSize();
 
             // If we've changed width, relayout.
@@ -64,18 +64,18 @@
         },
         _addButton: function(box, button) {
             box.push(button);
-            this._server.selectInput({ windowId: button.windowId,
-                                       events: ["ConfigureNotify"] });
-            this._server.reparentWindow({ windowId: button.windowId,
-                                          newParentId: this.windowId });
-            this._server.mapWindow({ windowId: button.windowId });
+            this._display.selectInput({ windowId: button.windowId,
+                                        events: ["ConfigureNotify"] });
+            this._display.reparentWindow({ windowId: button.windowId,
+                                           newParentId: this.windowId });
+            this._display.mapWindow({ windowId: button.windowId });
             this._relayout();
         },
         _removeButton: function(box, button) {
             var idx = box.indexOf(button);
             // XXX -- way to unselect for input
-            this._server.reparentWindow({ windowId: button.windowId,
-                                          newParentId: this._server.rootWindowId });
+            this._display.reparentWindow({ windowId: button.windowId,
+                                           newParentId: this._display.rootWindowId });
             box.splice(idx, 1);
         },
         addLauncher: function(launcher) {
@@ -91,7 +91,7 @@
             this._removeButton(this._rightButtons, action);
         },
         expose: function(event) {
-            this._server.drawTo(this.windowId, function(ctx) {
+            this._display.drawTo(this.windowId, function(ctx) {
                 ctx.strokeStyle = '#bec0c0';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
@@ -111,17 +111,17 @@
         Extends: Window,
         connect: function(server) {
             this.parent(server);
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: "#ffffff",
-                                            overrideRedirect: true });
-            this._server.selectInput({ windowId: this.windowId,
+            this._display.changeAttributes({ windowId: this.windowId,
+                                             backgroundColor: "#ffffff",
+                                             overrideRedirect: true });
+            this._display.selectInput({ windowId: this.windowId,
                                        events: ["ButtonPress", "ButtonRelease"] });
         },
         _syncGeometry: function(openerWindowId) {
-            var tree = this._server.queryTree({ windowId: openerWindowId });
-            var geometry = this._server.getGeometry({ drawableId: openerWindowId });
-            var rootCoords = this._server.translateCoordinates({ srcWindowId: tree.parent,
-                                                                 destWindowId: this._server.rootWindowId,
+            var tree = this._display.queryTree({ windowId: openerWindowId });
+            var geometry = this._display.getGeometry({ drawableId: openerWindowId });
+            var rootCoords = this._display.translateCoordinates({ srcWindowId: tree.parent,
+                                                                 destWindowId: this._display.rootWindowId,
                                                                  x: geometry.x, y: geometry.y });
 
             var width = 200;
@@ -134,27 +134,27 @@
             var x = openerRight - width;
             var y = openerBottom;
 
-            this._server.configureWindow({ windowId: this.windowId,
+            this._display.configureWindow({ windowId: this.windowId,
                                            x: x, y: y, width: width, height: height });
         },
         _grab: function() {
-            this._server.grabPointer({ windowId: this.windowId,
+            this._display.grabPointer({ windowId: this.windowId,
                                        ownerEvents: true,
                                        events: [],
                                        pointerMode: "Async",
                                        cursor: "" });
         },
         _ungrab: function() {
-            this._server.ungrabPointer({ windowId: this.windowId });
+            this._display.ungrabPointer({ windowId: this.windowId });
         },
         open: function(openerWindowId, closedCallback) {
             this._syncGeometry(openerWindowId);
-            this._server.mapWindow({ windowId: this.windowId });
+            this._display.mapWindow({ windowId: this.windowId });
             this._grab();
             this._closedCallback = closedCallback;
        },
         close: function() {
-            this._server.unmapWindow({ windowId: this.windowId });
+            this._display.unmapWindow({ windowId: this.windowId });
             this._closedCallback();
         },
         expose: function() {
@@ -180,10 +180,10 @@
         connect: function(server) {
             this.parent(server);
             this._syncSize();
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: PANEL_BACKGROUND_COLOR });
-            this._server.selectInput({ windowId: this.windowId,
-                                       events: ["ButtonPress"] });
+            this._display.changeAttributes({ windowId: this.windowId,
+                                             backgroundColor: PANEL_BACKGROUND_COLOR });
+            this._display.selectInput({ windowId: this.windowId,
+                                        events: ["ButtonPress"] });
 
             this.menu.connect(server);
         },
@@ -194,12 +194,12 @@
             var metrics = tmpCtx.measureText(this._label);
             tmpCtx.restore();
             var width = metrics.width + padding * 2;
-            this._server.configureWindow({ windowId: this.windowId,
-                                           width: width });
+            this._display.configureWindow({ windowId: this.windowId,
+                                            width: width });
         },
         expose: function(event) {
             var padding = 4;
-            this._server.drawTo(this.windowId, function(ctx) {
+            this._display.drawTo(this.windowId, function(ctx) {
                 ctx.font = '11pt sans';
                 ctx.fillStyle = '#000000';
                 // XXX: Browsers can't measure alphabetic baseline yet,
@@ -212,13 +212,13 @@
             }.bind(this));
         },
         _onMenuClosed: function() {
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: PANEL_BACKGROUND_COLOR });
+            this._display.changeAttributes({ windowId: this.windowId,
+                                             backgroundColor: PANEL_BACKGROUND_COLOR });
         },
         _clicked: function() {
             this.menu.open(this.windowId, this._onMenuClosed.bind(this));
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: "#ffffff" });
+            this._display.changeAttributes({ windowId: this.windowId,
+                                             backgroundColor: "#ffffff" });
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -240,29 +240,29 @@
             this.parent(server);
 
             this._pixmapId = 0;
-            Util.loadImageAsPixmap(this._server, this._imageSrc, function(pixmapId) {
+            Util.loadImageAsPixmap(this._display, this._imageSrc, function(pixmapId) {
                 this._pixmapId = pixmapId;
-                var geom = this._server.getGeometry({ drawableId: this._pixmapId });
-                this._server.configureWindow({ windowId: this.windowId,
-                                               width: geom.width,
-                                               height: geom.height });
+                var geom = this._display.getGeometry({ drawableId: this._pixmapId });
+                this._display.configureWindow({ windowId: this.windowId,
+                                                width: geom.width,
+                                                height: geom.height });
             }.bind(this));
 
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: PANEL_BACKGROUND_COLOR,
-                                            cursor: "pointer" });
-            this._server.selectInput({ windowId: this.windowId,
-                                       events: ["ButtonPress"] });
+            this._display.changeAttributes({ windowId: this.windowId,
+                                             backgroundColor: PANEL_BACKGROUND_COLOR,
+                                             cursor: "pointer" });
+            this._display.selectInput({ windowId: this.windowId,
+                                        events: ["ButtonPress"] });
         },
         configureNotify: function(event) {
             this.parent(event);
-            this._server.invalidateWindow({ windowId: this.windowId });
+            this._display.invalidateWindow({ windowId: this.windowId });
         },
         expose: function(event) {
-            var image = this._server.getPixmapImage({ pixmapId: this._pixmapId });
+            var image = this._display.getPixmapImage({ pixmapId: this._pixmapId });
             var x = ((this.width - image.width) / 2) | 0;
             var y = ((this.height - image.height) / 2) | 0;
-            this._server.drawTo(this.windowId, function(ctx) {
+            this._display.drawTo(this.windowId, function(ctx) {
                 ctx.drawImage(image, x, y, image.width, image.height);
             });
         },
@@ -282,8 +282,8 @@
             this.parent("demo/data/refresh.png");
         },
         _clicked: function() {
-            this._server.invalidateWindow({ windowId: this._server.rootWindowId,
-                                            includeChildren: true });
+            this._display.invalidateWindow({ windowId: this._display.rootWindowId,
+                                             includeChildren: true });
         },
     });
 

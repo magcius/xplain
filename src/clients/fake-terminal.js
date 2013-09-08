@@ -7,16 +7,16 @@
             this.parent(server);
             this._focused = false;
             this._buffer = "";
-            this._server.configureWindow({ windowId: this.windowId,
-                                           width: 700, height: 400 });
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundColor: "#121212" });
-            this._server.selectInput({ windowId: this.windowId,
-                                       events: ["KeyPress"] });
-            this._server.changeProperty({ windowId: this.windowId,
-                                          name: "WM_NAME",
-                                          value: "Fake Terminal" });
-            this._server.mapWindow({ windowId: this.windowId });
+            this._display.configureWindow({ windowId: this.windowId,
+                                            width: 700, height: 400 });
+            this._display.changeAttributes({ windowId: this.windowId,
+                                             backgroundColor: "#121212" });
+            this._display.selectInput({ windowId: this.windowId,
+                                        events: ["KeyPress"] });
+            this._display.changeProperty({ windowId: this.windowId,
+                                           name: "WM_NAME",
+                                           value: "Fake Terminal" });
+            this._display.mapWindow({ windowId: this.windowId });
         },
         handleEvent: function(event) {
             switch(event.type) {
@@ -27,7 +27,7 @@
             }
         },
         expose: function(event) {
-            this._server.drawTo(this.windowId, function(ctx) {
+            this._display.drawTo(this.windowId, function(ctx) {
                 ctx.rect(event.x, event.y, event.width, event.height);
                 ctx.clip();
 
@@ -52,7 +52,7 @@
         },
         _handleKeyPress: function(event) {
             this._buffer += String.fromCharCode(event.charCode);
-            this._server.invalidateWindow({ windowId: this.windowId });
+            this._display.invalidateWindow({ windowId: this.windowId });
         },
     });
 

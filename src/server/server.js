@@ -760,7 +760,7 @@
         },
     });
 
-    var PublicServer = new Class({
+    var ClientConnection = new Class({
         initialize: function(serverClient, server) {
             this._serverClient = serverClient;
             this._server = server;
@@ -807,12 +807,12 @@
     ];
 
     publicRequests.forEach(function(requestName) {
-        PublicServer.prototype[requestName] = function(props) {
+        ClientConnection.prototype[requestName] = function(props) {
             return this._server.handleRequest(this._serverClient, requestName, props);
         };
     });
 
-    PublicServer.prototype.drawTo = function(windowId, func) {
+    ClientConnection.prototype.drawTo = function(windowId, func) {
         return this._server.drawTo(this._serverClient, windowId, func);
     };
 
@@ -844,7 +844,7 @@
             this._eventWindows = {};
 
             this.clientPort = new MessagePort();
-            this.publicServer = new PublicServer(this, server);
+            this.display = new ClientConnection(this, server);
         },
 
         isInterestedInWindowEvent: function(windowId, eventType) {
@@ -1749,7 +1749,7 @@
             var serverClient = new ServerClient(this, client);
             this._clients.push(serverClient);
             return { clientPort: serverClient.clientPort,
-                     server: serverClient.publicServer };
+                     display: serverClient.display };
         },
 
         // Not a request, as it requires custom marshalling.

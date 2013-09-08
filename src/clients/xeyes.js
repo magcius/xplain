@@ -32,25 +32,25 @@
             this._pointerRootX = -1;
             this._pointerRootY = -1;
 
-            this._server.selectInput({ windowId: this.windowId,
-                                       events: ["MapNotify", "UnmapNotify"] });
-            this._server.configureWindow({ windowId: this.windowId,
-                                           width: 200, height: 150 });
-            this._server.changeProperty({ windowId: this.windowId,
-                                          name: "WM_NAME",
-                                          value: "xeyes.js" });
-            this._server.mapWindow({ windowId: this.windowId });
+            this._display.selectInput({ windowId: this.windowId,
+                                        events: ["MapNotify", "UnmapNotify"] });
+            this._display.configureWindow({ windowId: this.windowId,
+                                            width: 200, height: 150 });
+            this._display.changeProperty({ windowId: this.windowId,
+                                           name: "WM_NAME",
+                                           value: "xeyes.js" });
+            this._display.mapWindow({ windowId: this.windowId });
         },
         _start: function() {
             this._intervalId = setInterval(function() {
-                var pointer = this._server.queryPointer();
+                var pointer = this._display.queryPointer();
                 if (pointer.rootX == this._pointerRootX &&
                     pointer.rootY == this._pointerRootY)
                     return;
 
                 this._pointerRootX = pointer.rootX;
                 this._pointerRootY = pointer.rootY;
-                this._server.invalidateWindow({ windowId: this.windowId });
+                this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this), 50);
         },
         _stop: function() {
@@ -58,15 +58,15 @@
             this._intervalId = 0;
         },
         _destroyPixmap: function() {
-            this._server.freePixmap({ pixmapId: this._pixmapId });
+            this._display.freePixmap({ pixmapId: this._pixmapId });
             this._pixmapId = 0;
         },
         _ensurePixmap: function() {
             if (this._pixmapId)
                 return;
 
-            this._pixmapId = this._server.createPixmap({ width: this.width,
-                                                         height: this.height });
+            this._pixmapId = this._display.createPixmap({ width: this.width,
+                                                          height: this.height });
 
             var eyeRX = this.width / 4 - 6;
             var eyeRY = this.height / 2 - 6;
@@ -74,7 +74,7 @@
             var eyeCenterRX = this.width * (3/4);
             var eyeCenterY = this.height / 2;
 
-            this._server.drawTo(this._pixmapId, function(ctx) {
+            this._display.drawTo(this._pixmapId, function(ctx) {
                 ctx.fillStyle = '#eeeeec';
                 ctx.fillRect(0, 0, this.width, this.height);
 
@@ -91,13 +91,13 @@
                 ctx.fill();
                 ctx.stroke();
             }.bind(this));
-            this._server.changeAttributes({ windowId: this.windowId,
-                                            backgroundPixmap: this._pixmapId });
+            this._display.changeAttributes({ windowId: this.windowId,
+                                             backgroundPixmap: this._pixmapId });
         },
         configureNotify: function(event) {
             this.parent(event);
             this._destroyPixmap();
-            this._server.invalidateWindow({ windowId: this.windowId });
+            this._display.invalidateWindow({ windowId: this.windowId });
         },
         handleEvent: function(event) {
             switch(event.type) {
@@ -121,10 +121,10 @@
             var pupilRX = eyeRX / 4;
             var pupilRY = eyeRY / 4;
 
-            var pointerCoords = this._server.translateCoordinates({ srcWindowId: this._server.rootWindowId,
-                                                                    destWindowId: this.windowId,
-                                                                    x: this._pointerRootX,
-                                                                    y: this._pointerRootY });
+            var pointerCoords = this._display.translateCoordinates({ srcWindowId: this._display.rootWindowId,
+                                                                     destWindowId: this.windowId,
+                                                                     x: this._pointerRootX,
+                                                                     y: this._pointerRootY });
 
             function hypot(x, y) {
                 return Math.sqrt(x*x + y*y);
@@ -153,7 +153,7 @@
                 return { x: pupilX, y: pupilY };
             }
 
-            this._server.drawTo(this.windowId, function(ctx) {
+            this._display.drawTo(this.windowId, function(ctx) {
                 // pupils
                 ctx.fillStyle = '#000000';
 

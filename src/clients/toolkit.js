@@ -2,14 +2,14 @@
     "use strict";
 
     var Util = {};
-    Util.loadImageAsPixmap = function(server, src, callback) {
+    Util.loadImageAsPixmap = function(display, src, callback) {
         var image = new Image();
         image.addEventListener("load", function() {
             var width = image.width;
             var height = image.height;
 
-            var pixmapId = server.createPixmap({ width: width, height: height });
-            server.drawTo(pixmapId, function(ctx) {
+            var pixmapId = display.createPixmap({ width: width, height: height });
+            display.drawTo(pixmapId, function(ctx) {
                 ctx.drawImage(image, 0, 0);
             });
 
@@ -32,11 +32,11 @@
             this._port.addEventListener("message", function(messageEvent) {
                 this.handleEvent(messageEvent.data);
             }.bind(this));
-            this._server = connection.server;
-            this.windowId = this._server.createWindow({ x: this.x, y: this.y,
-                                                        width: this.width, height: this.height });
-            this._server.selectInput({ windowId: this.windowId,
-                                       events: ["Expose", "ConfigureNotify"] });
+            this._display = connection.display;
+            this.windowId = this._display.createWindow({ x: this.x, y: this.y,
+                                                         width: this.width, height: this.height });
+            this._display.selectInput({ windowId: this.windowId,
+                                        events: ["Expose", "ConfigureNotify"] });
         },
         handleEvent: function(event) {
             switch (event.type) {
