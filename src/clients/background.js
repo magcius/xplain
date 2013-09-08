@@ -9,6 +9,7 @@
             this._pixmapId = 0;
             Util.loadImageAsPixmap(this._display, "demo/data/background.jpg", function(pixmapId) {
                 this._pixmapId = pixmapId;
+                this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this));
 
             this._display.selectInput({ windowId: this._display.rootWindowId,

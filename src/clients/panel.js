@@ -246,6 +246,7 @@
                 this._display.configureWindow({ windowId: this.windowId,
                                                 width: geom.width,
                                                 height: geom.height });
+                this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this));
 
             this._display.changeAttributes({ windowId: this.windowId,
