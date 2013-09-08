@@ -204,8 +204,10 @@
         },
 
         exposeRegion: function(region) {
-            function recursivelyExpose(serverWindow, inputRegion) {
+            var recursivelyExpose = function(serverWindow, inputRegion) {
                 if (!serverWindow.mapped)
+                    return;
+                if (serverWindow.drawTree != this)
                     return;
 
                 // The obscuring region is the part of @inputRegion that
@@ -241,7 +243,7 @@
                 // And transform back.
                 inputRegion.translate(serverWindow.x, serverWindow.y);
                 region.translate(serverWindow.x, serverWindow.y);
-            }
+            }.bind(this);
 
             // The caller owns the exposed region, so make sure
             // none of our subtractions take effect.
@@ -258,14 +260,16 @@
         calculateEffectiveRegionForWindow: function(serverWindow, includeChildren) {
             var region = serverWindow.calculateTransformedBoundingRegion();
 
-            function subtractWindow(aboveWindow) {
+            var subtractWindow = function(aboveWindow) {
                 if (!aboveWindow.viewable)
+                    return;
+                if (serverWindow.drawTree != this)
                     return;
 
                 var transformedBoundingRegion = aboveWindow.calculateTransformedBoundingRegion();
                 region.subtract(region, transformedBoundingRegion);
                 transformedBoundingRegion.finalize();
-            }
+            }.bind(this);
 
             if (!includeChildren)
                 serverWindow.children.forEach(subtractWindow);
