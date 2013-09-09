@@ -123,7 +123,6 @@
                 enter();
             var v1 = stack.pop();
             var v2 = stack.pop();
-            console.log(v1, v2);
 
             switch (op) {
                 case '+': currentValue = (v2 + v1).toString(); break;
