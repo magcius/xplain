@@ -136,11 +136,10 @@
     });
     Region.prototype.iter_rectangles = function(callback) {
         var ptr = this._rectangles();
-        var size = Box.size;
-        var end = ptr + this.n_rects() * size;
-        for (; ptr < end; ptr += size) {
-            callback(new Box(ptr));
-        }
+        var rects = this.n_rects();
+        var end = ptr + rects * Box.size;
+        for (; ptr < end; ptr += Box.size)
+            callback(new Box(ptr), rects--);
     };
     Region.prototype.get_rectangle = function(idx) {
         return new Box(this._rectangles() + Box.size*idx);

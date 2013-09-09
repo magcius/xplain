@@ -404,11 +404,11 @@
             if (region.is_empty())
                 return;
 
-            var extents = region.extents();
-            this._server.sendEvent({ type: "Expose",
-                                     windowId: this.xid,
-                                     x: extents.x, y: extents.y,
-                                     width: extents.width, height: extents.height });
+            region.iter_rectangles(function(rect, count) {
+                this._server.sendEvent({ type: "Expose", windowId: this.xid,
+                                         x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+                                         count: count });
+            }.bind(this));
 
             var pos = this._getDrawOffset();
             region.translate(pos.x, pos.y);
