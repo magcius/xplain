@@ -18,6 +18,16 @@
         image.src = src;
     };
 
+    Util.centerWindow = function(display, windowId) {
+        var rootGeom = display.getGeometry({ drawableId: display.rootWindowId });
+        var winGeom = display.getGeometry({ drawableId: windowId });
+
+        var x = (rootGeom.width - winGeom.width) / 2;
+        var y = (rootGeom.height - winGeom.height) / 2;
+
+        display.configureWindow({ windowId: windowId, x: x, y: y });
+    };
+
     Util.roundedRectRegion = function(geom, corners) {
         var shapeRegion = new Region();
         shapeRegion.init_rect(0, 0, geom.width, geom.height);
