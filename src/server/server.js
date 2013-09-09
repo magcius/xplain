@@ -294,11 +294,9 @@
             this._backgroundPixmap = null;
             this._backgroundPattern = null;
 
-            // The bounding region, used if the window is unshaped.
             this._unshapedBoundingRegion = new Region();
-
-            // The bounding region, as defined by the SHAPE extension, in window coordinates.
             this._shapedBoundingRegion = null;
+            this._shapedInputRegion = null;
 
             this.drawTree = null;
             // The draw tree parent is the same as the window tree parent if
@@ -573,13 +571,22 @@
                 this.map();
         },
 
-        findDeepestChildAtPoint: function(x, y) {
+        _getInputRegion: function() {
+            var inputRegion = new Region();
+            if (this._shapedInputRegion)
+                inputRegion.intersect(this._shapedInputRegion, this._unshapedBoundingRegion);
+            else
+                inputRegion.copy(this._unshapedBoundingRegion);
+
+            return inputRegion;
+        },
+        pickInput: function(x, y) {
             x -= this.x;
             y -= this.y;
 
-            var bounding = this.getBoundingRegion();
-            var containsPoint = bounding.contains_point(x, y);
-            bounding.finalize();
+            var inputRegion = this._getInputRegion();
+            var containsPoint = inputRegion.contains_point(x, y);
+            inputRegion.finalize();
 
             if (!containsPoint)
                 return null;
@@ -589,7 +596,7 @@
                 if (!child.mapped)
                     continue;
 
-                var deepestChild = child.findDeepestChildAtPoint(x, y);
+                var deepestChild = child.pickInput(x, y);
                 if (deepestChild)
                     return deepestChild;
             }
@@ -729,24 +736,32 @@
             return { x: this.x, y: this.y, width: this.width, height: this.height };
         },
 
-        _setWindowShapeRegion: function(shapeType, region) {
+        setWindowShapeRegion: function(shapeType, region) {
             if (shapeType === "Bounding") {
+                this._wrapWindowChange(function() {
+                    if (region) {
+                        if (!this._shapedBoundingRegion)
+                            this._shapedBoundingRegion = new Region();
+                        this._shapedBoundingRegion.copy(region);
+                    } else {
+                        if (this._shapedBoundingRegion) {
+                            this._shapedBoundingRegion.finalize();
+                            this._shapedBoundingRegion = null;
+                        }
+                    }
+                }.bind(this));
+            } else if (shapeType == "Input") {
                 if (region) {
-                    if (!this._shapedBoundingRegion)
-                        this._shapedBoundingRegion = new Region();
-                    this._shapedBoundingRegion.copy(region);
+                    if (!this._shapedInputRegion)
+                        this._shapedInputRegion = new Region();
+                    this._shapedInputRegion.copy(region);
                 } else {
-                    if (this._shapedBoundingRegion) {
-                        this._shapedBoundingRegion.finalize();
-                        this._shapedBoundingRegion = null;
+                    if (this._shapedInputRegion) {
+                        this._shapedInputRegion.finalize();
+                        this._shapedInputRegion = null;
                     }
                 }
             }
-        },
-        setWindowShapeRegion: function(shapeType, region) {
-            this._wrapWindowChange(function() {
-                this._setWindowShapeRegion(shapeType, region);
-            }.bind(this));
         },
 
         grabButton: function(button, grabInfo) {
@@ -1136,7 +1151,7 @@
         },
 
         syncCursorWindow: function(mode) {
-            var serverWindow = this._rootWindow.findDeepestChildAtPoint(this._cursorX, this._cursorY);
+            var serverWindow = this._rootWindow.pickInput(this._cursorX, this._cursorY);
             if (!serverWindow)
                 serverWindow = this._rootWindow;
 
