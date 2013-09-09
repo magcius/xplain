@@ -360,6 +360,20 @@
                 this.drawTree = null;
             }
         },
+
+        canDraw: function() {
+            return true;
+        },
+        drawTo: function(func) {
+            var region = this.drawTree.calculateEffectiveRegionForWindow(this, false);
+            this._drawClippedToRegion(region, function(ctx) {
+                var pos = this._getDrawOffset();
+                ctx.translate(pos.x, pos.y);
+                func(ctx);
+            }.bind(this));
+            region.finalize();
+        },
+
         _getDrawOffset: function() {
             var x = 0, y = 0;
             var serverWindow = this;
@@ -385,15 +399,6 @@
             ctx.translate(pos.x, pos.y);
             ctx.fillStyle = this._backgroundPattern;
             ctx.fillRect(0, 0, this.width, this.height);
-        },
-        drawTo: function(func) {
-            var region = this.drawTree.calculateEffectiveRegionForWindow(this, false);
-            this._drawClippedToRegion(region, function(ctx) {
-                var pos = this._getDrawOffset();
-                ctx.translate(pos.x, pos.y);
-                func(ctx);
-            }.bind(this));
-            region.finalize();
         },
         sendExpose: function(region) {
             if (region.is_empty())
