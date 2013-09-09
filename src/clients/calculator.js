@@ -133,6 +133,7 @@
             }
             syncCurrentValue();
         }
+        syncCurrentValue();
 
         function createButton(x, y, width, height, text, callback) {
             var windowId = display.createWindow({ x: x, y: y, width: width, height: height });
