@@ -1081,6 +1081,8 @@
                 y -= serverWindow.y;
                 serverWindow = serverWindow.windowTreeParent;
             }
+
+            return { x: x, y: y };
         },
 
         syncCursor: function() {
