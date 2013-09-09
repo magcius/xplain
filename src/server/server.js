@@ -736,31 +736,35 @@
             return { x: this.x, y: this.y, width: this.width, height: this.height };
         },
 
+        _setInputRegion: function(region) {
+            if (region) {
+                if (!this._shapedInputRegion)
+                    this._shapedInputRegion = new Region();
+                this._shapedInputRegion.copy(region);
+            } else {
+                if (this._shapedInputRegion)
+                    this._shapedInputRegion.finalize();
+                this._shapedInputRegion = null;
+            }
+        },
+        _setBoundingRegion: function(region) {
+            if (region) {
+                if (!this._shapedBoundingRegion)
+                    this._shapedBoundingRegion = new Region();
+                this._shapedBoundingRegion.copy(region);
+            } else {
+                if (this._shapedBoundingRegion)
+                    this._shapedBoundingRegion.finalize();
+                this._shapedBoundingRegion = null;
+            }
+        },
         setWindowShapeRegion: function(shapeType, region) {
             if (shapeType === "Bounding") {
                 this._wrapWindowChange(function() {
-                    if (region) {
-                        if (!this._shapedBoundingRegion)
-                            this._shapedBoundingRegion = new Region();
-                        this._shapedBoundingRegion.copy(region);
-                    } else {
-                        if (this._shapedBoundingRegion) {
-                            this._shapedBoundingRegion.finalize();
-                            this._shapedBoundingRegion = null;
-                        }
-                    }
+                    this._setBoundingRegion(region);
                 }.bind(this));
             } else if (shapeType == "Input") {
-                if (region) {
-                    if (!this._shapedInputRegion)
-                        this._shapedInputRegion = new Region();
-                    this._shapedInputRegion.copy(region);
-                } else {
-                    if (this._shapedInputRegion) {
-                        this._shapedInputRegion.finalize();
-                        this._shapedInputRegion = null;
-                    }
-                }
+                this._setInputRegion(region);
             }
         },
 
