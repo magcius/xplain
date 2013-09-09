@@ -327,38 +327,6 @@
             }
         },
 
-        _syncDrawTree: function() {
-            if (this.windowTreeParent) {
-                this.drawTree = this.windowTreeParent.drawTree;
-                this.drawTreeParent = this.windowTreeParent;
-            } else {
-                // We are an unparented window or the root window;
-                // we have no draw tree.
-                this.drawTree = null;
-            }
-        },
-
-        calculateAbsoluteOffset: function() {
-            var x = 0, y = 0;
-            var serverWindow = this;
-            while (serverWindow != null) {
-                x += serverWindow.x;
-                y += serverWindow.y;
-                serverWindow = serverWindow.windowTreeParent;
-            }
-            return { x: x, y: y };
-        },
-        _getDrawOffset: function() {
-            var x = 0, y = 0;
-            var serverWindow = this;
-            while (serverWindow != null) {
-                x += serverWindow.x;
-                y += serverWindow.y;
-                serverWindow = serverWindow.drawTreeParent;
-            }
-            return { x: x, y: y };
-        },
-
         getBoundingRegion: function() {
             var boundingRegion = new Region();
 
@@ -382,8 +350,25 @@
             return region;
         },
 
-        canDraw: function() {
-            return this.viewable;
+        _syncDrawTree: function() {
+            if (this.windowTreeParent) {
+                this.drawTree = this.windowTreeParent.drawTree;
+                this.drawTreeParent = this.windowTreeParent;
+            } else {
+                // We are an unparented window or the root window;
+                // we have no draw tree.
+                this.drawTree = null;
+            }
+        },
+        _getDrawOffset: function() {
+            var x = 0, y = 0;
+            var serverWindow = this;
+            while (serverWindow != null) {
+                x += serverWindow.x;
+                y += serverWindow.y;
+                serverWindow = serverWindow.drawTreeParent;
+            }
+            return { x: x, y: y };
         },
         _drawClippedToRegion: function(region, func) {
             this.drawTree.pixmap.drawTo(function(ctx) {
@@ -460,15 +445,6 @@
                 this.cursor = attributes.cursor;
                 this._server.syncCursor();
             }
-        },
-        getProperty: function(name, value) {
-            return this._properties[name];
-        },
-        changeProperty: function(name, value) {
-            this._properties[name] = value;
-            this._server.sendEvent({ type: "PropertyChanged",
-                                     windowId: this.xid,
-                                     name: name, value: value });
         },
         recalculateViewability: function() {
             var viewable;
@@ -569,6 +545,24 @@
 
             if (wasMapped)
                 this.map();
+        },
+
+        filterEvent: function(event) {
+            // If we're an override redirect window and the event is a MapRequest
+            // or a ConfigureRequest, make sure it doesn't go to any selected clients.
+            if (this._overrideRedirect && isEventSubstructureRedirect(event))
+                return false;
+            return true;
+        },
+
+        getProperty: function(name, value) {
+            return this._properties[name];
+        },
+        changeProperty: function(name, value) {
+            this._properties[name] = value;
+            this._server.sendEvent({ type: "PropertyChanged",
+                                     windowId: this.xid,
+                                     name: name, value: value });
         },
 
         _getInputRegion: function() {
@@ -703,7 +697,6 @@
                 this._insertIntoStack(sibling, props.stackMode);
             }
         },
-
         configureWindow: function(client, props) {
             var eventBase = { windowId: this.xid,
                               x: props.x, y: props.y, width: props.width, height: props.height,
@@ -724,13 +717,6 @@
                 event.type = "ConfigureNotify";
                 this._server.sendEvent(event);
             }
-        },
-        filterEvent: function(event) {
-            // If we're an override redirect window and the event is a MapRequest
-            // or a ConfigureRequest, make sure it doesn't go to any selected clients.
-            if (this._overrideRedirect && isEventSubstructureRedirect(event))
-                return false;
-            return true;
         },
         getGeometry: function() {
             return { x: this.x, y: this.y, width: this.width, height: this.height };
@@ -1075,16 +1061,21 @@
         },
 
         _translateCoordinates: function(srcServerWindow, destServerWindow, x, y) {
-            var offs;
-            offs = srcServerWindow.calculateAbsoluteOffset();
-            x += offs.x;
-            y += offs.y;
+            var serverWindow;
 
-            offs = destServerWindow.calculateAbsoluteOffset();
-            x -= offs.x;
-            y -= offs.y;
+            serverWindow = srcServerWindow;
+            while (serverWindow != null) {
+                x += serverWindow.x;
+                y += serverWindow.y;
+                serverWindow = serverWindow.windowTreeParent;
+            }
 
-            return { x: x, y: y };
+            serverWindow = destServerWindow;
+            while (serverWindow != null) {
+                x -= serverWindow.x;
+                y -= serverWindow.y;
+                serverWindow = serverWindow.windowTreeParent;
+            }
         },
 
         syncCursor: function() {
