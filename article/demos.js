@@ -22,7 +22,7 @@
         server.resize(width, height);
         elem.appendChild(server.elem);
 
-        var connection = server.clientConnected(this);
+        var connection = server.clientConnected();
         var display = connection.display;
 
         var stipple = makeStipple(display);

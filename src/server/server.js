@@ -846,9 +846,8 @@
     }
 
     var ServerClient = new Class({
-        initialize: function(server, client) {
+        initialize: function(server) {
             this._server = server;
-            this.client = client;
 
             // window id => list of event types
             this._eventWindows = {};
@@ -1762,8 +1761,8 @@
         },
 
         // Called by the client to get a socket connection.
-        clientConnected: function(client) {
-            var serverClient = new ServerClient(this, client);
+        clientConnected: function() {
+            var serverClient = new ServerClient(this);
             this._clients.push(serverClient);
             return { clientPort: serverClient.clientPort,
                      display: serverClient.display };
