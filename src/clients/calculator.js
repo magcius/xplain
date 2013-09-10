@@ -3,20 +3,10 @@
     function Calculator(server) {
         var connection = server.connect();
         var display = connection.display;
+        var events = new EventRegistry();
         var port = connection.clientPort;
-
-        var eventRegistry = {};
-        function _handlerKey(windowId, eventType) {
-            return windowId + ':' + eventType;
-        }
-        function registerHandler(windowId, eventType, handler) {
-            eventRegistry[_handlerKey(windowId, eventType)] = handler;
-        }
         port.addEventListener("message", function(messageEvent) {
-            var event = messageEvent.data;
-            var handler = eventRegistry[_handlerKey(event.windowId, event.type)];
-            if (handler)
-                handler(event);
+            events.handleEvent(messageEvent.data);
         });
 
         var toplevelWidth = 200;
@@ -38,7 +28,7 @@
                 strokeWindow(event.windowId, ctx);
             });
         }
-        registerHandler(toplevelId, 'Expose', toplevelExpose);
+        events.registerHandler(toplevelId, 'Expose', toplevelExpose);
 
         var padding = 10;
 
@@ -58,7 +48,7 @@
                     ctx.fillText(text, 0, 0);
                 });
             }
-            registerHandler(windowId, 'Expose', labelExpose);
+            events.registerHandler(windowId, 'Expose', labelExpose);
             return windowId;
         }
 
@@ -87,7 +77,7 @@
                 display.invalidateWindow({ windowId: windowId });
             }
 
-            registerHandler(windowId, 'Expose', textFieldExpose);
+            events.registerHandler(windowId, 'Expose', textFieldExpose);
             return { windowId: windowId, setText: setText };
         }
 
@@ -177,11 +167,11 @@
 
             syncBackground();
 
-            registerHandler(windowId, 'Expose', buttonExpose);
-            registerHandler(windowId, 'Enter', buttonEnter);
-            registerHandler(windowId, 'Leave', buttonLeave);
-            registerHandler(windowId, 'ButtonPress', buttonPress);
-            registerHandler(windowId, 'ButtonRelease', buttonRelease);
+            events.registerHandler(windowId, 'Expose', buttonExpose);
+            events.registerHandler(windowId, 'Enter', buttonEnter);
+            events.registerHandler(windowId, 'Leave', buttonLeave);
+            events.registerHandler(windowId, 'ButtonPress', buttonPress);
+            events.registerHandler(windowId, 'ButtonRelease', buttonRelease);
             return windowId;
         }
 

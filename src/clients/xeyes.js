@@ -32,14 +32,17 @@
             this._pointerRootX = -1;
             this._pointerRootY = -1;
 
-            this._display.selectInput({ windowId: this.windowId,
-                                        events: ["MapNotify", "UnmapNotify"] });
             this._display.configureWindow({ windowId: this.windowId,
                                             width: 200, height: 150 });
             this._display.changeProperty({ windowId: this.windowId,
                                            name: "WM_NAME",
                                            value: "xeyes.js" });
             this._display.mapWindow({ windowId: this.windowId });
+
+            this._display.selectInput({ windowId: this.windowId,
+                                        events: ["MapNotify", "UnmapNotify"] });
+            this._events.registerHandler(this.windowId, "MapNotify", this._start.bind(this));
+            this._events.registerHandler(this.windowId, "UnmapNotify", this._stop.bind(this));
         },
         _start: function() {
             this._intervalId = setInterval(function() {
@@ -98,16 +101,6 @@
             this.parent(event);
             this._destroyPixmap();
             this._display.invalidateWindow({ windowId: this.windowId });
-        },
-        handleEvent: function(event) {
-            switch(event.type) {
-            case "MapNotify":
-                return this._start();
-            case "UnmapNotify":
-                return this._stop();
-            default:
-                return this.parent(event);
-            }
         },
         expose: function(event) {
             this._ensurePixmap();

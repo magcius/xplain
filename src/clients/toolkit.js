@@ -73,6 +73,25 @@
         return shapeRegion;
     };
 
+    var EventRegistry = new Class({
+        initialize: function() {
+            this._registry = {};
+        },
+        _handlerKey: function(windowId, eventType) {
+            return windowId + ':' + eventType;
+        },
+        registerHandler: function(windowId, eventType, handler) {
+            var key = this._handlerKey(windowId, eventType);
+            this._registry[key] = handler;
+        },
+        handleEvent: function(event) {
+            var key = this._handlerKey(event.windowId, event.type);
+            var handler = this._registry[key];
+            if (handler)
+                handler(event);
+        },
+    });
+
     var Window = new Class({
         initialize: function() {
             this.x = 0;
@@ -83,23 +102,18 @@
         connect: function(server) {
             this._privateServer = server;
             var connection = this._privateServer.connect();
+            this._events = new EventRegistry();
             this._port = connection.clientPort;
             this._port.addEventListener("message", function(messageEvent) {
-                this.handleEvent(messageEvent.data);
+                this._events.handleEvent(messageEvent.data);
             }.bind(this));
             this._display = connection.display;
             this.windowId = this._display.createWindow({ x: this.x, y: this.y,
                                                          width: this.width, height: this.height });
             this._display.selectInput({ windowId: this.windowId,
                                         events: ["Expose", "ConfigureNotify"] });
-        },
-        handleEvent: function(event) {
-            switch (event.type) {
-            case "ConfigureNotify":
-                return this.configureNotify(event);
-            case "Expose":
-                return this.expose(event);
-            }
+            this._events.registerHandler(this.window, "ConfigureNotify", this.configureNotify.bind(this));
+            this._events.registerHandler(this.window, "Expose", this.expose.bind(this));
         },
         configureNotify: function(event) {
             if (event.windowId !== this.windowId)
@@ -119,6 +133,7 @@
     });
 
     exports.Util = Util;
+    exports.EventRegistry = EventRegistry;
     exports.Window = Window;
 
 })(window);

@@ -115,7 +115,8 @@
                                              backgroundColor: "#ffffff",
                                              overrideRedirect: true });
             this._display.selectInput({ windowId: this.windowId,
-                                       events: ["ButtonPress", "ButtonRelease"] });
+                                       events: ["ButtonRelease"] });
+            this._events.registerHandler(this.windowId, "ButtonRelease", this.close.bind(this));
         },
         _syncGeometry: function(openerWindowId) {
             var tree = this._display.queryTree({ windowId: openerWindowId });
@@ -152,20 +153,10 @@
             this._display.mapWindow({ windowId: this.windowId });
             this._grab();
             this._closedCallback = closedCallback;
-       },
+        },
         close: function() {
             this._display.unmapWindow({ windowId: this.windowId });
             this._closedCallback();
-        },
-        expose: function() {
-        },
-        handleEvent: function(event) {
-            switch (event.type) {
-            case "ButtonRelease":
-                return this.close();
-            default:
-                return this.parent(event);
-            }
         },
     });
 
@@ -185,6 +176,7 @@
                                              backgroundColor: PANEL_BACKGROUND_COLOR });
             this._display.selectInput({ windowId: this.windowId,
                                         events: ["ButtonPress"] });
+            this._events.registerHandler(this.windowId, "ButtonPress", this._clicked.bind(this));
 
             this.menu.connect(server);
         },
@@ -221,14 +213,6 @@
             this._display.changeAttributes({ windowId: this.windowId,
                                              backgroundColor: "#ffffff" });
         },
-        handleEvent: function(event) {
-            switch (event.type) {
-            case "ButtonPress":
-                return this._clicked(event);
-            default:
-                return this.parent(event);
-            }
-        },
     });
 
     var Button = new Class({
@@ -255,6 +239,7 @@
                                              cursor: "pointer" });
             this._display.selectInput({ windowId: this.windowId,
                                         events: ["ButtonPress"] });
+            this._events.registerHandler(this.windowId, "ButtonPress", this._clicked.bind(this));
         },
         configureNotify: function(event) {
             this.parent(event);
@@ -270,14 +255,6 @@
             this._display.drawTo(this.windowId, function(ctx) {
                 ctx.drawImage(image, x, y, image.width, image.height);
             });
-        },
-        handleEvent: function(event) {
-            switch (event.type) {
-            case "ButtonPress":
-                return this._clicked(event);
-            default:
-                return this.parent(event);
-            }
         },
     });
 
