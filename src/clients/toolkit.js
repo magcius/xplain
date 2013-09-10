@@ -112,8 +112,8 @@
                                                          width: this.width, height: this.height });
             this._display.selectInput({ windowId: this.windowId,
                                         events: ["Expose", "ConfigureNotify"] });
-            this._events.registerHandler(this.window, "ConfigureNotify", this.configureNotify.bind(this));
-            this._events.registerHandler(this.window, "Expose", this.expose.bind(this));
+            this._events.registerHandler(this.windowId, "ConfigureNotify", this.configureNotify.bind(this));
+            this._events.registerHandler(this.windowId, "Expose", this.expose.bind(this));
         },
         configureNotify: function(event) {
             if (event.windowId !== this.windowId)
