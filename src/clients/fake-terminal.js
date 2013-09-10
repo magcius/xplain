@@ -11,13 +11,20 @@
                                             width: 700, height: 400 });
             this._display.changeAttributes({ windowId: this.windowId,
                                              backgroundColor: "#121212" });
+            this._display.selectInput({ windowId: this.windowId,
+                                        events: ["KeyPress"] });
             this._display.changeProperty({ windowId: this.windowId,
                                            name: "WM_NAME",
                                            value: "Fake Terminal" });
             this._display.mapWindow({ windowId: this.windowId });
-            this._display.selectInput({ windowId: this.windowId,
-                                        events: ["KeyPress"] });
-            this._events.registerHandler(this.windowId, "KeyPress", this._handleKeyPress.bind(this));
+        },
+        handleEvent: function(event) {
+            switch(event.type) {
+            case "KeyPress":
+                return this._handleKeyPress(event);
+            default:
+                return this.parent(event);
+            }
         },
         expose: function(event) {
             this._display.drawTo(this.windowId, function(ctx) {

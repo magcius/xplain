@@ -12,13 +12,10 @@
                 this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this));
 
-            this._display.changeAttributes({ windowId: this.windowId, overrideRedirect: true });
-
             this._display.selectInput({ windowId: this._display.rootWindowId,
                                         events: ["ConfigureNotify"] });
-            this._events.registerHandler(this._display.rootWindowId, "ConfigureNotify", this._syncSize.bind(this));
+            this._display.changeAttributes({ windowId: this.windowId, overrideRedirect: true });
             this._syncSize();
-
             this._display.mapWindow({ windowId: this.windowId });
         },
         _syncSize: function() {
@@ -26,6 +23,14 @@
             this._display.configureWindow({ windowId: this.windowId,
                                             width: rootWindowGeometry.width,
                                             height: rootWindowGeometry.height });
+        },
+        configureNotify: function(event) {
+            this.parent(event);
+
+            if (event.windowId === this._display.rootWindowId)
+                this._syncSize();
+
+            this._display.invalidateWindow({ windowId: this.windowId });
         },
         expose: function(event) {
             if (!this._pixmapId)

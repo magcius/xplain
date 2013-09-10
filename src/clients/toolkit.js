@@ -102,18 +102,23 @@
         connect: function(server) {
             this._privateServer = server;
             var connection = this._privateServer.connect();
-            this._events = new EventRegistry();
             this._port = connection.clientPort;
             this._port.addEventListener("message", function(messageEvent) {
-                this._events.handleEvent(messageEvent.data);
+                this.handleEvent(messageEvent.data);
             }.bind(this));
             this._display = connection.display;
             this.windowId = this._display.createWindow({ x: this.x, y: this.y,
                                                          width: this.width, height: this.height });
             this._display.selectInput({ windowId: this.windowId,
                                         events: ["Expose", "ConfigureNotify"] });
-            this._events.registerHandler(this.windowId, "ConfigureNotify", this.configureNotify.bind(this));
-            this._events.registerHandler(this.windowId, "Expose", this.expose.bind(this));
+        },
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "ConfigureNotify":
+                return this.configureNotify(event);
+            case "Expose":
+                return this.expose(event);
+            }
         },
         configureNotify: function(event) {
             if (event.windowId !== this.windowId)

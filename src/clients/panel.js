@@ -11,15 +11,12 @@
             this._rightButtons = [];
             this._display.changeAttributes({ windowId: this.windowId,
                                              backgroundColor: PANEL_BACKGROUND_COLOR });
+            this._display.selectInput({ windowId: this._display.rootWindowId,
+                                        events: ["ConfigureNotify"] });
             this._display.changeProperty({ windowId: this.windowId,
                                            name: "_NET_WM_WINDOW_TYPE",
                                            value: "_NET_WM_WINDOW_TYPE_DOCK" });
-
-            this._display.selectInput({ windowId: this._display.rootWindowId,
-                                        events: ["ConfigureNotify"] });
-            this._events.registerHandler(this._display.rootWindowId, "ConfigureNotify", this._syncSize.bind(this));
             this._syncSize();
-
             this._display.mapWindow({ windowId: this.windowId });
         },
         _syncSize: function() {
@@ -53,20 +50,22 @@
         configureNotify: function(event) {
             this.parent(event);
 
+            // Try and resize if the root window changes size
+            if (event.windowId === this._display.rootWindowId)
+                this._syncSize();
+
             // If we've changed width, relayout.
-            if (event.width !== undefined)
+            else if (event.windowId === this.windowId && event.width !== undefined)
                 this._relayout();
-        },
-        _buttonConfigureNotify: function(event) {
-            // If a button changed width, relayout.
-            if (event.width !== undefined)
+
+            // And if a button changes width, relayout as well.
+            else if (event.windowId !== this.windowId && event.width !== undefined)
                 this._relayout();
         },
         _addButton: function(box, button) {
             box.push(button);
             this._display.selectInput({ windowId: button.windowId,
                                         events: ["ConfigureNotify"] });
-            this._events.registerHandler(button.windowId, "ConfigureNotify", this._buttonConfigureNotify.bind(this));
             this._display.reparentWindow({ windowId: button.windowId,
                                            newParentId: this.windowId });
             this._display.mapWindow({ windowId: button.windowId });
@@ -116,8 +115,7 @@
                                              backgroundColor: "#ffffff",
                                              overrideRedirect: true });
             this._display.selectInput({ windowId: this.windowId,
-                                       events: ["ButtonRelease"] });
-            this._events.registerHandler(this.windowId, "ButtonRelease", this.close.bind(this));
+                                       events: ["ButtonPress", "ButtonRelease"] });
         },
         _syncGeometry: function(openerWindowId) {
             var tree = this._display.queryTree({ windowId: openerWindowId });
@@ -154,10 +152,20 @@
             this._display.mapWindow({ windowId: this.windowId });
             this._grab();
             this._closedCallback = closedCallback;
-        },
+       },
         close: function() {
             this._display.unmapWindow({ windowId: this.windowId });
             this._closedCallback();
+        },
+        expose: function() {
+        },
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "ButtonRelease":
+                return this.close();
+            default:
+                return this.parent(event);
+            }
         },
     });
 
@@ -177,7 +185,6 @@
                                              backgroundColor: PANEL_BACKGROUND_COLOR });
             this._display.selectInput({ windowId: this.windowId,
                                         events: ["ButtonPress"] });
-            this._events.registerHandler(this.windowId, "ButtonPress", this._clicked.bind(this));
 
             this.menu.connect(server);
         },
@@ -214,6 +221,14 @@
             this._display.changeAttributes({ windowId: this.windowId,
                                              backgroundColor: "#ffffff" });
         },
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "ButtonPress":
+                return this._clicked(event);
+            default:
+                return this.parent(event);
+            }
+        },
     });
 
     var Button = new Class({
@@ -240,7 +255,6 @@
                                              cursor: "pointer" });
             this._display.selectInput({ windowId: this.windowId,
                                         events: ["ButtonPress"] });
-            this._events.registerHandler(this.windowId, "ButtonPress", this._clicked.bind(this));
         },
         configureNotify: function(event) {
             this.parent(event);
@@ -256,6 +270,14 @@
             this._display.drawTo(this.windowId, function(ctx) {
                 ctx.drawImage(image, x, y, image.width, image.height);
             });
+        },
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "ButtonPress":
+                return this._clicked(event);
+            default:
+                return this.parent(event);
+            }
         },
     });
 
