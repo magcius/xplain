@@ -1760,7 +1760,7 @@
         },
 
         // Called by the client to get a socket connection.
-        clientConnected: function() {
+        connect: function() {
             var serverClient = new ServerClient(this);
             this._clients.push(serverClient);
             return { clientPort: serverClient.clientPort,

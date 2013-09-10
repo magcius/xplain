@@ -82,7 +82,7 @@
         },
         connect: function(server) {
             this._privateServer = server;
-            var connection = this._privateServer.clientConnected();
+            var connection = this._privateServer.connect();
             this._port = connection.clientPort;
             this._port.addEventListener("message", function(messageEvent) {
                 this.handleEvent(messageEvent.data);

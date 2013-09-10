@@ -1,7 +1,7 @@
 (function(exports) {
 
     function Calculator(server) {
-        var connection = server.clientConnected();
+        var connection = server.connect();
         var display = connection.display;
         var port = connection.clientPort;
 
