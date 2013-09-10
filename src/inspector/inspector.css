@@ -1,0 +1,13 @@
+
+.inspector {
+	background: white;
+	border: 1px solid black;
+}
+
+.inspector .window-tree {
+	font-family: monospace;
+}
+
+.inspector .window-tree .window {
+	margin-left: 1em;
+}

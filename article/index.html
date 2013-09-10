@@ -5,6 +5,7 @@
 	<link rel="stylesheet" href="article.css">
 	<link rel="stylesheet" href="demos.css">
 	<link rel="stylesheet" href="../data/xserver.css">
+	<link rel="stylesheet" href="../src/inspector/inspector.css">
 	<title>Xplain</title>
 </head>
 <body><div class="main">
@@ -38,7 +39,8 @@
 			Compared to some of my coworkers, I'm relatively new to the Linux development
 			scene, with only five or so years of experience. I've also arrived late,
 			way after we've added lots of hacks to keep the X Window System fresh,
-			like RENDER and COMPOSITE.
+			like <a href="http://www.x.org/releases/current/doc/renderproto/renderproto.txt">RENDER</a>
+			and <a href="http://www.x.org/releases/current/doc/compositeproto/compositeproto.txt">COMPOSITE</a>.
 		</p>
 		<p>
 			The X Window System has clearly outgrown its original purpose with clever hacks,
@@ -144,8 +146,9 @@
 			display by playing around with it.
 		</p>
 		<p>
-			But that's not the purpose. While not a very sophisticated app, it uses enough
-			X Window System features for us to get started understanding the basics.
+			But that's OK, because a stable calculator app isn't really the point here.
+			While not a very complex, it's good enough that it allows us to start understanding
+			the basics of the X Window System.
 		</p>
 	</article>
 
@@ -156,6 +159,7 @@
 	<script src="../src/wm/wm.js"></script>
 	<script src="../src/clients/toolkit.js"></script>
 	<script src="../src/clients/calculator.js"></script>
+	<script src="../src/inspector/inspector.js"></script>
 	<script src="demos.js"></script>
 </div></body>
 </html>

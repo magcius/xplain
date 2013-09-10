@@ -38,6 +38,11 @@
 
     function calculator(elem) {
         var res = bootstrapServer(elem);
+        var server = res.server;
+
+        var inspector = new Inspector(server);
+        document.body.appendChild(inspector.elem);
+
         var display = res.display;
         var calculatorWindowId = Calculator(res.server);
 
