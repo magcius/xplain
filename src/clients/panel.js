@@ -11,12 +11,15 @@
             this._rightButtons = [];
             this._display.changeAttributes({ windowId: this.windowId,
                                              backgroundColor: PANEL_BACKGROUND_COLOR });
-            this._display.selectInput({ windowId: this._display.rootWindowId,
-                                        events: ["ConfigureNotify"] });
             this._display.changeProperty({ windowId: this.windowId,
                                            name: "_NET_WM_WINDOW_TYPE",
                                            value: "_NET_WM_WINDOW_TYPE_DOCK" });
+
+            this._display.selectInput({ windowId: this._display.rootWindowId,
+                                        events: ["ConfigureNotify"] });
+            this._events.registerHandler(this._display.rootWindowId, "ConfigureNotify", this._syncSize.bind(this));
             this._syncSize();
+
             this._display.mapWindow({ windowId: this.windowId });
         },
         _syncSize: function() {
@@ -50,22 +53,20 @@
         configureNotify: function(event) {
             this.parent(event);
 
-            // Try and resize if the root window changes size
-            if (event.windowId === this._display.rootWindowId)
-                this._syncSize();
-
             // If we've changed width, relayout.
-            else if (event.windowId === this.windowId && event.width !== undefined)
+            if (event.width !== undefined)
                 this._relayout();
-
-            // And if a button changes width, relayout as well.
-            else if (event.windowId !== this.windowId && event.width !== undefined)
+        },
+        _buttonConfigureNotify: function(event) {
+            // If a button changed width, relayout.
+            if (event.width !== undefined)
                 this._relayout();
         },
         _addButton: function(box, button) {
             box.push(button);
             this._display.selectInput({ windowId: button.windowId,
                                         events: ["ConfigureNotify"] });
+            this._events.registerHandler(button.windowId, "ConfigureNotify", this._buttonConfigureNotify.bind(this));
             this._display.reparentWindow({ windowId: button.windowId,
                                            newParentId: this.windowId });
             this._display.mapWindow({ windowId: button.windowId });
