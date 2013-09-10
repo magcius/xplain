@@ -779,7 +779,6 @@
     });
 
     var publicRequests = [
-        'clientConnected',
         'createPixmap',
         'freePixmap',
         'createWindow',
