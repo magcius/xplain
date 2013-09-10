@@ -27,8 +27,15 @@
 		},
 
 		_getWindowDescription: function(xid) {
-            var title = this._display.getProperty({ windowId: xid, name: "WM_NAME" }) || "Unnamed Window";
-			return title + ' (' + xid + ')';
+            var debugName;
+            if (!debugName)
+            	debugName = this._display.getProperty({ windowId: xid, name: "DEBUG_NAME" });
+            if (!debugName)
+            	debugName = this._display.getProperty({ windowId: xid, name: "WM_NAME" });
+            if (!debugName)
+            	debugName = "Unnamed Window";
+
+			return debugName + ' (' + xid + ')';
 		},
 		_syncWindowTree: function() {
 			var makeNodeForWindow = function(xid) {

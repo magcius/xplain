@@ -13,6 +13,7 @@
         var toplevelHeight = 220;
         var toplevelId = display.createWindow({ x: 0, y: 0, width: toplevelWidth, height: toplevelHeight });
         display.changeAttributes({ windowId: toplevelId, backgroundColor: '#ffffff' });
+        display.changeProperty({ windowId: toplevelId, name: 'WM_NAME', value: "Calculator" });
         display.selectInput({ windowId: toplevelId, events: ['Expose'] })
 
         function strokeWindow(windowId, ctx) {
@@ -35,6 +36,7 @@
         function createLabel(text, y) {
             var windowId = display.createWindow({ x: padding, y: y, width: toplevelWidth - padding * 2, height: 30 });
             display.changeAttributes({ windowId: windowId, backgroundColor: '#ffffff' });
+            display.changeProperty({ windowId: windowId, name: 'DEBUG_NAME', value: "Label \"" + text + "\"" });
             display.reparentWindow({ windowId: windowId, newParentId: toplevelId });
             display.mapWindow({ windowId: windowId });
             display.selectInput({ windowId: windowId, events: ['Expose'] })
@@ -57,6 +59,7 @@
         function createTextField(y) {
             var windowId = display.createWindow({ x: padding, y: y, width: toplevelWidth - padding * 2, height: 30 });
             display.changeAttributes({ windowId: windowId, backgroundColor: '#ffffff' });
+            display.changeProperty({ windowId: windowId, name: 'DEBUG_NAME', value: 'Text Field' });
             display.reparentWindow({ windowId: windowId, newParentId: toplevelId });
             display.selectInput({ windowId: windowId, events: ['Expose'] })
             display.mapWindow({ windowId: windowId });
@@ -129,6 +132,7 @@
             display.reparentWindow({ windowId: windowId, newParentId: toplevelId });
             display.changeAttributes({ windowId: windowId, cursor: 'pointer' });
             display.mapWindow({ windowId: windowId });
+            display.changeProperty({ windowId: windowId, name: 'DEBUG_NAME', value: "Button \"" + text + "\"" });
             display.selectInput({ windowId: windowId, events: ['Expose', 'Enter', 'Leave', 'ButtonPress', 'ButtonRelease'] });
 
             var entered = false, pressed = false;

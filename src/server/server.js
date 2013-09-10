@@ -1050,6 +1050,7 @@
 
         _createRootDrawTree: function() {
             this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: 1, height: 1 });
+            this._rootWindow.changeProperty('DEBUG_NAME', "Root Window");
             this.rootWindowId = this._rootWindow.xid;
 
             this._rootDrawTree = new ServerWindowDrawTree(this, this._rootWindow);
