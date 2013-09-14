@@ -1282,10 +1282,9 @@
 
                 if (grabInfo)
                     this._grabPointer(grabInfo, true);
-                else
-                    // XXX -- protocol is unclear here -- who gets the grab?
-                    // For now, don't take a grab and send just the event.
-                    ;
+
+                // If nobody has selected for ButtonPress, nobody gets
+                // any grab, and we don't take one.
             }
 
             if (event) {
