@@ -27,8 +27,6 @@
         connect: function(server) {
             this.parent(server);
 
-            this._pixmapId = 0;
-
             this._pointerRootX = -1;
             this._pointerRootY = -1;
 
@@ -57,46 +55,8 @@
             clearInterval(this._intervalId);
             this._intervalId = 0;
         },
-        _destroyPixmap: function() {
-            this._display.freePixmap({ pixmapId: this._pixmapId });
-            this._pixmapId = 0;
-        },
-        _ensurePixmap: function() {
-            if (this._pixmapId)
-                return;
-
-            this._pixmapId = this._display.createPixmap({ width: this.width,
-                                                          height: this.height });
-
-            var eyeRX = this.width / 4 - 6;
-            var eyeRY = this.height / 2 - 6;
-            var eyeCenterLX = this.width * (1/4);
-            var eyeCenterRX = this.width * (3/4);
-            var eyeCenterY = this.height / 2;
-
-            this._display.drawTo(this._pixmapId, function(ctx) {
-                ctx.fillStyle = '#eeeeec';
-                ctx.fillRect(0, 0, this.width, this.height);
-
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 10;
-                ctx.fillStyle = '#ffffff';
-
-                // scleras
-                ellipse(ctx, eyeCenterLX, eyeCenterY, eyeRX, eyeRY);
-                ctx.fill();
-                ctx.stroke();
-
-                ellipse(ctx, eyeCenterRX, eyeCenterY, eyeRX, eyeRY);
-                ctx.fill();
-                ctx.stroke();
-            }.bind(this));
-            this._display.changeAttributes({ windowId: this.windowId,
-                                             backgroundPixmap: this._pixmapId });
-        },
         configureNotify: function(event) {
             this.parent(event);
-            this._destroyPixmap();
             this._display.invalidateWindow({ windowId: this.windowId });
         },
         handleEvent: function(event) {
@@ -110,8 +70,6 @@
             }
         },
         expose: function(event) {
-            this._ensurePixmap();
-
             var eyeRX = this.width / 4 - 6;
             var eyeRY = this.height / 2 - 6;
             var eyeCenterLX = this.width * (1/4);
@@ -154,6 +112,21 @@
             }
 
             this._display.drawTo(this.windowId, function(ctx) {
+                ctx.fillStyle = '#eeeeec';
+                ctx.fillRect(0, 0, this.width, this.height);
+
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 10;
+                ctx.fillStyle = '#ffffff';
+
+                // scleras
+                ellipse(ctx, eyeCenterLX, eyeCenterY, eyeRX, eyeRY);
+                ctx.fill();
+                ctx.stroke();
+
+                ellipse(ctx, eyeCenterRX, eyeCenterY, eyeRX, eyeRY);
+                ctx.fill();
+                ctx.stroke();
                 // pupils
                 ctx.fillStyle = '#000000';
 
@@ -166,7 +139,7 @@
                 pos = getPupilPosition(eyeCenterRX);
                 ellipse(ctx, eyeCenterRX + pos.x, eyeCenterY + pos.y, pupilRX, pupilRY);
                 ctx.fill();
-            });
+            }.bind(this));
         },
     });
 
