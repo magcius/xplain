@@ -1679,6 +1679,13 @@
             // Investigate HTML5 APIs for confineTo
 
             if (this._grabClient) {
+                var allowOverwrite = false;
+
+                // Clients can override passive grabs at any time, if it's by
+                // their client or not.
+                if (this._grabClient.isPassive)
+                    allowOverwrite = true;
+
                 // Allow overwriting a grab from the same client. By core event
                 // protocol semantics, this should be ChangeActivePointerGrab,
                 // but I like the XI2 semantics of just calling grabPointer again.
@@ -1689,6 +1696,9 @@
                 // is called when there's an passive pointer grab, we change it into
                 // an active grab. This is different from ChangeActivePointerGrab.
                 if (this._grabClient.serverClient == client)
+                    allowOverwrite = true;
+
+                if (allowOverwrite)
                     this.ungrabPointer();
                 else
                     throw clientError("AlreadyGrabbed");
