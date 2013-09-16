@@ -2,6 +2,12 @@
     "use strict";
 
     var Util = {};
+    Util.pathFromRegion = function(ctx, region) {
+        region.iter_rectangles(function(rect) {
+            ctx.rect(rect.x, rect.y, rect.width, rect.height);
+        });
+    };
+
     Util.loadImageAsPixmap = function(display, src, callback) {
         var image = new Image();
         image.addEventListener("load", function() {

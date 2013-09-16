@@ -1,12 +1,6 @@
 (function(exports) {
     "use strict";
 
-    function pathFromRegion(ctx, region) {
-        region.iter_rectangles(function(rect) {
-            ctx.rect(rect.x, rect.y, rect.width, rect.height);
-        });
-    }
-
     // Workaround for browser bugs in drawImage:
     //   https://bugzilla.mozilla.org/show_bug.cgi?id=842110
     //   https://code.google.com/p/chromium/issues/detail?id=176714
@@ -386,7 +380,7 @@
         },
         _drawClippedToRegion: function(region, func) {
             this.drawTree.pixmap.drawTo(function(ctx) {
-                pathFromRegion(ctx, region);
+                Util.pathFromRegion(ctx, region);
                 ctx.clip();
                 ctx.beginPath();
                 func(ctx);
