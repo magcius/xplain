@@ -155,7 +155,7 @@
             this._display.mapWindow({ windowId: this.windowId });
             this._grab();
             this._closedCallback = closedCallback;
-       },
+        },
         close: function() {
             this._display.unmapWindow({ windowId: this.windowId });
             this._closedCallback();
