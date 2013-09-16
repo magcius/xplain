@@ -388,6 +388,7 @@
             this.drawTree.pixmap.drawTo(function(ctx) {
                 pathFromRegion(ctx, region);
                 ctx.clip();
+                ctx.beginPath();
                 func(ctx);
             }.bind(this));
         },
