@@ -151,6 +151,7 @@
         },
         open: function(openerWindowId, closedCallback) {
             this._syncGeometry(openerWindowId);
+            this._display.configureWindow({ windowId: this.windowId, stackMode: "Above" });
             this._display.mapWindow({ windowId: this.windowId });
             this._grab();
             this._closedCallback = closedCallback;
