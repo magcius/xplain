@@ -967,12 +967,12 @@
             // modification. So, if a client with two windows, window A and
             // window B, and takes a grab on window A, events should still be
             // delivered for window B if they come in.
-            if (this._ownerEvents && this.serverClient.filterEvent(event))
+            if (this._ownerEvents && this.serverClient.filterEvent(event)) {
                 this.serverClient.sendEvent(event);
 
             // Else, if we should report this event, report it with respect
             // to the grab window.
-            if (this._events.indexOf(event.type) >= 0) {
+            } else if (this._events.indexOf(event.type) >= 0) {
                 var newEvent = Object.create(event);
                 newEvent.windowId = this.grabWindow.xid;
                 this.serverClient.sendEvent(newEvent);
