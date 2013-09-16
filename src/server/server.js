@@ -939,8 +939,7 @@
             // event delivered to the client is in this._clientEvent.
             switch (pointerMode) {
             case "Async":
-                // Unfreeze the pointer grab, and replay the rest.
-                this._server.ungrabPointer();
+                // Replay the rest.
                 this._flushFrozenEventQueue();
                 break;
             case "Sync":
@@ -949,7 +948,7 @@
                 if (event)
                     this._deliverEvent(event);
                 else
-                    this._server.ungrabPointer();
+                    this._clientEvent = null;
                 break;
             case "Replay":
                 // Requeue the client event, unfreeze the pointer grab,
