@@ -90,8 +90,10 @@
         removeAction: function(action) {
             this._removeButton(this._rightButtons, action);
         },
-        expose: function(event) {
+        _draw: function() {
             this._display.drawTo(this.windowId, function(ctx) {
+                this._clipToExposedRegion(ctx);
+
                 ctx.strokeStyle = '#bec0c0';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
@@ -157,7 +159,7 @@
             this._display.unmapWindow({ windowId: this.windowId });
             this._closedCallback();
         },
-        expose: function() {
+        _draw: function() {
         },
         handleEvent: function(event) {
             switch (event.type) {
@@ -198,9 +200,11 @@
             this._display.configureWindow({ windowId: this.windowId,
                                             width: width });
         },
-        expose: function(event) {
+        _draw: function() {
             var padding = 4;
             this._display.drawTo(this.windowId, function(ctx) {
+                this._clipToExposedRegion(ctx);
+
                 ctx.font = this._font;
                 ctx.fillStyle = '#000000';
                 // XXX: Browsers can't measure alphabetic baseline yet,
@@ -260,7 +264,7 @@
             this.parent(event);
             this._display.invalidateWindow({ windowId: this.windowId });
         },
-        expose: function(event) {
+        _draw: function() {
             if (!this._pixmapId)
                 return;
 
@@ -268,8 +272,10 @@
             var x = ((this.width - image.width) / 2) | 0;
             var y = ((this.height - image.height) / 2) | 0;
             this._display.drawTo(this.windowId, function(ctx) {
+                this._clipToExposedRegion(ctx);
+
                 ctx.drawImage(image, x, y, image.width, image.height);
-            });
+            }.bind(this));
         },
         handleEvent: function(event) {
             switch (event.type) {

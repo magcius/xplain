@@ -26,10 +26,9 @@
                 return this.parent(event);
             }
         },
-        expose: function(event) {
+        _draw: function() {
             this._display.drawTo(this.windowId, function(ctx) {
-                ctx.rect(event.x, event.y, event.width, event.height);
-                ctx.clip();
+                this._clipToExposedRegion(ctx);
 
                 ctx.font = 'bold 10pt monospace';
 

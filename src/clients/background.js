@@ -32,7 +32,7 @@
 
             this._display.invalidateWindow({ windowId: this.windowId });
         },
-        expose: function(event) {
+        _draw: function() {
             if (!this._pixmapId)
                 return;
 
@@ -45,6 +45,8 @@
             var centerY = (this.height - imageHeight) / 2;
 
             this._display.drawTo(this.windowId, function(ctx) {
+                this._clipToExposedRegion(ctx);
+
                 ctx.drawImage(image,
                               0, 0, image.width, image.height,
                               centerX, centerY, imageWidth, imageHeight);

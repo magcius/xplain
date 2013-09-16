@@ -69,7 +69,7 @@
                 return this.parent(event);
             }
         },
-        expose: function(event) {
+        _draw: function() {
             var eyeRX = this.width / 4 - 6;
             var eyeRY = this.height / 2 - 6;
             var eyeCenterLX = this.width * (1/4);
@@ -112,6 +112,8 @@
             }
 
             this._display.drawTo(this.windowId, function(ctx) {
+                this._clipToExposedRegion(ctx);
+
                 ctx.fillStyle = '#eeeeec';
                 ctx.fillRect(0, 0, this.width, this.height);
 

@@ -104,6 +104,8 @@
             this.y = 0;
             this.width = 1;
             this.height = 1;
+
+            this._exposedRegion = new Region();
         },
         connect: function(server) {
             this._privateServer = server;
@@ -118,12 +120,27 @@
             this._display.selectInput({ windowId: this.windowId,
                                         events: ["Expose", "ConfigureNotify"] });
         },
+        _clipToExposedRegion: function(ctx) {
+            Util.pathFromRegion(ctx, this._exposedRegion);
+            ctx.clip();
+            ctx.beginPath();
+
+            this._exposedRegion.clear();
+        },
+        _draw: function() {
+        },
+        _expose: function(event) {
+            this._exposedRegion.union_rect(this._exposedRegion, event.x, event.y, event.width, event.height);
+
+            if (event.count == 0)
+                this._draw();
+        },
         handleEvent: function(event) {
             switch (event.type) {
             case "ConfigureNotify":
                 return this.configureNotify(event);
             case "Expose":
-                return this.expose(event);
+                return this._expose(event);
             }
         },
         configureNotify: function(event) {
@@ -138,8 +155,6 @@
                 this.width = event.width;
             if (event.height !== undefined)
                 this.height = event.height;
-        },
-        expose: function(event) {
         },
     });
 
