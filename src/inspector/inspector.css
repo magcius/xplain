@@ -1,13 +1,33 @@
 
 .inspector {
 	background: white;
-	border: 1px solid black;
 }
 
 .inspector .window-tree {
-	font-family: monospace;
+	font-size: smaller;
 }
 
-.inspector .window-tree .window {
-	margin-left: 1em;
+.inspector .window-tree .window .title .debug-name {
+	font-family: monospace;
+	color: #994499;
+}
+
+.inspector .window-tree .window .title .xid {
+	font-family: monospace;
+	color: #449944;
+	padding-left: 1em;
+	font-style: italic;
+}
+
+.inspector .window-tree .window .title {
+	padding-left: 1em;
+	border-left: 1px dotted #eee;
+}
+
+.inspector .window-tree .window .title:hover {
+	background: #eeeeff;
+}
+
+.inspector .window-tree .window .children {
+	padding-left: 1em;
 }

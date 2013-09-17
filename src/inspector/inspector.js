@@ -26,7 +26,7 @@
 			this._syncWindowTree();
 		},
 
-		_getWindowDescription: function(xid) {
+		_getDebugName: function(xid) {
             var debugName;
             if (!debugName)
             	debugName = this._display.getProperty({ windowId: xid, name: "DEBUG_NAME" });
@@ -35,21 +35,40 @@
             if (!debugName)
             	debugName = "Unnamed Window";
 
-			return debugName + ' (' + xid + ')';
+			return debugName;
+		},
+		_makeWindowLabel: function(xid) {
+			var node = document.createElement("div");
+			node.classList.add('title');
+
+			var debugNameLabel = document.createElement("span");
+			debugNameLabel.classList.add('debug-name');
+			debugNameLabel.innerText = this._getDebugName(xid);
+			node.appendChild(debugNameLabel);
+
+			var xidLabel = document.createElement("span");
+			xidLabel.classList.add('xid');
+			xidLabel.innerText = xid;
+			node.appendChild(xidLabel);
+
+			return node;
 		},
 		_syncWindowTree: function() {
 			var makeNodeForWindow = function(xid) {
 				var node = document.createElement("div");
 				node.classList.add('window');
 
-				var windowName = document.createElement("span");
-				windowName.innerText = this._getWindowDescription(xid);
-				node.appendChild(windowName);
+				var windowLabel = this._makeWindowLabel(xid);
+				node.appendChild(windowLabel);
+
+				var childList = document.createElement("div");
+				childList.classList.add('children');
+				node.appendChild(childList);
 
 				// Recurse
 				var query = this._display.queryTree({ windowId: xid });
 				query.children.forEach(function(childXid) {
-					node.appendChild(makeNodeForWindow(childXid));
+					childList.appendChild(makeNodeForWindow(childXid));
 				});
 				return node;
 			}.bind(this);
