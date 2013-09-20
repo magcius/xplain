@@ -7,6 +7,17 @@
 
 .inspector {
 	background: white;
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+
+	height: 250px;
+	display: none;
+}
+
+.inspector.visible {
+	display: block;
 }
 
 .inspector .window-tree {

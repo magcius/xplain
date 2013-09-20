@@ -56,6 +56,75 @@
         },
     });
 
+    var InspectorButton = new Class({
+        Extends: Window,
+        initialize: function(inspector) {
+            this.parent();
+            this._inspector = inspector;
+        },
+        connect: function(server) {
+            this.parent(server);
+            this._display.changeAttributes({ windowId: this.windowId, cursor: 'pointer' });
+            this._display.changeProperty({ windowId: this.windowId, name: 'DEBUG_NAME', value: "Inspector Button" });
+            this._display.selectInput({ windowId: this.windowId, events: ["ButtonRelease"] });
+            this._display.selectInput({ windowId: this._display.rootWindowId, events: ["ConfigureNotify"] });
+            this._display.configureWindow({ windowId: this.windowId, width: 32, height: 32 });
+            this._syncConfiguration();
+
+            this.setShowing(false);
+            this._display.mapWindow({ windowId: this.windowId });
+        },
+        _syncConfiguration: function() {
+            var rootGeom = this._display.getGeometry({ drawableId: this._display.rootWindowId });
+            var selfGeom = this._display.getGeometry({ drawableId: this.windowId });
+
+            var padding = 10;
+            var x = rootGeom.width - selfGeom.width - padding;
+            var y = padding;
+            this._display.configureWindow({ windowId: this.windowId, x: x, y: y });
+        },
+        configureNotify: function(event) {
+            if (event.windowId == this._display.rootWindowId) {
+                this._syncConfiguration();
+                this._display.invalidateWindow({ windowId: this.windowId });
+            } else {
+                this.parent(event);
+                this._display.invalidateWindow({ windowId: this.windowId });
+            }
+        },
+        _draw: function() {
+            this._display.drawTo(this.windowId, function(ctx) {
+                this._clipToExposedRegion(ctx);
+                var geom = this._display.getGeometry({ drawableId: this.windowId });
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#000000';
+                ctx.strokeRect(0, 0, geom.width, geom.height);
+
+                ctx.font = 'bold 12pt monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillStyle = this._showing ? '#ffffff' : '#000000';
+                ctx.fillText('i', geom.width / 2, 8);
+            }.bind(this));
+        },
+        _clicked: function() {
+            this._inspector.toggle();
+        },
+        setShowing: function(showing) {
+            this._showing = showing;
+            var color = this._showing ? '#000000' : '#ffffff';
+            this._display.changeAttributes({ windowId: this.windowId, backgroundColor: color });
+        },
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "ButtonRelease":
+                return this._clicked(event);
+            default:
+                return this.parent(event);
+            }
+        },
+    });
+
     var Inspector = new Class({
         initialize: function(server) {
             this._server = server;
@@ -78,6 +147,14 @@
                                         events: ['SubstructureNotify'] });
 
             this._highlighter = new InspectorHighlighter(server);
+
+            this._button = new InspectorButton(this);
+            this._button.connect(server);
+        },
+
+        toggle: function() {
+            this.elem.classList.toggle("visible");
+            this._button.setShowing(this.elem.classList.contains("visible"));
         },
 
         _handleEvent: function(event) {
