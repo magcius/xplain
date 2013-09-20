@@ -2,6 +2,7 @@
 .xserver.js {
     cursor: url(../data/cursors/arrow.png) 10 5, auto;
     outline: none;
+    position: relative;
 }
 
 .xserver.js[data-cursor="pointer"] {

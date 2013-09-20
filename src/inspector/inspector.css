@@ -1,4 +1,10 @@
 
+.inspector-highlight {
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
 .inspector {
 	background: white;
 }
@@ -22,6 +28,7 @@
 .inspector .window-tree .window .title {
 	padding-left: 1em;
 	border-left: 1px dotted #eee;
+	cursor: default;
 }
 
 .inspector .window-tree .window .title:hover {

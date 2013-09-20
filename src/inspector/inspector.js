@@ -1,5 +1,61 @@
 (function(exports) {
 
+    var InspectorHighlighter = new Class({
+        initialize: function(server) {
+            this._server = server;
+            var connection = server.connect();
+
+            this._display = connection.display;
+            this._port = connection.clientPort;
+            this._port.addEventListener("message", function(messageEvent) {
+                this._handleEvent(messageEvent.data);
+            }.bind(this));
+
+            this._highlightedWindowId = null;
+
+            this._canvas = document.createElement("canvas");
+            this._canvas.classList.add("inspector-highlight");
+            this._ctx = this._canvas.getContext('2d');
+
+            server.elem.appendChild(this._canvas);
+
+            this._display.selectInput({ windowId: this._display.rootWindowId,
+                                        events: ['SubstructureNotify'] });
+            this._syncSize();
+        },
+
+        _syncSize: function() {
+            var geom = this._display.getGeometry({ drawableId: this._display.rootWindowId });
+            this._canvas.width = geom.width;
+            this._canvas.height = geom.height;
+        },
+
+        _handleEvent: function(event) {
+            this._draw();
+        },
+
+        _draw: function() {
+            this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+
+            if (this._highlightedWindowId != null) {
+                this._ctx.lineWidth = 2;
+                this._ctx.strokeStyle = '#ff0000';
+
+                var geom = this._display.getGeometry({ drawableId: this._highlightedWindowId });
+                var coords = this._display.translateCoordinates({ srcWindowId: this._highlightedWindowId,
+                                                                  destWindowId: this._display.rootWindowId,
+                                                                  x: 0, y: 0 });
+
+                this._ctx.strokeRect(coords.x, coords.y, geom.width, geom.height);
+            }
+        },
+
+        setWindowToHighlight: function(xid) {
+            this._highlightedWindowId = xid;
+            this._draw();
+        },
+    });
+
     var Inspector = new Class({
         initialize: function(server) {
             this._server = server;
@@ -7,7 +63,7 @@
             this._display = connection.display;
             this._port = connection.clientPort;
             this._port.addEventListener("message", function(messageEvent) {
-                this._handleEvent(event);
+                this._handleEvent(messageEvent.data);
             }.bind(this));
 
             this._toplevel = document.createElement('div');
@@ -20,6 +76,8 @@
 
             this._display.selectInput({ windowId: this._display.rootWindowId,
                                         events: ['SubstructureNotify'] });
+
+            this._highlighter = new InspectorHighlighter(server);
         },
 
         _handleEvent: function(event) {
@@ -70,6 +128,12 @@
                 query.children.forEach(function(childXid) {
                     childList.appendChild(makeNodeForWindow(childXid));
                 });
+
+                node.addEventListener("mouseover", function(event) {
+                    this._highlighter.setWindowToHighlight(xid);
+                    event.stopPropagation();
+                }.bind(this));
+
                 return node;
             }.bind(this);
 
