@@ -22,6 +22,8 @@
 
 .inspector .window-tree {
 	font-size: smaller;
+	height: 100%;
+	overflow: auto;
 }
 
 .inspector .window-tree .window .title .debug-name {
