@@ -7,6 +7,7 @@
 
 .inspector {
 	background: white;
+	border-top: 1px solid #aaa;
 	position: fixed;
 	bottom: 0;
 	left: 0;
@@ -20,34 +21,52 @@
 	display: block;
 }
 
-.inspector .window-tree {
-	font-size: smaller;
+.inspector .window-tree,
+.inspector .window-inspector {
+	float: left;
 	height: 100%;
 	overflow: auto;
+	width: 50%;
+}
+
+.inspector .window-tree .window .children {
+	padding-left: 1em;
+}
+
+.inspector .window-tree .window .title {
+	font-family: monospace;
+	padding-left: 1em;
+	border-left: 1px dotted #eee;
+	cursor: default;
 }
 
 .inspector .window-tree .window .title .debug-name {
-	font-family: monospace;
 	color: #994499;
 }
 
 .inspector .window-tree .window .title .xid {
-	font-family: monospace;
 	color: #449944;
 	padding-left: 1em;
 	font-style: italic;
-}
-
-.inspector .window-tree .window .title {
-	padding-left: 1em;
-	border-left: 1px dotted #eee;
-	cursor: default;
 }
 
 .inspector .window-tree .window .title:hover {
 	background: #eeeeff;
 }
 
-.inspector .window-tree .window .children {
-	padding-left: 1em;
+.inspector .window-tree .window.selected > .title {
+	background-color: #0088ff;
+}
+
+.inspector .window-tree .window.selected > .title * {
+	color: white !important;
+}
+
+.inspector .window-inspector .property-listing {
+	font-family: monospace;
+}
+
+.inspector .window-inspector .property-listing .name:after {
+	content: ':';
+	margin-right: 1em;
 }

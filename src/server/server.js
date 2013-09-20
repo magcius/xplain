@@ -564,6 +564,9 @@
                                      windowId: this.xid,
                                      name: name, value: value });
         },
+        listProperties: function() {
+            return Object.keys(this._properties);
+        },
 
         _getInputRegion: function() {
             var inputRegion = new Region();
@@ -788,6 +791,7 @@
         'changeAttributes',
         'getProperty',
         'changeProperty',
+        'listProperties',
         'selectInput',
         'grabPointer',
         'ungrabPointer',
@@ -1652,6 +1656,10 @@
         _handle_changeProperty: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             serverWindow.changeProperty(props.name, props.value);
+        },
+        _handle_listProperties: function(client, props) {
+            var serverWindow = this.getServerWindow(client, props.windowId);
+            return serverWindow.listProperties();
         },
         _handle_selectInput: function(client, props) {
             var windowId = props.windowId;
