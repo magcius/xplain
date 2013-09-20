@@ -264,6 +264,10 @@
                     this._highlighter.setWindowToHighlight(xid);
                     event.stopPropagation();
                 }.bind(this));
+                node.addEventListener("mouseout", function(event) {
+                    this._highlighter.setWindowToHighlight(null);
+                    event.stopPropagation();
+                }.bind(this));
                 node.addEventListener("click", function(event) {
                     this._selectWindow(xid);
                     event.stopPropagation();
