@@ -142,7 +142,11 @@
 
             this._toplevel = document.createElement('div');
             this._toplevel.classList.add('inspector');
-            this.elem = this._toplevel;
+
+            this._closeButton = document.createElement('div');
+            this._closeButton.classList.add('close-button');
+            this._closeButton.addEventListener("click", this.toggle.bind(this));
+            this._toplevel.appendChild(this._closeButton);
 
             this._buildWindowTree();
             this._buildWindowInspector();
@@ -151,6 +155,8 @@
 
             this._button = new InspectorButton(this);
             this._button.connect(server);
+
+            this.elem = this._toplevel;
         },
 
         toggle: function() {

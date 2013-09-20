@@ -21,6 +21,21 @@
 	display: block;
 }
 
+.inspector .close-button {
+	width: 32px;
+	height: 32px;
+	background: no-repeat 50% 50%;
+	background-image: url(close-button-up.png);
+
+	position: absolute;
+	top: 0;
+	right: 0;
+}
+
+.inspector .close-button:hover {
+	background-image: url(close-button-over.png);
+}
+
 .inspector .window-tree,
 .inspector .window-inspector {
 	float: left;
