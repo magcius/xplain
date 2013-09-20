@@ -182,12 +182,12 @@
 
                 var nameNode = document.createElement('span');
                 nameNode.classList.add('name');
-                nameNode.innerText = name;
+                nameNode.textContent = name;
                 node.appendChild(nameNode);
 
                 var valueNode = document.createElement('span');
                 valueNode.classList.add('value');
-                valueNode.innerText = JSON.stringify(value);
+                valueNode.textContent = JSON.stringify(value);
                 node.appendChild(valueNode);
 
                 return node;
@@ -238,12 +238,12 @@
 
             var debugNameLabel = document.createElement("span");
             debugNameLabel.classList.add('debug-name');
-            debugNameLabel.innerText = this._getDebugName(xid);
+            debugNameLabel.textContent = this._getDebugName(xid);
             node.appendChild(debugNameLabel);
 
             var xidLabel = document.createElement("span");
             xidLabel.classList.add('xid');
-            xidLabel.innerText = xid;
+            xidLabel.textContent = xid;
             node.appendChild(xidLabel);
 
             return node;
