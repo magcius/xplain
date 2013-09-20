@@ -7,18 +7,15 @@
 
 .inspector {
 	background: white;
-	border-top: 1px solid #aaa;
-	position: fixed;
-	bottom: 0;
-	left: 0;
-	right: 0;
+	border: 1px dotted #aaa;
+	border-top: none;
 
-	height: 250px;
-	display: none;
+	height: 0px;
+	transition: 0.25s height;
 }
 
 .inspector.visible {
-	display: block;
+	height: 256px;
 }
 
 .inspector .close-button {

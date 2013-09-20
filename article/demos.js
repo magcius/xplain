@@ -14,7 +14,11 @@
         return stipple;
     }
 
-    function bootstrapServer(elem) {
+    function bootstrapServer(container) {
+        var elem = document.createElement("div");
+        elem.classList.add('server-slot');
+        container.appendChild(elem);
+
         var width = elem.clientWidth;
         var height = elem.clientHeight;
 
@@ -41,7 +45,7 @@
         var server = res.server;
 
         var inspector = new Inspector(server);
-        document.body.appendChild(inspector.elem);
+        elem.appendChild(inspector.elem);
 
         var display = res.display;
         var calculatorWindowId = Calculator(res.server);

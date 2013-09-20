@@ -3,10 +3,10 @@
 	margin: 1em;
 }
 
-.demo-server.test {
+.demo-server.test .server-slot {
 	height: 2em;
 }
 
-.demo-server.calculator {
+.demo-server.calculator .server-slot {
 	height: 300px;
 }
