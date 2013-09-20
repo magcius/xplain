@@ -260,6 +260,9 @@
                     childList.appendChild(makeNodeForWindow(childXid));
                 });
 
+                node.addEventListener("contextmenu", function(event) {
+                    event.preventDefault();
+                });
                 node.addEventListener("mouseover", function(event) {
                     this._highlighter.setWindowToHighlight(xid);
                     event.stopPropagation();
