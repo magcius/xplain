@@ -83,11 +83,20 @@
 	color: white !important;
 }
 
-.inspector .window-inspector .property-listing {
+.inspector .window-inspector .property,
+.inspector .window-inspector .attribute {
 	font-family: monospace;
 }
 
-.inspector .window-inspector .property-listing .name:after {
+.inspector .window-inspector .name:after {
 	content: ':';
 	margin-right: 1em;
+}
+
+.inspector .window-inspector .color-display {
+	width: 6px;
+	height: 6px;
+	border: 1px solid black;
+	display: inline-block;
+	margin: 0 6px;
 }

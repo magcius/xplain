@@ -247,15 +247,81 @@
             this._toplevel = document.createElement('div');
             this._toplevel.classList.add('window-inspector');
 
+            this._attributes = document.createElement('div');
+            this._attributes.classList.add('attribute-list');
+            this._toplevel.appendChild(this._attributes);
+
+            this._properties = document.createElement('div');
+            this._properties.classList.add('property-list');
+            this._toplevel.appendChild(this._properties);
+
             this.elem = this._toplevel;
         },
 
+        _createPixmapDisplay: function(xid) {
+            var pixmapDisplay = document.createElement('span');
+            pixmapDisplay.classList.add('pixmap-display');
+            return pixmapDisplay;
+        },
+
+        _syncAttributes: function() {
+            empty(this._attributes);
+
+            var attribs = this._display.getAttributes({ windowId: this._selectedWindowId });
+
+            if (attribs.backgroundColor) {
+                var node = document.createElement('div');
+                node.classList.add('attribute');
+
+                var nameNode = document.createElement('span');
+                nameNode.classList.add('name');
+                nameNode.textContent = 'background-color';
+                node.appendChild(nameNode);
+
+                var colorDisplay = document.createElement('span');
+                colorDisplay.classList.add('color-display');
+                colorDisplay.style.backgroundColor = attribs.backgroundColor;
+                node.appendChild(colorDisplay);
+
+                var valueItem = document.createElement('span');
+                valueItem.classList.add('value');
+                valueItem.classList.add('literal');
+                valueItem.textContent = attribs.backgroundColor;
+                node.appendChild(valueItem);
+
+                this._attributes.appendChild(node);
+            }
+
+            if (attribs.backgroundPixmap) {
+                var node = document.createElement('div');
+                node.classList.add('attribute');
+
+                var nameNode = document.createElement('span');
+                nameNode.classList.add('name');
+                nameNode.textContent = 'background-pixmap';
+                node.appendChild(nameNode);
+
+                node.appendChild(this._createPixmapDisplay(attribs.backgroundPixmap));
+
+                var valueItem = document.createElement('span');
+                valueItem.classList.add('value');
+                valueItem.classList.add('xid');
+                valueItem.textContent = attribs.backgroundPixmap;
+                node.appendChild(valueItem);
+
+                if (attribs.backgroundColor)
+                    node.classList.add('overridden');
+
+                this._attributes.appendChild(node);
+            }
+        },
+
         _syncProperties: function() {
-            empty(this._toplevel);
+            empty(this._properties);
 
             var makeNodeForProperty = function(name, value) {
                 var node = document.createElement('div');
-                node.classList.add('property-listing');
+                node.classList.add('property');
 
                 var nameNode = document.createElement('span');
                 nameNode.classList.add('name');
@@ -277,12 +343,13 @@
             props.forEach(function(name) {
                 var value = this._display.getProperty({ windowId: this._selectedWindowId, name: name });
                 var node = makeNodeForProperty(name, value);
-                this._toplevel.appendChild(node);
+                this._properties.appendChild(node);
             }.bind(this));
         },
 
         selectWindow: function(xid) {
             this._selectedWindowId = xid;
+            this._syncAttributes();
             this._syncProperties();
         },
     });

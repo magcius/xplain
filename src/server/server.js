@@ -422,6 +422,14 @@
             this._backgroundPattern = pattern;
             this.drawTree.exposeWindow(this, false, false);
         },
+        getAttributes: function(client) {
+            return {
+                backgroundColor: this._backgroundColor,
+                backgroundPixmap: this._backgroundPixmap,
+                overrideRedirect: this._overrideRedirect,
+                cursor: this.cursor,
+            };
+        },
         changeAttributes: function(client, attributes) {
             var newBackground = false;
             if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
@@ -788,6 +796,7 @@
         'queryTree',
         'getGeometry',
         'translateCoordinates',
+        'getAttributes',
         'changeAttributes',
         'getProperty',
         'changeProperty',
@@ -1648,6 +1657,10 @@
             var serverWindow = this.getServerWindow(client, props.windowId);
             delete props.windowId;
             serverWindow.changeAttributes(client, props);
+        },
+        _handle_getAttributes: function(client, props) {
+            var serverWindow = this.getServerWindow(client, props.windowId);
+            return serverWindow.getAttributes();
         },
         _handle_getProperty: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
