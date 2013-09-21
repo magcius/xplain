@@ -143,10 +143,15 @@
             this._toplevel = document.createElement('div');
             this._toplevel.classList.add('inspector');
 
+            this._header = document.createElement('div');
+            this._header.classList.add('header');
+            this._header.textContent = 'Inspector';
+            this._toplevel.appendChild(this._header);
+
             this._closeButton = document.createElement('div');
             this._closeButton.classList.add('close-button');
             this._closeButton.addEventListener("click", this.toggle.bind(this));
-            this._toplevel.appendChild(this._closeButton);
+            this._header.appendChild(this._closeButton);
 
             this._buildWindowTree();
             this._buildWindowInspector();

@@ -10,6 +10,7 @@
 	border: 1px dotted #aaa;
 	border-top: none;
 
+	overflow: hidden;
 	height: 0px;
 	transition: 0.25s height;
 }
@@ -18,15 +19,23 @@
 	height: 256px;
 }
 
+.inspector .header {
+	background: #eee;
+	border: 1px solid #999;
+	border-style: solid none;
+	font: bold smaller sans-serif;
+	height: 32px;
+	line-height: 32px;
+	padding-left: 1em;
+}
+
 .inspector .close-button {
 	width: 32px;
 	height: 32px;
 	background: no-repeat 50% 50%;
 	background-image: url(close-button-up.png);
 
-	position: absolute;
-	top: 0;
-	right: 0;
+	float: right;
 }
 
 .inspector .close-button:hover {
