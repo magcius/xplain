@@ -130,7 +130,7 @@
             node.removeChild(node.firstChild);
     }
 
-    var Inspector = new Class({
+    var WindowTree = new Class({
         initialize: function(server) {
             this._server = server;
             var connection = server.connect();
@@ -141,91 +141,18 @@
             }.bind(this));
 
             this._toplevel = document.createElement('div');
-            this._toplevel.classList.add('inspector');
+            this._toplevel.classList.add('window-tree');
 
-            this._header = document.createElement('div');
-            this._header.classList.add('header');
-            this._header.textContent = 'Inspector';
-            this._toplevel.appendChild(this._header);
-
-            this._closeButton = document.createElement('div');
-            this._closeButton.classList.add('close-button');
-            this._closeButton.addEventListener("click", this.toggle.bind(this));
-            this._header.appendChild(this._closeButton);
-
-            this._buildWindowTree();
-            this._buildWindowInspector();
-
-            this._highlighter = new InspectorHighlighter(server);
-
-            this._button = new InspectorButton(this);
-            this._button.connect(server);
+            this._display.selectInput({ windowId: this._display.rootWindowId,
+                                        events: ['SubstructureNotify'] });
 
             this.elem = this._toplevel;
-        },
-
-        toggle: function() {
-            this.elem.classList.toggle("visible");
-            this._button.setShowing(this.elem.classList.contains("visible"));
         },
 
         _handleEvent: function(event) {
             this._syncWindowTree();
         },
 
-        _buildWindowInspector: function() {
-            this._windowInspector = document.createElement('div');
-            this._windowInspector.classList.add('window-inspector');
-            this._toplevel.appendChild(this._windowInspector);
-        },
-        _syncWindowInspector: function() {
-            empty(this._windowInspector);
-
-            var makeNodeForProperty = function(name, value) {
-                var node = document.createElement('div');
-                node.classList.add('property-listing');
-
-                var nameNode = document.createElement('span');
-                nameNode.classList.add('name');
-                nameNode.textContent = name;
-                node.appendChild(nameNode);
-
-                var valueNode = document.createElement('span');
-                valueNode.classList.add('value');
-                valueNode.textContent = JSON.stringify(value);
-                node.appendChild(valueNode);
-
-                return node;
-            };
-
-            if (!this._selectedWindowId)
-                return;
-
-            var props = this._display.listProperties({ windowId: this._selectedWindowId });
-            props.forEach(function(name) {
-                var value = this._display.getProperty({ windowId: this._selectedWindowId, name: name });
-                var node = makeNodeForProperty(name, value);
-                this._windowInspector.appendChild(node);
-            }.bind(this));
-        },
-        _selectWindow: function(xid) {
-            if (this._windowTreeNodes[this._selectedWindowId])
-                this._windowTreeNodes[this._selectedWindowId].classList.remove("selected");
-            this._selectedWindowId = xid;
-            if (this._windowTreeNodes[this._selectedWindowId])
-                this._windowTreeNodes[this._selectedWindowId].classList.add("selected");
-
-            this._syncWindowInspector();
-        },
-
-        _buildWindowTree: function() {
-            this._windowTree = document.createElement('div');
-            this._windowTree.classList.add('window-tree');
-            this._toplevel.appendChild(this._windowTree);
-
-            this._display.selectInput({ windowId: this._display.rootWindowId,
-                                        events: ['SubstructureNotify'] });
-        },
         _getDebugName: function(xid) {
             var debugName;
             if (!debugName)
@@ -253,6 +180,13 @@
 
             return node;
         },
+        selectWindow: function(xid) {
+            if (this._windowTreeNodes[this._selectedWindowId])
+                this._windowTreeNodes[this._selectedWindowId].classList.remove("selected");
+            this._selectedWindowId = xid;
+            if (this._windowTreeNodes[this._selectedWindowId])
+                this._windowTreeNodes[this._selectedWindowId].classList.add("selected");
+        },
         _syncWindowTree: function() {
             var makeNodeForWindow = function(xid) {
                 var node = document.createElement("div");
@@ -271,19 +205,16 @@
                     childList.appendChild(makeNodeForWindow(childXid));
                 });
 
-                node.addEventListener("contextmenu", function(event) {
-                    event.preventDefault();
-                });
                 node.addEventListener("mouseover", function(event) {
-                    this._highlighter.setWindowToHighlight(xid);
+                    this.onWindowHighlighted(xid);
                     event.stopPropagation();
                 }.bind(this));
                 node.addEventListener("mouseout", function(event) {
-                    this._highlighter.setWindowToHighlight(null);
+                    this.onWindowHighlighted(null);
                     event.stopPropagation();
                 }.bind(this));
                 node.addEventListener("click", function(event) {
-                    this._selectWindow(xid);
+                    this.onWindowSelected(xid);
                     event.stopPropagation();
                 }.bind(this));
 
@@ -292,13 +223,126 @@
                 return node;
             }.bind(this);
 
-            empty(this._windowTree);
+            empty(this._toplevel);
             this._windowTreeNodes = {};
 
             var rootNode = makeNodeForWindow(this._display.rootWindowId);
-            this._windowTree.appendChild(rootNode);
+            this._toplevel.appendChild(rootNode);
 
-            this._selectWindow(this._selectedWindowId);
+            // Ensure that the node still appears selected
+            this.selectWindow(this._selectedWindowId);
+        },
+    });
+
+    var WindowInspector = new Class({
+        initialize: function(server) {
+            this._server = server;
+            var connection = server.connect();
+            this._display = connection.display;
+            this._port = connection.clientPort;
+            this._port.addEventListener("message", function(messageEvent) {
+                this._handleEvent(messageEvent.data);
+            }.bind(this));
+
+            this._toplevel = document.createElement('div');
+            this._toplevel.classList.add('window-inspector');
+
+            this.elem = this._toplevel;
+        },
+
+        _syncProperties: function() {
+            empty(this._toplevel);
+
+            var makeNodeForProperty = function(name, value) {
+                var node = document.createElement('div');
+                node.classList.add('property-listing');
+
+                var nameNode = document.createElement('span');
+                nameNode.classList.add('name');
+                nameNode.textContent = name;
+                node.appendChild(nameNode);
+
+                var valueNode = document.createElement('span');
+                valueNode.classList.add('value');
+                valueNode.textContent = JSON.stringify(value);
+                node.appendChild(valueNode);
+
+                return node;
+            };
+
+            if (!this._selectedWindowId)
+                return;
+
+            var props = this._display.listProperties({ windowId: this._selectedWindowId });
+            props.forEach(function(name) {
+                var value = this._display.getProperty({ windowId: this._selectedWindowId, name: name });
+                var node = makeNodeForProperty(name, value);
+                this._toplevel.appendChild(node);
+            }.bind(this));
+        },
+
+        selectWindow: function(xid) {
+            this._selectedWindowId = xid;
+            this._syncProperties();
+        },
+    });
+
+    var Inspector = new Class({
+        initialize: function(server) {
+            this._server = server;
+            var connection = server.connect();
+            this._display = connection.display;
+            this._port = connection.clientPort;
+            this._port.addEventListener("message", function(messageEvent) {
+                this._handleEvent(messageEvent.data);
+            }.bind(this));
+
+            this._toplevel = document.createElement('div');
+            this._toplevel.classList.add('inspector');
+
+            this._toplevel.addEventListener("contextmenu", function(event) {
+                event.preventDefault();
+            });
+
+            this._header = document.createElement('div');
+            this._header.classList.add('header');
+            this._header.textContent = 'Inspector';
+            this._toplevel.appendChild(this._header);
+
+            this._closeButton = document.createElement('div');
+            this._closeButton.classList.add('close-button');
+            this._closeButton.addEventListener("click", this.toggle.bind(this));
+            this._header.appendChild(this._closeButton);
+
+            this._windowTree = new WindowTree(server);
+            this._toplevel.appendChild(this._windowTree.elem);
+
+            this._windowInspector = new WindowInspector(server);
+            this._toplevel.appendChild(this._windowInspector.elem);
+
+            this._highlighter = new InspectorHighlighter(server);
+
+            this._windowTree.onWindowHighlighted = function(xid) {
+                this._highlighter.setWindowToHighlight(xid);
+            }.bind(this);
+            this._windowTree.onWindowSelected = function(xid) {
+                this._selectWindow(xid);
+            }.bind(this);
+
+            this._button = new InspectorButton(this);
+            this._button.connect(server);
+
+            this.elem = this._toplevel;
+        },
+
+        toggle: function() {
+            this.elem.classList.toggle("visible");
+            this._button.setShowing(this.elem.classList.contains("visible"));
+        },
+
+        _selectWindow: function(xid) {
+            this._windowTree.selectWindow(xid);
+            this._windowInspector.selectWindow(xid);
         },
     });
 
