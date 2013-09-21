@@ -785,30 +785,36 @@
     });
 
     var publicRequests = [
-        'createPixmap',
-        'freePixmap',
         'createWindow',
+        'changeAttributes',
+        'getAttributes',
         'destroyWindow',
         'reparentWindow',
         'mapWindow',
         'unmapWindow',
         'configureWindow',
-        'queryTree',
         'getGeometry',
-        'translateCoordinates',
-        'getAttributes',
-        'changeAttributes',
-        'getProperty',
+        'queryTree',
         'changeProperty',
+        'getProperty',
         'listProperties',
-        'selectInput',
         'grabPointer',
         'ungrabPointer',
         'grabButton',
         'ungrabButton',
-        'queryPointer',
-        'setInputFocus',
         'allowEvents',
+        'queryPointer',
+        'translateCoordinates',
+        'setInputFocus',
+        'createPixmap',
+        'freePixmap',
+
+        // This is technically not a request -- the event-mask
+        // is actually part of the window attributes, but this
+        // is absolute insane as it's the only window attribute
+        // that's client-specific. We just make it a request to
+        // the server.
+        'selectInput',
 
         // JS extension -- simplifies the case of drawing
         // by letting someone use an existing expose handler.
@@ -1600,18 +1606,19 @@
         },
 
         // Client request handlers.
-        _handle_createPixmap: function(client, props) {
-            var serverPixmap = this._createPixmapInternal(props);
-            return serverPixmap.xid;
-        },
-        _handle_freePixmap: function(client, props) {
-            var serverPixmap = this.getServerPixmap(client, props.drawableId);
-            serverPixmap.destroy();
-        },
         _handle_createWindow: function(client, props) {
             var serverWindow = this._createWindowInternal(props);
             serverWindow.parentWindow(this._rootWindow);
             return serverWindow.xid;
+        },
+        _handle_changeAttributes: function(client, props) {
+            var serverWindow = this.getServerWindow(client, props.windowId);
+            delete props.windowId;
+            serverWindow.changeAttributes(client, props);
+        },
+        _handle_getAttributes: function(client, props) {
+            var serverWindow = this.getServerWindow(client, props.windowId);
+            return serverWindow.getAttributes();
         },
         _handle_destroyWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
@@ -1634,6 +1641,10 @@
             var serverWindow = this.getServerWindow(client, props.windowId);
             serverWindow.configureWindow(client, props);
         },
+        _handle_getGeometry: function(client, props) {
+            var drawable = this.getDrawable(client, props.drawableId);
+            return drawable.getGeometry();
+        },
         _handle_queryTree: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             var reply = {};
@@ -1644,49 +1655,19 @@
             }).reverse();
             return reply;
         },
-        _handle_getGeometry: function(client, props) {
-            var drawable = this.getDrawable(client, props.drawableId);
-            return drawable.getGeometry();
-        },
-        _handle_translateCoordinates: function(client, props) {
-            var srcServerWindow = this.getServerWindow(client, props.srcWindowId);
-            var destServerWindow = this.getServerWindow(client, props.destWindowId);
-            return this._translateCoordinates(srcServerWindow, destServerWindow, props.x, props.y);
-        },
-        _handle_changeAttributes: function(client, props) {
+        _handle_changeProperty: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
-            delete props.windowId;
-            serverWindow.changeAttributes(client, props);
-        },
-        _handle_getAttributes: function(client, props) {
-            var serverWindow = this.getServerWindow(client, props.windowId);
-            return serverWindow.getAttributes();
+            serverWindow.changeProperty(props.name, props.value);
         },
         _handle_getProperty: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             return serverWindow.getProperty(props.name);
         },
-        _handle_changeProperty: function(client, props) {
-            var serverWindow = this.getServerWindow(client, props.windowId);
-            serverWindow.changeProperty(props.name, props.value);
-        },
         _handle_listProperties: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             return serverWindow.listProperties();
         },
-        _handle_selectInput: function(client, props) {
-            var windowId = props.windowId;
-            var events = props.events;
-            var checkEvent = (function checkEvent(eventType) {
-                if (events.indexOf(eventType) >= 0)
-                    if (this._checkOtherClientsForEvent(windowId, eventType, client))
-                        throw clientError(error);
-            }).bind(this);
-            checkEvent("SubstructureRedirect");
-            checkEvent("ButtonPress");
 
-            client.selectInput(windowId, events);
-        },
         _handle_grabPointer: function(client, props) {
             var grabWindow = this.getServerWindow(client, props.windowId);
 
@@ -1745,27 +1726,54 @@
             var grabWindow = this.getServerWindow(client, props.windowId);
             grabWindow.ungrabButton(props.button);
         },
+        _handle_allowEvents: function(client, props) {
+            this._grabClient.allowEvents(props.pointerMode);
+        },
         _handle_queryPointer: function(client, props) {
             return { rootX: this._cursorX,
                      rootY: this._cursorY,
                      buttons: this._buttonsDown };
         },
+        _handle_translateCoordinates: function(client, props) {
+            var srcServerWindow = this.getServerWindow(client, props.srcWindowId);
+            var destServerWindow = this.getServerWindow(client, props.destWindowId);
+            return this._translateCoordinates(srcServerWindow, destServerWindow, props.x, props.y);
+        },
         _handle_setInputFocus: function(client, props) {
             this._setInputFocus(client, props.windowId, props.revert);
         },
-        _handle_allowEvents: function(client, props) {
-            this._grabClient.allowEvents(props.pointerMode);
+
+        _handle_createPixmap: function(client, props) {
+            var serverPixmap = this._createPixmapInternal(props);
+            return serverPixmap.xid;
+        },
+        _handle_freePixmap: function(client, props) {
+            var serverPixmap = this.getServerPixmap(client, props.drawableId);
+            serverPixmap.destroy();
         },
 
-        _handle_getPixmapImage: function(client, props) {
-            var pixmap = this.getServerPixmap(client, props.pixmapId);
-            return pixmap.getImage();
+        _handle_selectInput: function(client, props) {
+            var windowId = props.windowId;
+            var events = props.events;
+            var checkEvent = (function checkEvent(eventType) {
+                if (events.indexOf(eventType) >= 0)
+                    if (this._checkOtherClientsForEvent(windowId, eventType, client))
+                        throw clientError(error);
+            }).bind(this);
+            checkEvent("SubstructureRedirect");
+            checkEvent("ButtonPress");
+
+            client.selectInput(windowId, events);
         },
 
         _handle_invalidateWindow: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             var includeChildren = !!props.includeChildren;
             serverWindow.drawTree.exposeWindow(serverWindow, false, includeChildren);
+        },
+        _handle_getPixmapImage: function(client, props) {
+            var pixmap = this.getServerPixmap(client, props.pixmapId);
+            return pixmap.getImage();
         },
         _handle_setWindowShapeRegion: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
