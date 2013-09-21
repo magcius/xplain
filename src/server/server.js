@@ -1730,9 +1730,17 @@
             this._grabClient.allowEvents(props.pointerMode);
         },
         _handle_queryPointer: function(client, props) {
-            return { rootX: this._cursorX,
-                     rootY: this._cursorY,
-                     buttons: this._buttonsDown };
+            var coords = this._translateCoordinates(this._rootWindow, this._cursorServerWindow,
+                                                    this._cursorX, this._cursorY);
+            return {
+                root: this.rootWindowId,
+                rootX: this._cursorX,
+                rootY: this._cursorY,
+                child: this._cursorServerWindow.xid,
+                winX: coords.x,
+                winY: coords.y,
+                buttons: this._buttonsDown
+            };
         },
         _handle_translateCoordinates: function(client, props) {
             var srcServerWindow = this.getServerWindow(client, props.srcWindowId);
