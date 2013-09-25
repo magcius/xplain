@@ -1176,6 +1176,13 @@
 
             if (serverWindow != this._cursorServerWindow) {
                 this._sendCrossingEvents(event, this._cursorServerWindow, serverWindow);
+
+                // An extension for the inspector
+                this.sendEvent({ type: "X-CursorWindowChanged",
+                                 windowId: this.rootWindowId,
+                                 oldCursorWindow: this._cursorServerWindow ? this._cursorServerWindow.xid : null,
+                                 newCursorWindow: serverWindow.xid });
+
                 this._cursorServerWindow = serverWindow;
                 this.syncCursor();
             }

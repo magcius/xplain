@@ -144,13 +144,17 @@
             this._toplevel.classList.add('window-tree');
 
             this._display.selectInput({ windowId: this._display.rootWindowId,
-                                        events: ['SubstructureNotify'] });
+                                        events: ['SubstructureNotify', 'X-CursorWindowChanged'] });
 
             this.elem = this._toplevel;
         },
 
         _handleEvent: function(event) {
-            this._syncWindowTree();
+            if (event.type === "X-CursorWindowChanged") {
+                this._setCursorWindow(event.oldCursorWindow, event.newCursorWindow);
+            } else {
+                this._syncWindowTree();
+            }
         },
 
         _getDebugName: function(xid) {
@@ -178,7 +182,20 @@
             xidLabel.textContent = xid;
             node.appendChild(xidLabel);
 
+            var emblems = document.createElement("span");
+            node.appendChild(emblems);
+
+            var cursorWindowEmblem = document.createElement("span");
+            cursorWindowEmblem.classList.add('cursor-window-emblem');
+            emblems.appendChild(cursorWindowEmblem);
+
             return node;
+        },
+        _setCursorWindow: function(oldId, newId) {
+            if (this._windowTreeNodes[oldId])
+                this._windowTreeNodes[oldId].classList.remove("cursor-window");
+            if (this._windowTreeNodes[newId])
+                this._windowTreeNodes[newId].classList.add("cursor-window");
         },
         selectWindow: function(xid) {
             if (this._windowTreeNodes[this._selectedWindowId])
@@ -228,6 +245,9 @@
 
             var rootNode = makeNodeForWindow(this._display.rootWindowId);
             this._toplevel.appendChild(rootNode);
+
+            var pointerInfo = this._display.queryPointer();
+            this._setCursorWindow(0, pointerInfo.child);
 
             // Ensure that the node still appears selected
             this.selectWindow(this._selectedWindowId);

@@ -71,6 +71,17 @@
 	font-style: italic;
 }
 
+.inspector .window-tree .window .cursor-window-emblem {
+	display: none;
+}
+
+.inspector .window-tree .window.cursor-window > .title .cursor-window-emblem {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	background: red;
+}
+
 .inspector .window-tree .window .title:hover {
 	background: #eeeeff;
 }
