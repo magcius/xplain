@@ -212,7 +212,6 @@
 
                 // Transform into the child's space.
                 inputRegion.translate(-serverWindow.x, -serverWindow.y);
-                region.translate(-serverWindow.x, -serverWindow.y);
 
                 // Clip the exposed region to the bounding region to get
                 // the maximum area that's obscured.
@@ -236,7 +235,6 @@
 
                 // And transform back.
                 inputRegion.translate(serverWindow.x, serverWindow.y);
-                region.translate(serverWindow.x, serverWindow.y);
             }.bind(this);
 
             // The caller owns the exposed region, so make sure
