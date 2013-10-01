@@ -92,7 +92,7 @@
         },
         _draw: function() {
             this._display.drawTo(this.windowId, function(ctx) {
-                this._clipToExposedRegion(ctx);
+                this._exposeHandler.clip(ctx);
 
                 ctx.strokeStyle = '#bec0c0';
                 ctx.lineWidth = 1;
@@ -204,7 +204,7 @@
         _draw: function() {
             var padding = 4;
             this._display.drawTo(this.windowId, function(ctx) {
-                this._clipToExposedRegion(ctx);
+                this._exposeHandler.clip(ctx);
 
                 ctx.font = this._font;
                 ctx.fillStyle = '#000000';
@@ -273,8 +273,7 @@
             var x = ((this.width - image.width) / 2) | 0;
             var y = ((this.height - image.height) / 2) | 0;
             this._display.drawTo(this.windowId, function(ctx) {
-                this._clipToExposedRegion(ctx);
-
+                this._exposeHandler.clip(ctx);
                 ctx.drawImage(image, x, y, image.width, image.height);
             }.bind(this));
         },

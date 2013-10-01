@@ -112,7 +112,7 @@
             }
 
             this._display.drawTo(this.windowId, function(ctx) {
-                this._clipToExposedRegion(ctx);
+                this._exposeHandler.clip(ctx);
 
                 ctx.fillStyle = '#eeeeec';
                 ctx.fillRect(0, 0, this.width, this.height);

@@ -45,8 +45,7 @@
             var centerY = (this.height - imageHeight) / 2;
 
             this._display.drawTo(this.windowId, function(ctx) {
-                this._clipToExposedRegion(ctx);
-
+                this._exposeHandler.clip(ctx);
                 ctx.drawImage(image,
                               0, 0, image.width, image.height,
                               centerX, centerY, imageWidth, imageHeight);

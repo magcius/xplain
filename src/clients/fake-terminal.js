@@ -28,7 +28,7 @@
         },
         _draw: function() {
             this._display.drawTo(this.windowId, function(ctx) {
-                this._clipToExposedRegion(ctx);
+                this._exposeHandler.clip(ctx);
 
                 ctx.font = 'bold 10pt monospace';
 

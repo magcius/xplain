@@ -94,7 +94,7 @@
         },
         _draw: function() {
             this._display.drawTo(this.windowId, function(ctx) {
-                this._clipToExposedRegion(ctx);
+                this._exposeHandler.clip(ctx);
                 var geom = this._display.getGeometry({ drawableId: this.windowId });
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = '#000000';

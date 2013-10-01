@@ -79,6 +79,24 @@
         return shapeRegion;
     };
 
+    var ExposeHandler = new Class({
+        initialize: function(drawFn) {
+            this._exposedRegion = new Region();
+            this._draw = drawFn;
+        },
+        clip: function(ctx) {
+            Util.pathFromRegion(ctx, this._exposedRegion);
+            ctx.clip();
+            ctx.beginPath();
+            this._exposedRegion.clear();
+        },
+        handleExpose: function(event) {
+            this._exposedRegion.union_rect(this._exposedRegion, event.x, event.y, event.width, event.height);
+            if (event.count == 0)
+                this._draw();
+        },
+    });
+
     var EventRegistry = new Class({
         initialize: function() {
             this._registry = {};
@@ -105,7 +123,7 @@
             this.width = 1;
             this.height = 1;
 
-            this._exposedRegion = new Region();
+            this._exposeHandler = new ExposeHandler(this._draw.bind(this));
         },
         connect: function(server) {
             this._privateServer = server;
@@ -120,27 +138,12 @@
             this._display.selectInput({ windowId: this.windowId,
                                         events: ["Expose", "ConfigureNotify"] });
         },
-        _clipToExposedRegion: function(ctx) {
-            Util.pathFromRegion(ctx, this._exposedRegion);
-            ctx.clip();
-            ctx.beginPath();
-
-            this._exposedRegion.clear();
-        },
-        _draw: function() {
-        },
-        _expose: function(event) {
-            this._exposedRegion.union_rect(this._exposedRegion, event.x, event.y, event.width, event.height);
-
-            if (event.count == 0)
-                this._draw();
-        },
         handleEvent: function(event) {
             switch (event.type) {
             case "ConfigureNotify":
                 return this.configureNotify(event);
             case "Expose":
-                return this._expose(event);
+                return this._exposeHandler.handleExpose(event);
             }
         },
         configureNotify: function(event) {
@@ -159,6 +162,7 @@
     });
 
     exports.Util = Util;
+    exports.ExposeHandler = ExposeHandler;
     exports.EventRegistry = EventRegistry;
     exports.Window = Window;
 
