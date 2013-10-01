@@ -197,7 +197,7 @@
             region.finalize();
         },
 
-        exposeRegion: function(region) {
+        exposeRegion: function(exposedRegion) {
             var recursivelyExpose = function(serverWindow, inputRegion) {
                 if (!serverWindow.mapped)
                     return;
@@ -237,12 +237,7 @@
                 inputRegion.translate(serverWindow.x, serverWindow.y);
             }.bind(this);
 
-            // The caller owns the exposed region, so make sure
-            // none of our subtractions take effect.
-            var exposedRegion = new Region();
-            exposedRegion.copy(region);
             recursivelyExpose(this._rootWindow, exposedRegion);
-            exposedRegion.finalize();
         },
 
         // For a given window, return the region that would be
