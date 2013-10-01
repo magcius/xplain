@@ -29,7 +29,7 @@
             // Frame geometry relative to the root
             this._frameGeometry = {};
 
-            this._exposedRegion = new Region();
+            this._exposeHandler = new ExposeHandler(this._draw.bind(this));
         },
 
         _updateGeometry: function(clientGeometry) {
@@ -236,8 +236,7 @@
         },
         _draw: function() {
             this._display.drawTo(this._frameWindowId, function(ctx) {
-                Util.pathFromRegion(ctx, this._exposedRegion);
-                ctx.clip();
+                this._exposeHandler.clip(ctx);
 
                 var title = this._display.getProperty({ windowId: this._clientWindowId,
                                                         name: "WM_NAME" });
@@ -248,14 +247,9 @@
                     ctx.fillText(title, this._frameGeometry.width / 2, 21);
                 }
             }.bind(this));
-
-            this._exposedRegion.clear();
         },
         _frameExpose: function(event) {
-            this._exposedRegion.union_rect(this._exposedRegion, event.x, event.y, event.width, event.height);
-
-            if (event.count == 0)
-                this._draw();
+            this._exposeHandler.handleExpose(event);
         },
         _handleButtonEvent: function(event) {
             if (event.windowId == this._closeWindowId && event.type == "ButtonRelease")
