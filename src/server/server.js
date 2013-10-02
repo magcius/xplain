@@ -698,9 +698,17 @@
         },
         configureWindow: function(client, props) {
             var eventBase = { windowId: this.xid,
-                              x: props.x, y: props.y, width: props.width, height: props.height,
                               sibling: props.sibling, detail: props.stackMode };
             var event;
+
+            if (valueUpdated(props.x, this.x))
+                eventBase.x = props.x;
+            if (valueUpdated(props.y, this.y))
+                eventBase.y = props.y;
+            if (valueUpdated(props.width, this.width))
+                eventBase.width = props.width;
+            if (valueUpdated(props.height, this.height))
+                eventBase.height = props.height;
 
             event = Object.create(eventBase);
             event.type = "ConfigureRequest";
@@ -710,7 +718,7 @@
                 this._server.sendEvent(event);
 
                 this._wrapWindowChange(function() {
-                    this._configureWindow(props);
+                    this._configureWindow(eventBase);
                 }.bind(this));
 
                 if (this.drawTree && !this.drawTreeParent)
