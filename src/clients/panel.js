@@ -141,10 +141,10 @@
         },
         _grab: function() {
             this._display.grabPointer({ windowId: this.windowId,
-                                       ownerEvents: true,
-                                       events: [],
-                                       pointerMode: "Async",
-                                       cursor: "" });
+                                        ownerEvents: true,
+                                        events: [],
+                                        pointerMode: "Async",
+                                        cursor: "" });
         },
         _ungrab: function() {
             this._display.ungrabPointer({ windowId: this.windowId });
