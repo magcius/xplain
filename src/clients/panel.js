@@ -50,8 +50,8 @@
         configureNotify: function(event) {
             this.parent(event);
 
-            // Try and resize if the root window changes size
-            if (event.windowId === this._display.rootWindowId)
+            // Try and resize if the root window changes width
+            if (event.windowId === this._display.rootWindowId && event.width !== undefined)
                 this._syncSize();
 
             // If we've changed width, relayout.
