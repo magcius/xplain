@@ -227,12 +227,14 @@
         },
         _frameFocusIn: function(event) {
             this._display.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'yellow' });
+            this._display.invalidateWindow({ windowId: this._frameWindowId });
         },
         _frameFocusOut: function(event) {
             if (event.detail == "Inferior")
                 return;
 
             this._display.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'orange' });
+            this._display.invalidateWindow({ windowId: this._frameWindowId });
         },
         _draw: function() {
             this._display.drawTo(this._frameWindowId, function(ctx) {
