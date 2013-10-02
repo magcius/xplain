@@ -351,16 +351,6 @@
         canDraw: function() {
             return true;
         },
-        drawTo: function(func) {
-            var region = this.drawTree.calculateEffectiveRegionForWindow(this, false);
-            this._drawClippedToRegion(region, function(ctx) {
-                var pos = this._getDrawOffset();
-                ctx.translate(pos.x, pos.y);
-                func(ctx);
-            }.bind(this));
-            region.finalize();
-        },
-
         _getDrawOffset: function() {
             var x = 0, y = 0;
             var serverWindow = this;
@@ -378,6 +368,15 @@
                 ctx.beginPath();
                 func(ctx);
             }.bind(this));
+        },
+        drawTo: function(func) {
+            var region = this.drawTree.calculateEffectiveRegionForWindow(this, false);
+            this._drawClippedToRegion(region, function(ctx) {
+                var pos = this._getDrawOffset();
+                ctx.translate(pos.x, pos.y);
+                func(ctx);
+            }.bind(this));
+            region.finalize();
         },
         _drawBackground: function(region) {
             if (!this._backgroundPattern)
