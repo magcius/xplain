@@ -413,7 +413,6 @@
                 pattern = null;
             }
             this._backgroundPattern = pattern;
-            this.drawTree.exposeWindow(this, false, false);
         },
         getAttributes: function(client) {
             return {
