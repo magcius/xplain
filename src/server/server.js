@@ -470,14 +470,11 @@
 
             this.viewable = viewable;
 
-            // If the window became viewable, expose it.
-            if (this.viewable)
-                this.drawTree.exposeWindow(this, false, false);
-
             this._server.viewabilityChanged(this);
             this.children.forEach(function(child) {
                 child.recalculateViewability();
             });
+            this.drawTree.exposeWindow(this, true, false);
         },
         map: function(client) {
             if (this.mapped)
@@ -507,7 +504,6 @@
                 return false;
 
             this.mapped = false;
-            this.drawTree.exposeWindow(this, true, true);
             this._server.sendEvent({ type: "UnmapNotify",
                                      windowId: this.xid });
             this._server.syncCursorWindow();
