@@ -349,7 +349,7 @@
         },
 
         canDraw: function() {
-            return true;
+            return this.viewable;
         },
         _getDrawOffset: function() {
             var x = 0, y = 0;
