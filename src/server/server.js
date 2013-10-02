@@ -705,16 +705,16 @@
             event = Object.create(eventBase);
             event.type = "ConfigureRequest";
             if (!this._server.sendEvent(event, client)) {
+                event = Object.create(eventBase);
+                event.type = "ConfigureNotify";
+                this._server.sendEvent(event);
+
                 this._wrapWindowChange(function() {
                     this._configureWindow(props);
                 }.bind(this));
 
                 if (this.drawTree && !this.drawTreeParent)
                     this.drawTree.rootReconfigured();
-
-                event = Object.create(eventBase);
-                event.type = "ConfigureNotify";
-                this._server.sendEvent(event);
             }
         },
         getGeometry: function() {
