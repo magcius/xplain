@@ -379,14 +379,17 @@
                 func(ctx);
             }.bind(this));
         },
-        _drawBackground: function(ctx) {
+        _drawBackground: function(region) {
             if (!this._backgroundPattern)
                 return;
 
             var pos = this._getDrawOffset();
-            ctx.translate(pos.x, pos.y);
-            ctx.fillStyle = this._backgroundPattern;
-            ctx.fillRect(0, 0, this.width, this.height);
+            region.translate(pos.x, pos.y);
+            this._drawClippedToRegion(region, function(ctx) {
+                ctx.translate(pos.x, pos.y);
+                ctx.fillStyle = this._backgroundPattern;
+                ctx.fillRect(0, 0, this.width, this.height);
+            }.bind(this));
         },
         sendExpose: function(region) {
             if (region.is_empty())
@@ -398,9 +401,7 @@
                                          count: count });
             }.bind(this));
 
-            var pos = this._getDrawOffset();
-            region.translate(pos.x, pos.y);
-            this._drawClippedToRegion(region, this._drawBackground.bind(this));
+            this._drawBackground(region);
         },
         _syncBackgroundPattern: function(client) {
             var pattern;
