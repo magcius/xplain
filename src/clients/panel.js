@@ -220,11 +220,13 @@
         _onMenuClosed: function() {
             this._display.changeAttributes({ windowId: this.windowId,
                                              backgroundColor: PANEL_BACKGROUND_COLOR });
+            this._display.invalidateWindow({ windowId: this.windowId });
         },
         _clicked: function() {
             this.menu.open(this.windowId, this._onMenuClosed.bind(this));
             this._display.changeAttributes({ windowId: this.windowId,
                                              backgroundColor: "#ffffff" });
+            this._display.invalidateWindow({ windowId: this.windowId });
         },
         handleEvent: function(event) {
             switch (event.type) {
