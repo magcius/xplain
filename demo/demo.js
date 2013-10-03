@@ -33,13 +33,26 @@
 
     window.server = server;
 
+    function debouncer(callback) {
+        var timeoutId, currentEvent;
+
+        return function handler(event) {
+            if (timeoutId)
+                window.clearTimeout(timeoutId);
+            timeoutId = window.setTimeout(function timeout() {
+                callback(event);
+                timeoutId = 0;
+            }, 20);
+        };
+    }
+
     function syncSize() {
         var width = document.documentElement.clientWidth;
         var height = document.documentElement.clientHeight;
         server.resize(width, height);
     }
 
-    window.addEventListener("resize", syncSize);
+    window.addEventListener("resize", debouncer(syncSize));
     syncSize();
 
 })(window);
