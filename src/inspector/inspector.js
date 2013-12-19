@@ -114,6 +114,7 @@
             this._showing = showing;
             var color = this._showing ? '#000000' : '#ffffff';
             this._display.changeAttributes({ windowId: this.windowId, backgroundColor: color });
+            this._display.invalidateWindow({ windowId: this.windowId });
         },
         handleEvent: function(event) {
             switch (event.type) {
