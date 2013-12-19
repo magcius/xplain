@@ -30,7 +30,8 @@
 }
 
 .inspector .close-button,
-.inspector .refresh-button {
+.inspector .refresh-button,
+.inspector .choose-window-button {
 	width: 32px;
 	height: 32px;
 	background: no-repeat 50% 50%;
@@ -51,6 +52,15 @@
 
 .inspector .refresh-button:hover {
 	background-image: url(refresh-button-over.png);
+}
+
+.inspector .choose-window-button {
+	background-image: url(choose-window-button-up.png);
+}
+
+.inspector .choose-window-button:hover,
+.inspector .choose-window-button.active {
+	background-image: url(choose-window-button-over.png);
 }
 
 .inspector .window-tree,

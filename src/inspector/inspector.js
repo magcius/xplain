@@ -126,6 +126,46 @@
         },
     });
 
+    var WindowChooser = new Class({
+        initialize: function(server, highlighter) {
+            this._server = server;
+            this._highlighter = highlighter;
+
+            var connection = server.connect();
+            this._display = connection.display;
+            this._port = connection.clientPort;
+            this._port.addEventListener("message", function(messageEvent) {
+                this._handleEvent(messageEvent.data);
+            }.bind(this));
+
+            this._display.selectInput({ windowId: this._display.rootWindowId,
+                                        events: ["X-CursorWindowChanged"] });
+            this._cursorWindow = null;
+        },
+
+        grab: function() {
+            this._display.grabPointer({ windowId: this._display.rootWindowId,
+                                        ownerEvents: true,
+                                        events: ['ButtonRelease'],
+                                        pointerMode: 'Async',
+                                        cursor: 'x-cursor' });
+        },
+
+        _handleEvent: function(event) {
+            switch (event.type) {
+            case "ButtonRelease":
+                this._display.ungrabPointer();
+                this._highlighter.setWindowToHighlight(null);
+                this.onChosen(this._cursorWindow);
+                return;
+            case "X-CursorWindowChanged":
+                this._cursorWindow = event.newCursorWindow;
+                this._highlighter.setWindowToHighlight(event.newCursorWindow);
+                return;
+            }
+        },
+    });
+
     var Tooltip = new Class({
         initialize: function(target) {
             this._target = target;
@@ -472,6 +512,12 @@
             this._closeButton.addEventListener("click", this.toggle.bind(this));
             this._header.appendChild(this._closeButton);
 
+            this._chooseWindowButton = document.createElement('div');
+            this._chooseWindowButton.classList.add('choose-window-button');
+            this._chooseWindowButton.title = "Inspect Window";
+            this._chooseWindowButton.addEventListener("click", this._chooseWindow.bind(this));
+            this._header.appendChild(this._chooseWindowButton);
+
             this._refreshButton = document.createElement('div');
             this._refreshButton.classList.add('refresh-button');
             this._refreshButton.title = "Redraw X Server";
@@ -507,6 +553,16 @@
         _selectWindow: function(xid) {
             this._windowTree.selectWindow(xid);
             this._windowInspector.selectWindow(xid);
+        },
+
+        _chooseWindow: function() {
+            this._chooseWindowButton.classList.add("active");
+            var chooser = new WindowChooser(this._server, this._highlighter);
+            chooser.onChosen = function(xid) {
+                this._selectWindow(xid);
+                this._chooseWindowButton.classList.remove("active");
+            }.bind(this);
+            chooser.grab();
         },
 
         _redrawServer: function() {

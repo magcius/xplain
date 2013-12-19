@@ -12,3 +12,7 @@
 .xserver.js[data-cursor="grabbing"] {
     cursor: url(grabbing.png) 20 17, auto;
 }
+
+.xserver.js[data-cursor="x-cursor"] {
+    cursor: url(x-cursor.png) 15 15, auto;
+}
