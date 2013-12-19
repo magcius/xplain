@@ -126,6 +126,44 @@
         },
     });
 
+    var Tooltip = new Class({
+        initialize: function(target) {
+            this._target = target;
+            this._target.addEventListener("mouseover", this._onTargetMouseOver.bind(this));
+            this._target.addEventListener("mouseout", this._onTargetMouseOut.bind(this));
+            this._target.addEventListener("mousemove", this._onTargetMouseMove.bind(this));
+
+            this.elem = document.createElement("div");
+            this.elem.classList.add("tooltip");
+            this.elem.style.position = "absolute";
+            document.body.appendChild(this.elem);
+
+            this._setVisible(false);
+        },
+
+        _setVisible: function(shown) {
+            this.elem.style.display = shown ? "block" : "none";
+        },
+
+        _updateForEvent: function(e) {
+            this.elem.style.left = e.pageX + 'px';
+            this.elem.style.top = e.pageY + 'px';
+        },
+
+        _onTargetMouseOver: function(e) {
+            this._setVisible(true);
+            this._updateForEvent(e);
+        },
+
+        _onTargetMouseOut: function(e) {
+            this._setVisible(false);
+        },
+
+        _onTargetMouseMove: function(e) {
+            this._updateForEvent(e);
+        },
+    });
+
     function empty(node) {
         while (node.firstChild)
             node.removeChild(node.firstChild);
@@ -297,9 +335,40 @@
         },
 
         _createPixmapDisplay: function(xid) {
-            var pixmapDisplay = document.createElement('span');
+            var node = document.createElement('span');
+
+            var image = this._display.getPixmapImage({ pixmapId: xid });
+
+            function createCanvas() {
+                var canvas = document.createElement('canvas');
+                canvas.width = image.width;
+                canvas.height = image.height;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(image, 0, 0);
+                return canvas;
+            }
+
+            var pixmapDisplayThumb = createCanvas();
+            pixmapDisplayThumb.classList.add('pixmap-display-thumb');
+            node.appendChild(pixmapDisplayThumb);
+
+            var tooltip = new Tooltip(pixmapDisplayThumb);
+            var pixmapDisplay = createCanvas();
             pixmapDisplay.classList.add('pixmap-display');
-            return pixmapDisplay;
+            tooltip.elem.appendChild(pixmapDisplay);
+
+            var tooltipDescription = document.createElement('span');
+            tooltipDescription.textContent = image.width + " x " + image.height + ", pixmap ID " + xid;
+            tooltipDescription.classList.add('tooltip-description');
+            tooltip.elem.appendChild(tooltipDescription);
+
+            var valueItem = document.createElement('span');
+            valueItem.classList.add('value');
+            valueItem.classList.add('xid');
+            valueItem.textContent = xid;
+            node.appendChild(valueItem);
+
+            return node;
         },
 
         _syncAttributes: function() {
@@ -329,12 +398,6 @@
                 node.appendChild(nameNode);
 
                 node.appendChild(this._createPixmapDisplay(attribs.backgroundPixmap));
-
-                var valueItem = document.createElement('span');
-                valueItem.classList.add('value');
-                valueItem.classList.add('xid');
-                valueItem.textContent = attribs.backgroundPixmap;
-                node.appendChild(valueItem);
 
                 if (attribs.backgroundColor)
                     node.classList.add('overridden');

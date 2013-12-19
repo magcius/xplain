@@ -115,10 +115,32 @@
 	margin-right: 1em;
 }
 
-.inspector .window-inspector .color-display {
+.color-display,
+.pixmap-display-thumb {
 	width: 6px;
 	height: 6px;
 	border: 1px solid black;
 	display: inline-block;
 	margin: 0 6px;
+}
+
+.pixmap-display {
+	border: 1px solid black;
+}
+
+.tooltip {
+	font-size: 0;
+	background-color: beige;
+	border: 1px solid black;
+	box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+	padding: 10px;
+	transform: translate(25px, 25px);
+	text-align: center;
+}
+
+.tooltip-description {
+	font: italic 12px sans-serif;
+	display: block;
+	text-align: center;
+	color: #333333;
 }
