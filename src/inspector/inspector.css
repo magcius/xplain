@@ -29,17 +29,28 @@
 	padding-left: 1em;
 }
 
-.inspector .close-button {
+.inspector .close-button,
+.inspector .refresh-button {
 	width: 32px;
 	height: 32px;
 	background: no-repeat 50% 50%;
-	background-image: url(close-button-up.png);
-
 	float: right;
+}
+
+.inspector .close-button {
+	background-image: url(close-button-up.png);
 }
 
 .inspector .close-button:hover {
 	background-image: url(close-button-over.png);
+}
+
+.inspector .refresh-button {
+	background-image: url(refresh-button-up.png);
+}
+
+.inspector .refresh-button:hover {
+	background-image: url(refresh-button-over.png);
 }
 
 .inspector .window-tree,

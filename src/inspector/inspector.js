@@ -401,6 +401,11 @@
             this._closeButton.addEventListener("click", this.toggle.bind(this));
             this._header.appendChild(this._closeButton);
 
+            this._refreshButton = document.createElement('div');
+            this._refreshButton.classList.add('refresh-button');
+            this._refreshButton.addEventListener("click", this._redrawServer.bind(this));
+            this._header.appendChild(this._refreshButton);
+
             this._windowTree = new WindowTree(server);
             this._toplevel.appendChild(this._windowTree.elem);
 
@@ -430,6 +435,11 @@
         _selectWindow: function(xid) {
             this._windowTree.selectWindow(xid);
             this._windowInspector.selectWindow(xid);
+        },
+
+        _redrawServer: function() {
+            this._display.invalidateWindow({ windowId: this._display.rootWindowId,
+                                             includeChildren: true });
         },
     });
 
