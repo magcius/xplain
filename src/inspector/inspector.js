@@ -157,6 +157,7 @@
                 this._display.ungrabPointer();
                 this._highlighter.setWindowToHighlight(null);
                 this.onChosen(this._cursorWindow);
+                this._display.disconnect();
                 return;
             case "X-CursorWindowChanged":
                 this._cursorWindow = event.newCursorWindow;

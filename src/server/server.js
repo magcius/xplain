@@ -778,7 +778,13 @@
             this._serverClient = serverClient;
             this._server = server;
             this.rootWindowId = this._server.rootWindowId;
-        }
+        },
+
+        disconnect: function() {
+            this._server.disconnect(this._serverClient);
+            this._server = null;
+            this._serverClient = null;
+        },
     });
 
     var publicRequests = [
@@ -1810,6 +1816,11 @@
             this._clients.push(serverClient);
             return { clientPort: serverClient.clientPort,
                      display: serverClient.display };
+        },
+
+        disconnect: function(serverClient) {
+            var idx = this._clients.indexOf(serverClient);
+            this._clients.splice(idx, 1);
         },
 
         // Not a request, as it requires custom marshalling.
