@@ -399,11 +399,13 @@
 
             this._closeButton = document.createElement('div');
             this._closeButton.classList.add('close-button');
+            this._closeButton.title = "Close Inspector";
             this._closeButton.addEventListener("click", this.toggle.bind(this));
             this._header.appendChild(this._closeButton);
 
             this._refreshButton = document.createElement('div');
             this._refreshButton.classList.add('refresh-button');
+            this._refreshButton.title = "Redraw X Server";
             this._refreshButton.addEventListener("click", this._redrawServer.bind(this));
             this._header.appendChild(this._refreshButton);
 
