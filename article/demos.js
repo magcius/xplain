@@ -32,6 +32,7 @@
         var stipple = makeStipple(display);
         display.changeAttributes({ windowId: display.rootWindowId,
                                    backgroundPixmap: stipple });
+        display.invalidateWindow({ windowId: display.rootWindowId });
 
         return { display: display, server: server };
     }
