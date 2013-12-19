@@ -56,7 +56,7 @@
 .inspector .window-tree,
 .inspector .window-inspector {
 	float: left;
-	height: 100%;
+	height: 224px;
 	overflow: auto;
 	width: 50%;
 }
