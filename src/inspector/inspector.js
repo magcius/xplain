@@ -279,6 +279,23 @@
             this.elem = this._toplevel;
         },
 
+        _createColorDisplay: function(color) {
+            var node = document.createElement('span');
+
+            var colorDisplay = document.createElement('span');
+            colorDisplay.classList.add('color-display');
+            colorDisplay.style.backgroundColor = color;
+            node.appendChild(colorDisplay);
+
+            var valueItem = document.createElement('span');
+            valueItem.classList.add('value');
+            valueItem.classList.add('literal');
+            valueItem.textContent = color;
+            node.appendChild(valueItem);
+
+            return node;
+        },
+
         _createPixmapDisplay: function(xid) {
             var pixmapDisplay = document.createElement('span');
             pixmapDisplay.classList.add('pixmap-display');
@@ -298,18 +315,7 @@
                 nameNode.classList.add('name');
                 nameNode.textContent = 'background-color';
                 node.appendChild(nameNode);
-
-                var colorDisplay = document.createElement('span');
-                colorDisplay.classList.add('color-display');
-                colorDisplay.style.backgroundColor = attribs.backgroundColor;
-                node.appendChild(colorDisplay);
-
-                var valueItem = document.createElement('span');
-                valueItem.classList.add('value');
-                valueItem.classList.add('literal');
-                valueItem.textContent = attribs.backgroundColor;
-                node.appendChild(valueItem);
-
+                node.appendChild(this._createColorDisplay(attribs.backgroundColor));
                 this._attributes.appendChild(node);
             }
 
