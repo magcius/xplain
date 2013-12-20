@@ -117,6 +117,17 @@
 	color: white !important;
 }
 
+.inspector .window-inspector .inspector-list-header {
+	font: bold smaller sans-serif;
+	background: #eee;
+	padding: 0.5em;
+}
+
+.inspector .window-inspector .attribute-list,
+.inspector .window-inspector .property-list {
+	margin: 1em;
+}
+
 .inspector .window-inspector .property,
 .inspector .window-inspector .attribute {
 	font-family: monospace;

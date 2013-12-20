@@ -347,9 +347,21 @@
             this._toplevel = document.createElement('div');
             this._toplevel.classList.add('window-inspector');
 
+            var headerLabel;
+
+            headerLabel = document.createElement('div');
+            headerLabel.classList.add('inspector-list-header');
+            headerLabel.textContent = "Attributes";
+            this._toplevel.appendChild(headerLabel);
+
             this._attributes = document.createElement('div');
             this._attributes.classList.add('attribute-list');
             this._toplevel.appendChild(this._attributes);
+
+            headerLabel = document.createElement('div');
+            headerLabel.classList.add('inspector-list-header');
+            headerLabel.textContent = "Properties";
+            this._toplevel.appendChild(headerLabel);
 
             this._properties = document.createElement('div');
             this._properties.classList.add('property-list');
