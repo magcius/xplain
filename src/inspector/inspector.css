@@ -123,6 +123,50 @@
 	padding: 0.5em;
 }
 
+.inspector .window-inspector .geometry-size,
+.inspector .window-inspector .geometry-position {
+	font: bold smaller sans-serif;
+	color: #aaa;
+}
+
+.inspector .window-inspector .geometry-size span,
+.inspector .window-inspector .geometry-position span {
+	color: #000;
+}
+
+.inspector .window-inspector .geometry-box {
+	position: relative;
+	width: 150px;
+	margin: 1.5em auto;
+}
+
+.inspector .window-inspector .geometry-size {
+	border: 1px solid black;
+	box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
+	text-align: center;
+	padding: 0.5em;
+}
+
+.inspector .window-inspector .geometry-size:after {
+	content: "";
+	display: block;
+	position: absolute;
+	left: -16px;
+	top: -16px;
+	width: 16px;
+	height: 16px;
+
+	border-right: 1px dotted #333;
+	border-bottom: 1px dotted #333;
+}
+
+.inspector .window-inspector .geometry-position {
+	position: absolute;
+	left: -4px;
+	top: -2px;
+	transform: translate(-100%, -100%);
+}
+
 .inspector .window-inspector .attribute-list,
 .inspector .window-inspector .property-list {
 	margin: 1em;

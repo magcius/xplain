@@ -351,6 +351,15 @@
 
             headerLabel = document.createElement('div');
             headerLabel.classList.add('inspector-list-header');
+            headerLabel.textContent = "Geometry";
+            this._toplevel.appendChild(headerLabel);
+
+            this._geometry = document.createElement('div');
+            this._geometry.classList.add('geometry-box');
+            this._toplevel.appendChild(this._geometry);
+
+            headerLabel = document.createElement('div');
+            headerLabel.classList.add('inspector-list-header');
             headerLabel.textContent = "Attributes";
             this._toplevel.appendChild(headerLabel);
 
@@ -424,6 +433,22 @@
             return node;
         },
 
+        _syncGeometry: function() {
+            empty(this._geometry);
+
+            var geometry = this._display.getGeometry({ drawableId: this._selectedWindowId });
+
+            var geometrySize = document.createElement('div');
+            geometrySize.classList.add('geometry-size');
+            geometrySize.innerHTML = '<span>' + geometry.width + '</span>×<span>' + geometry.height + '</span>';
+            this._geometry.appendChild(geometrySize);
+
+            var geometryPos = document.createElement('div');
+            geometryPos.classList.add('geometry-position');
+            geometryPos.innerHTML = '<span>' + geometry.x + '</span>, <span>' + geometry.y + '</span>';
+            this._geometry.appendChild(geometryPos);
+        },
+
         _syncAttributes: function() {
             empty(this._attributes);
 
@@ -492,6 +517,7 @@
 
         selectWindow: function(xid) {
             this._selectedWindowId = xid;
+            this._syncGeometry();
             this._syncAttributes();
             this._syncProperties();
         },
