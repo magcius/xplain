@@ -22,9 +22,12 @@ header {
 	padding: 1em;
 }
 
-h1 {
+h1 span {
 	font-size: 48pt;
 	text-transform: uppercase;
+	background: no-repeat url(logo.png);
+	display: inline-block;
+	padding: 8px 20px 0px 20px;
 }
 
 h2 {
