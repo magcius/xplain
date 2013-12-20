@@ -32,35 +32,36 @@
 			stack, explaining all of the interconnected pieces: X11, graphics drivers,
 			DRM, and DRI, and their roles in getting pixels placed on the screen. In
 			the year since, I've answered a lot of really good questions from the
-			community which made me think and learn and grow, and I've also started
-			helping out on a port of GNOME to Wayland.
+			Linux community about my post, and I've started getting more involved
+			in Wayland development as part of our goal to
+			<a href="https://wiki.gnome.org/Initiatives/Wayland">port GNOME to Wayland</a>.
 		</p>
 		<p>
-			Compared to some of my coworkers, I'm relatively new to the Linux development
+			Compared to some of my colleagues, I'm relatively new to the Linux development
 			scene, with only five or so years of experience. I've also arrived late,
 			way after we've added lots of hacks to keep the X Window System fresh,
-			like <a href="http://www.x.org/releases/current/doc/renderproto/renderproto.txt">RENDER</a>
-			and <a href="http://www.x.org/releases/current/doc/compositeproto/compositeproto.txt">COMPOSITE</a>.
 		</p>
 		<p>
-			The X Window System has clearly outgrown its original purpose with clever hacks,
-			but that doesn't mean it's unworkable. After all, Microsoft Windows made all the
-			same design decisions in their display server technology back when they were
-			developing Windows 95, and they've either adapted or reinvented most of the same
-			clever hacks to modernize their operating system. As anybody who reads
-			<a href="http://blogs.msdn.com/b/oldnewthing/">Raymond Chen's excellent blog</a>
+			My purpose here isn't to slam the X Window System as legacy and unusable and complain
+			about it. The engineers working on Microsoft Windows made a lot of very similar design
+			decisions in their display server technology back when they were developing Windows 95,
+			and they've invented most of the same clever hacks to modernize their OS. As anybody
+			who reads <a href="http://blogs.msdn.com/b/oldnewthing/">Raymond Chen's excellent blog</a>
 			knows, Microsoft takes backwards compatibility extremely seriously, so they cannot
 			introduce any changes that would break existing applications.
 		</p>
 		<p>
-			My purpose here isn't to prove a point about how new display server technologies
-			like Wayland and Mir are the future (even though I personally believe they are).
-			Think of this article as a history lesson, starting back at the X Window System
-			in the 80s, and accelerating all the way to modern day versions of the X Window
-			System, with a modern composited window manager. For comparison purposes, I'll
-			also end with a modern display server, modelled after Wayland, to show how we
-			can unravel all of the incremental improvements we've done over the years to
-			build something fresh and exciting.
+			Instead, Think of this article as a history lesson, starting way back at the X Window
+			System in the 80s, and slowly tacking on everything we've introduced into Linux Graphics
+			to keep it fresh, like
+			<a href="http://www.x.org/releases/current/doc/renderproto/renderproto.txt">RENDER</a>,
+			<a href="http://www.x.org/releases/current/doc/compositeproto/compositeproto.txt">COMPOSITE</a>,
+			and <a href="http://dri.freedesktop.org/wiki/">DRI</a>.
+		</p>
+		<p>
+			For comparison purposes, I'll also end with a modern display server, modelled after
+			Wayland, to show how we can unravel all of the incremental improvements we've done
+			over the years to build something fresh and exciting.
 		</p>
 
 		<hr>
@@ -79,15 +80,8 @@
 			You might have noticed that when you ran your mouse over the stipple, your cursor
 			changed. That's because this isn't just any old stipple image, that stipple is
 			actually the background of a full X server session running in your browser using
-			HTML5 canvas. All of the interactive demos will use this.
-		</p>
-		<p>
-			The source code to this article and the framework I've is freely available under
-			the MIT/X11 license at <a href="http://github.com/magcius/xserver.js">my GitHub</a>
-			for inspection. Some of the more tricky code in there has been ported from the
-			<a href="http://cgit.freedesktop.org/xorg/xserver">Xorg server</a> itself, and
-			the code doing region calculations has been compiled from the
-			<a href="http://cgit.freedesktop.org/pixman/">pixman</a> graphics library.
+			HTML5 canvas. All of the interactive demos will use this framework to explain what's
+			going on under the hood.
 		</p>
 
 		<hr>
@@ -100,7 +94,7 @@
 		<p>
 			The X Window System is a networked display system. A server component, the
 			<strong>X server</strong>, is responsible for coordinating between all of the clients
-			connected, and for taking input from the mouse and keyboard, and for pushing pixels
+			connected, taking input from the mouse and keyboard, and pushing pixels
 			on the output. The most popular X server implementation is the <a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a>, developed by the X.Org Foundation. There are other X
 			server implementations, such as <a href="http://en.wikipedia.org/wiki/Xsun">Xsun</a>,
 			and this <a href="http://microxwin.com/">extremely scary X server</a> implemented
@@ -137,17 +131,55 @@
 		<div class="demo-server calculator"></div>
 		<p>
 			Here's our example app. Excuse the programmer graphics, I'm simply just trying
-			to represent <a href="http://xawm.sourceforge.net/">the state of the art at the
+			to represent <a href="http://xawm.sourceforge.net/">the state of the art of the
 			time</a>. It's a simple reverse polish notiation calculator. For those of you
 			not old enough to remember them, try pressing <strong>7</strong>, <strong>ENT</strong>,
 			<strong>6</strong>, then press <strong>*</strong>. It's not built very well,
-			and you can probably break it by making it show <strong>NaN</strong> on the
-			display by playing around with it.
+			and you can probably break it fairly easily by making it display <strong>NaN</strong>
+			by playing around with it.
 		</p>
 		<p>
 			But that's OK, because a stable calculator app isn't really the point here.
 			While not a very complex, it's good enough that it allows us to start understanding
 			the basics of the X Window System.
+		</p>
+		<p>
+			You might notice that <span class="inspector-icon">i</span> button in the top right
+			of the X server display. That opens up the inspector, which allows you to dig into
+			the demo currently on display, and play around with the window tree, and other things.
+			While the interactive demos try to follow the "show, don't tell" methodology, the
+			inspector tries to introduce "play, don't show".
+		</p>
+		<p>
+			So, if you're having difficulty understanding me, try playing around the inspector.
+			Being able to see the data right in front of you helps quite a bit.
+		</p>
+
+		<hr>
+		<h3 id="credits">Credit where credit's due <a href="#credits">&para;</a></h3>
+		<p>
+			The source code to this article and the X server demo framework is freely available
+			under the MIT/X11 license on <a href="http://github.com/magcius/xserver.js">GitHub</a>
+			for inspection.
+		</p>
+
+		<p>
+			Some of the more tricky code in there has been ported from the
+			<a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a> itself, and
+			the code doing region calculations has been compiled from the
+			<a href="http://cgit.freedesktop.org/pixman/">pixman</a> graphics library
+			using <a href="https://github.com/kripken/emscripten">emscripten</a>.
+		</p>
+
+		<p>
+			Special thanks to <a href="http://keithp.com/">Keith Peters</a>,
+			<a href="https://blogs.oracle.com/alanc/">Alan Coopersmith</a>,
+			<a href="http://people.freedesktop.org/~ajax/">Adam Jackson</a>,
+			<a href="http://who-t.blogspot.com/">Peter Hutterer</a>, and
+			<a href="http://fishsoup.net/">Owen Taylor</a> for digging into the source code,
+			protocols, mailing lists and other archives to help me figure out some of the more
+			hairy X semantics I had to write into the source code. Sorry for driving you guys
+			crazy with this project.
 		</p>
 	</article>
 

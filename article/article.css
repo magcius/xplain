@@ -71,3 +71,15 @@ p.warning {
 	padding-bottom: 1em;
 	margin: 0;
 }
+
+.inspector-icon {
+	display: inline-block;
+	width: 32px;
+	height: 32px;
+	line-height: 32px;
+	border: 1px solid black;
+	text-align: center;
+	text-indent: 0;
+	font-family: monospace;
+	font-weight: bold;
+}
