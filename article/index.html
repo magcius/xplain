@@ -42,13 +42,10 @@
 			way after we've added lots of hacks to keep the X Window System fresh,
 		</p>
 		<p>
-			My purpose here isn't to slam the X Window System as legacy and unusable and complain
-			about it. The engineers working on Microsoft Windows made a lot of very similar design
-			decisions in their display server technology back when they were developing Windows 95,
-			and they've invented most of the same clever hacks to modernize their OS. As anybody
-			who reads <a href="http://blogs.msdn.com/b/oldnewthing/">Raymond Chen's excellent blog</a>
-			knows, Microsoft takes backwards compatibility extremely seriously, so they cannot
-			introduce any changes that would break existing applications.
+			My purpose here isn't to discredit the X Window System entirely as a series of bad
+			decisions one after another, and praise Wayland as the holy grail of desktop
+			development. I do believe that the future of display server technology is with a
+			design like Wayland as opposed to something more antiquated X11.
 		</p>
 		<p>
 			Instead, Think of this article as a history lesson, starting way back at the X Window
@@ -56,12 +53,9 @@
 			to keep it fresh, like
 			<a href="http://www.x.org/releases/current/doc/renderproto/renderproto.txt">RENDER</a>,
 			<a href="http://www.x.org/releases/current/doc/compositeproto/compositeproto.txt">COMPOSITE</a>,
-			and <a href="http://dri.freedesktop.org/wiki/">DRI</a>.
-		</p>
-		<p>
-			For comparison purposes, I'll also end with a modern display server, modelled after
-			Wayland, to show how we can unravel all of the incremental improvements we've done
-			over the years to build something fresh and exciting.
+			and <a href="http://dri.freedesktop.org/wiki/">DRI</a>. I'm here to lay out the facts,
+			give some historical records, and hopefully teach you a few things about how X works
+			internally if you've ever had trouble understanding it.
 		</p>
 
 		<hr>
@@ -95,32 +89,51 @@
 			The X Window System is a networked display system. A server component, the
 			<strong>X server</strong>, is responsible for coordinating between all of the clients
 			connected, taking input from the mouse and keyboard, and pushing pixels
-			on the output. The most popular X server implementation is the <a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a>, developed by the X.Org Foundation. There are other X
-			server implementations, such as <a href="http://en.wikipedia.org/wiki/Xsun">Xsun</a>,
-			and this <a href="http://microxwin.com/">extremely scary X server</a> implemented
-			as a Linux kernel module!
+			on the output. The most popular X server implementation is the
+			<a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a>,
+			developed by the X.Org Foundation and community. There are other X server implementations:
+			you might remember that Xorg was forked from <a href="http://www.xfree86.org/">XFree86</a>
+			a decade ago, that Sun Microsystems has had several X server implementations, in both
+			<a href="http://en.wikipedia.org/wiki/Xsun">Xsun</a> and
+			<a href="http://en.wikipedia.org/wiki/Xnews_%28X11_server%29">XNeWS</a>. Today, Xorg is
+			the dominant X server implementation, getting most of the development. But back in the
+			day, multiple competing implementations existed.
 		</p>
 		<p>
 			X servers and X clients all talk a standardized network protocol to each other,
 			known as <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html">X11</a>.
-			These network protocols are implemented by libraries like
-			<a href="http://www.x.org/releases/current/doc/libX11/specs/libX11/libX11.html">Xlib</a>
-			and <a href="http://xcb.freedesktop.org/">xcb</a>.
+			This protocol is closely specified down to the wire format.
 		</p>
 		<p>
-			I need to be extremely careful during this article.
+			Applications and toolkits don't write the wire format onto the socket directly,
+			however. They often use client libraries that implement the protocols, like the
+			traditional <a href="http://www.x.org/releases/current/doc/libX11/specs/libX11/libX11.html">Xlib</a>
+			library, or the somewhat newer <a href="http://xcb.freedesktop.org/">xcb</a>.
 		</p>
 		<p>
-			When I talk about a feature	or design decision in the overall system, I will say "X Window System".
+			I'm going to try and be precise in my nomenclature in this article.
 		</p>
 		<p>
-			When I talk about features or details of the network protocol, I will say "X11 protocol".
+			When I talk about features or design decisions of the overall system, I will try to call it
+			<em>the X Window System</em>, even if it sounds a bit verbose. e.g. <q><em>The X Window
+			System</em> provides us Pixmaps, which are images in the server's memory.</q>
 		</p>
 		<p>
-			When I talk about the behavior of a client or a server, I'll say "X client" or "X server".
+			When I talk about features or details of the network protocol, I will talk about <em>the X11
+			protocol</em>. e.g. <q><em>The X11 protocol</em> provides for a generic extension mechanism,
+			which allows for a forward-compatible way to implement new features without having to redesign
+			older parts of X11</q>.
 		</p>
 		<p>
-			When I talk about an implementation detail in the Xorg X server, I'll say "Xorg X server".
+			When I talk about the behavior of a client or a server, I'll say <em>X client</em> or
+			<em>X server</em> e.g. <q>Using the MIT-SHM extension, <em>the X server</em> provides us with
+			a simple way of passing memory buffers around without networking or large copies</q>.
+		</p>
+		<p>
+			When I talk about features or the architecture in the Xorg X server implementation, I'll
+			mention it explicitly as <em>Xorg</em> or <em>the Xorg X server</em>, e.g. <q>In order to
+			make drawing calls accelerated, <em>Xorg</em> video drivers can provide hardware-accelerated
+			versions of certain drawing primitives through EXA.
 		</p>
 		<p>
 			If I ever say "such-and-such is a feature of X", it's a bug.
@@ -145,7 +158,7 @@
 		</p>
 		<p>
 			You might notice that <span class="inspector-icon">i</span> button in the top right
-			of the X server display. Click on it, and the inspector will pop open. On the left
+			of the demo above. Click on it, and the inspector will pop open. On the left
 			side is the window tree, and on the right side are the properties and attributes for
 			the selected window.
 		</p>
@@ -153,10 +166,11 @@
 			<q>Wait a minute... window <em>tree</em>?</q>
 		</p>
 		<p>
-			Yes. While you might imagine that the calculator above looks like it's only one window,
-			it's actually built of 15 distinct windows. In the X Window System, as you can possibly
-			imagine, a <em>window</em> is the basic building block of the system. At a basic level,
-			they're a rectangle that can receive input, and show output on the screen.
+			Yes. While you might imagine that the calculator above looks like it's only one window
+			to us, the users, it's actually built of 15 distinct windows. In the X Window System,
+			as you can possibly imagine, a <em>window</em> is the basic building block of the system.
+			At a very basic level, windows are simply rectangles that can receive input events like keyboard
+			and mouse events, and display pixels in their area.
 		</p>
 		<p>
 			Windows always have a parent. Windows live in the coordinate space of their parent, and
@@ -166,13 +180,11 @@
 			the <em>root window</em>, a special window owned and created by the X server.
 		</p>
 		<p>
-			This appears to make a nice, appealing recursive structure. Windows are themselves
-			tiny display servers, aggregating the contents of their children up the tree, until
-			we get to the root window, which the X server manages itself. However, there are lots
-			of complications with this approach, especially when dealing with input and drawing.
-		</p>
-		<p>
-			So... uh, let's just dive right in and see what falls out.
+			If this sounds familiar to you, you might realize that this sounds an awful lot like the DOM tree
+			in HTML. A recursive data structure where every node can take input and draw to the screen... and
+			I don't blame you. However, windows in the X Window System and HTML-style DOM nodes have a lot of
+			subtle differences that make the X Window System's abstractions a bit less useful for building
+			widgets on. And that's what we're gonna be exploring next.
 		</p>
 
 		<hr>
