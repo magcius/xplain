@@ -49,7 +49,7 @@
         elem.appendChild(inspector.elem);
 
         var display = res.display;
-        var calculator = new Calculator(server);
+        var calculator = new CalculatorSSD(server);
 
         Util.centerWindow(display, calculator.windowId);
         display.mapWindow({ windowId: calculator.windowId });

@@ -20,12 +20,12 @@
 	function wrapFunction(obj, name, meth) {
 		if (meth._origin) meth = meth._origin;
 
-		function wrapper() {
-			this.__caller__ = wrapper;
-			var result = meth.apply(this, arguments);
-			this.__caller__ = null;
-			return result;
-		}
+	    function wrapper() {
+	        this.__caller__ = wrapper;
+	        var result = meth.apply(this, arguments);
+	        this.__caller__ = null;
+	        return result;
+	    }
 
 		wrapper._origin = meth;
 		wrapper._name = name;

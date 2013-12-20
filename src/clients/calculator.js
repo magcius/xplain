@@ -3,7 +3,7 @@
 
     var PADDING = 10;
 
-    var Calculator = new Class({
+    var CalculatorBase = new Class({
         initialize: function(server) {
             var connection = server.connect();
             this._display = connection.display;
@@ -19,7 +19,7 @@
 
             this.windowId = this._createToplevel();
 
-            this._createLayout()
+            this._createLayout();
             this._syncCurrentValue();
         },
 
@@ -29,27 +29,6 @@
             ctx.strokeStyle = '#000000';
             ctx.strokeRect(0, 0, geom.width, geom.height);
             return geom;
-        },
-
-        _createToplevel: function() {
-            var display = this._display;
-
-            var toplevelWidth = 200;
-            var toplevelHeight = 220;
-
-            var toplevelId = display.createWindow({ x: 0, y: 0, width: toplevelWidth, height: toplevelHeight });
-            display.changeAttributes({ windowId: toplevelId, backgroundColor: '#ffffff' });
-            display.changeProperty({ windowId: toplevelId, name: 'WM_NAME', value: "Calculator" });
-            display.selectInput({ windowId: toplevelId, events: ['Expose'] })
-
-            function toplevelExpose(event) {
-                this._display.drawTo(event.windowId, function(ctx) {
-                    this._strokeWindow(event.windowId, ctx);
-                }.bind(this));
-            }
-            this._events.registerHandler(toplevelId, 'Expose', toplevelExpose.bind(this));
-
-            return toplevelId;
         },
 
         _createLabel: function(text, y) {
@@ -161,7 +140,7 @@
             return windowId;
         },
 
-        _createButtons: function() {
+        _createButtons: function(baseY) {
             var display = this._display;
 
             function buttonPressed(text) {
@@ -185,7 +164,6 @@
                 var gridX = (i % cols) | 0;
 
                 var baseX = PADDING;
-                var baseY = 92;
 
                 var width = (toplevelGeom.width - PADDING * 2 - (spacing * (cols - 1))) / cols;
                 var height = 25;
@@ -197,10 +175,11 @@
             }.bind(this));
         },
 
-        _createLayout: function() {
-            this._createLabel("Calculator", PADDING);
-            this._textField = this._createTextField(PADDING + 34);
-            this._createButtons();
+        _createContent: function(y) {
+            y += PADDING;
+            this._textField = this._createTextField(y);
+            y += 30 + PADDING;
+            this._createButtons(y);
         },
 
         _syncCurrentValue: function() {
@@ -241,6 +220,59 @@
         }
     });
 
-    exports.Calculator = Calculator;
+    var CalculatorSSD = new Class({
+        Extends: CalculatorBase,
+
+        _createToplevel: function() {
+            var display = this._display;
+
+            var toplevelWidth = 200;
+            var toplevelHeight = 174;
+
+            var toplevelId = display.createWindow({ x: 0, y: 0, width: toplevelWidth, height: toplevelHeight });
+            display.changeAttributes({ windowId: toplevelId, backgroundColor: '#ffffff' });
+            display.changeProperty({ windowId: toplevelId, name: 'WM_NAME', value: "Calculator" });
+            display.selectInput({ windowId: toplevelId, events: ['Expose'] })
+
+            return toplevelId;
+        },
+
+        _createLayout: function() {
+            this._createContent(0);
+        },
+    });
+
+    var CalculatorCSD = new Class({
+        Extends: CalculatorBase,
+
+        _createToplevel: function() {
+            var display = this._display;
+
+            var toplevelWidth = 200;
+            var toplevelHeight = 220;
+
+            var toplevelId = display.createWindow({ x: 0, y: 0, width: toplevelWidth, height: toplevelHeight });
+            display.changeAttributes({ windowId: toplevelId, backgroundColor: '#ffffff' });
+            display.changeProperty({ windowId: toplevelId, name: 'WM_NAME', value: "Calculator" });
+            display.selectInput({ windowId: toplevelId, events: ['Expose'] })
+
+            function toplevelExpose(event) {
+                this._display.drawTo(event.windowId, function(ctx) {
+                    this._strokeWindow(event.windowId, ctx);
+                }.bind(this));
+            }
+            this._events.registerHandler(toplevelId, 'Expose', toplevelExpose.bind(this));
+
+            return toplevelId;
+        },
+
+        _createLayout: function() {
+            this._createLabel("Calculator", PADDING);
+            this._createContent(PADDING + 30);
+        },
+    });
+
+    exports.CalculatorSSD = CalculatorSSD;
+    exports.CalculatorCSD = CalculatorCSD;
 
 })(window);
