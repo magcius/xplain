@@ -36,17 +36,35 @@
 
         _draw: function() {
             this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+            this._ctx.beginPath();
 
             if (this._highlightedWindowId != null) {
-                this._ctx.lineWidth = 2;
-                this._ctx.strokeStyle = '#ff0000';
-
                 var geom = this._display.getGeometry({ drawableId: this._highlightedWindowId });
                 var coords = this._display.translateCoordinates({ srcWindowId: this._highlightedWindowId,
                                                                   destWindowId: this._display.rootWindowId,
                                                                   x: 0, y: 0 });
+                this._ctx.fillStyle = 'rgba(100, 140, 200, 0.6)';
+                this._ctx.fillRect(coords.x, coords.y, geom.width, geom.height);
 
-                this._ctx.strokeRect(coords.x, coords.y, geom.width, geom.height);
+                var query = this._display.queryTree({ windowId: this._highlightedWindowId });
+                if (query.parent) {
+                    var parentCoords = this._display.translateCoordinates({ srcWindowId: query.parent,
+                                                                            destWindowId: this._display.rootWindowId,
+                                                                            x: 0, y: 0 });
+
+                    // Horizontal alignment anchor
+                    this._ctx.moveTo(parentCoords.x, coords.y + 0.5);
+                    this._ctx.lineTo(coords.x, coords.y + 0.5);
+
+                    // Vertical alignment anchor
+                    this._ctx.moveTo(coords.x + 0.5, parentCoords.y);
+                    this._ctx.lineTo(coords.x + 0.5, coords.y);
+
+                    this._ctx.strokeStyle = 'rgb(20, 75, 20)';
+                    this._ctx.setLineDash([1]);
+                    this._ctx.lineDashOffset = 1;
+                    this._ctx.stroke();
+                }
             }
         },
 
