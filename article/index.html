@@ -128,7 +128,7 @@
 
 		<hr>
 		<h3 id="lets-go">Let's go <a href="#lets-go">&para;</a></h3>
-		<div class="demo-server calculator"></div>
+		<div class="demo-server calculatorCSD"></div>
 		<p>
 			Here's our example app. Excuse the programmer graphics, I'm simply just trying
 			to represent <a href="http://xawm.sourceforge.net/">the state of the art of the
@@ -145,22 +145,48 @@
 		</p>
 		<p>
 			You might notice that <span class="inspector-icon">i</span> button in the top right
-			of the X server display. That opens up the inspector, which allows you to dig into
-			the demo currently on display, and play around with the window tree, and other things.
-			While the interactive demos try to follow the "show, don't tell" methodology, the
-			inspector tries to introduce "play, don't show".
+			of the X server display. Click on it, and the inspector will pop open. On the left
+			side is the window tree, and on the right side are the properties and attributes for
+			the selected window.
 		</p>
 		<p>
-			So, if you're having difficulty understanding me, try playing around the inspector.
-			Being able to see the data right in front of you helps quite a bit.
+			<q>Wait a minute... window <em>tree</em>?</q>
+		</p>
+		<p>
+			Yes. While you might imagine that the calculator above looks like it's only one window,
+			it's actually built of 15 distinct windows. In the X Window System, as you can possibly
+			imagine, a <em>window</em> is the basic building block of the system. At a basic level,
+			they're a rectangle that can receive input, and show output on the screen.
+		</p>
+		<p>
+			Windows always have a parent. Windows live in the coordinate space of their parent, and
+			the bounds of
+			<em><a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#glossary:Inferiors">inferior windows</a></em>,
+			or child windows, are clipped to their parent. By default, every window is parented to
+			the <em>root window</em>, a special window owned and created by the X server.
+		</p>
+		<p>
+			This appears to make a nice, appealing recursive structure. Windows are themselves
+			tiny display servers, aggregating the contents of their children up the tree, until
+			we get to the root window, which the X server manages itself. However, there are lots
+			of complications with this approach, especially when dealing with input and drawing.
+		</p>
+		<p>
+			So... uh, let's just dive right in and see what falls out.
+		</p>
+
+		<hr>
+		<h3 id="expose-model">Exposing historical baggage</h3>
+		<div class="demo-server expose"></div>
+		<p>
+			
 		</p>
 
 		<hr>
 		<h3 id="credits">Credit where credit's due <a href="#credits">&para;</a></h3>
 		<p>
-			The source code to this article and the X server demo framework is freely available
-			under the MIT/X11 license on <a href="http://github.com/magcius/xserver.js">GitHub</a>
-			for inspection.
+			The source code to this article and all demos is freely available under the MIT/X11
+			license on <a href="http://github.com/magcius/xserver.js">GitHub</a> for inspection.
 		</p>
 
 		<p>

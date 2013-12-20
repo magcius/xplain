@@ -14,7 +14,7 @@
         return stipple;
     }
 
-    function bootstrapServer(container) {
+    function bootstrapServer(container, addInspector) {
         var elem = document.createElement("div");
         elem.classList.add('server-slot');
         container.appendChild(elem);
@@ -34,6 +34,11 @@
                                    backgroundPixmap: stipple });
         display.invalidateWindow({ windowId: display.rootWindowId });
 
+        if (addInspector) {
+            var inspector = new Inspector(server);
+            elem.appendChild(inspector.elem);
+        }
+
         return { display: display, server: server };
     }
 
@@ -41,23 +46,25 @@
         bootstrapServer(elem);
     }
 
-    function calculator(elem) {
-        var res = bootstrapServer(elem);
+    function calculatorCSD(elem) {
+        var res = bootstrapServer(elem, true);
         var server = res.server;
-
-        var inspector = new Inspector(server);
-        elem.appendChild(inspector.elem);
-
         var display = res.display;
-        var calculator = new CalculatorSSD(server);
-
+        var calculator = new CalculatorCSD(server);
         Util.centerWindow(display, calculator.windowId);
         display.mapWindow({ windowId: calculator.windowId });
     }
 
+    function expose(elem) {
+        var res = bootstrapServer(elem, true);
+        var server = res.server;
+        var display = res.display;
+    }
+
     var demos = [
         test,
-        calculator,
+        calculatorCSD,
+        expose
     ];
 
     demos.forEach(function(func) {

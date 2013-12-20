@@ -7,6 +7,10 @@
 	height: 2em;
 }
 
-.demo-server.calculator .server-slot {
+.demo-server.calculatorCSD .server-slot {
+	height: 300px;
+}
+
+.demo-server.expose .server-slot {
 	height: 300px;
 }
