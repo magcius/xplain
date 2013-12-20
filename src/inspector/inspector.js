@@ -581,11 +581,15 @@
             this._refreshButton.addEventListener("click", this._redrawServer.bind(this));
             this._header.appendChild(this._refreshButton);
 
+            this._paneContainer = document.createElement('div');
+            this._paneContainer.classList.add('pane-container');
+            this._toplevel.appendChild(this._paneContainer);
+
             this._windowTree = new WindowTree(server);
-            this._toplevel.appendChild(this._windowTree.elem);
+            this._paneContainer.appendChild(this._windowTree.elem);
 
             this._windowInspector = new WindowInspector(server);
-            this._toplevel.appendChild(this._windowInspector.elem);
+            this._paneContainer.appendChild(this._windowInspector.elem);
 
             this._highlighter = new InspectorHighlighter(server);
 
