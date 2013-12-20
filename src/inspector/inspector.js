@@ -64,7 +64,7 @@
         },
         connect: function(server) {
             this.parent(server);
-            this._display.changeAttributes({ windowId: this.windowId, cursor: 'pointer' });
+            this._display.changeAttributes({ windowId: this.windowId, cursor: 'pointer', overrideRedirect: true });
             this._display.changeProperty({ windowId: this.windowId, name: 'DEBUG_NAME', value: "Inspector Button" });
             this._display.selectInput({ windowId: this.windowId, events: ["ButtonRelease"] });
             this._display.selectInput({ windowId: this._display.rootWindowId, events: ["ConfigureNotify"] });
