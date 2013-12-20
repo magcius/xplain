@@ -209,5 +209,10 @@
 	font: italic 12px sans-serif;
 	display: block;
 	text-align: center;
-	color: #333333;
+	color: #666;
+}
+
+.tooltip-description span {
+	font-weight: bold;
+	color: #333;
 }
