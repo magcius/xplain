@@ -1,220 +1,220 @@
 
 .inspector-highlight {
-	position: absolute;
-	top: 0;
-	left: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 .inspector {
-	background: white;
-	border: 1px dotted #aaa;
-	border-top: none;
+    background: white;
+    border: 1px dotted #aaa;
+    border-top: none;
 
-	overflow: hidden;
-	height: 0px;
-	transition: 0.25s height;
+    overflow: hidden;
+    height: 0px;
+    transition: 0.25s height;
 }
 
 .inspector.visible {
-	height: 256px;
+    height: 256px;
 }
 
 .inspector .header {
-	background: #eee;
-	border: 1px solid #999;
-	border-style: solid none;
-	font: bold smaller sans-serif;
-	height: 32px;
-	line-height: 32px;
-	padding-left: 1em;
+    background: #eee;
+    border: 1px solid #999;
+    border-style: solid none;
+    font: bold smaller sans-serif;
+    height: 32px;
+    line-height: 32px;
+    padding-left: 1em;
 }
 
 .inspector .close-button,
 .inspector .refresh-button,
 .inspector .choose-window-button {
-	width: 32px;
-	height: 32px;
-	background: no-repeat 50% 50%;
-	float: right;
+    width: 32px;
+    height: 32px;
+    background: no-repeat 50% 50%;
+    float: right;
 }
 
 .inspector .close-button {
-	background-image: url(close-button-up.png);
+    background-image: url(close-button-up.png);
 }
 
 .inspector .close-button:hover {
-	background-image: url(close-button-over.png);
+    background-image: url(close-button-over.png);
 }
 
 .inspector .refresh-button {
-	background-image: url(refresh-button-up.png);
+    background-image: url(refresh-button-up.png);
 }
 
 .inspector .refresh-button:hover {
-	background-image: url(refresh-button-over.png);
+    background-image: url(refresh-button-over.png);
 }
 
 .inspector .choose-window-button {
-	background-image: url(choose-window-button-up.png);
+    background-image: url(choose-window-button-up.png);
 }
 
 .inspector .choose-window-button:hover,
 .inspector .choose-window-button.active {
-	background-image: url(choose-window-button-over.png);
+    background-image: url(choose-window-button-over.png);
 }
 
 .inspector .pane-container {
-	height: 224px;
-	display: flex;
+    height: 224px;
+    display: flex;
 }
 
 .inspector .pane-container > div {
-	overflow: auto;
+    overflow: auto;
     flex: 1;
 }
 
 .inspector .window-tree .window .children {
-	padding-left: 1em;
+    padding-left: 1em;
 }
 
 .inspector .window-tree .window .title {
-	font-family: monospace;
-	padding-left: 1em;
-	border-left: 1px dotted #eee;
-	cursor: default;
+    font-family: monospace;
+    padding-left: 1em;
+    border-left: 1px dotted #eee;
+    cursor: default;
 }
 
 .inspector .window-tree .window .title .debug-name {
-	color: #994499;
+    color: #994499;
 }
 
 .inspector .window-tree .window .title .xid {
-	color: #449944;
-	padding-left: 1em;
-	font-style: italic;
+    color: #449944;
+    padding-left: 1em;
+    font-style: italic;
 }
 
 .inspector .window-tree .window .cursor-window-emblem {
-	display: none;
+    display: none;
 }
 
 .inspector .window-tree .window.cursor-window > .title .cursor-window-emblem {
-	display: inline-block;
-	width: 6px;
-	height: 6px;
-	border-radius: 3px;
-	background: red;
-	margin: 0 6px;
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    background: red;
+    margin: 0 6px;
 }
 
 .inspector .window-tree .window .title:hover {
-	background: #eeeeff;
+    background: #eeeeff;
 }
 
 .inspector .window-tree .window.selected > .title {
-	background-color: #0088ff;
+    background-color: #0088ff;
 }
 
 .inspector .window-tree .window.selected > .title * {
-	color: white !important;
+    color: white !important;
 }
 
 .inspector .window-inspector .inspector-list-header {
-	font: bold smaller sans-serif;
-	background: #eee;
-	padding: 0.5em;
+    font: bold smaller sans-serif;
+    background: #eee;
+    padding: 0.5em;
 }
 
 .inspector .window-inspector .geometry-size,
 .inspector .window-inspector .geometry-position {
-	font: bold smaller sans-serif;
-	color: #aaa;
+    font: bold smaller sans-serif;
+    color: #aaa;
 }
 
 .inspector .window-inspector .geometry-size span,
 .inspector .window-inspector .geometry-position span {
-	color: #000;
+    color: #000;
 }
 
 .inspector .window-inspector .geometry-box {
-	position: relative;
-	width: 150px;
-	margin: 1.5em auto;
+    position: relative;
+    width: 150px;
+    margin: 1.5em auto;
 }
 
 .inspector .window-inspector .geometry-size {
-	border: 1px solid black;
-	box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
-	text-align: center;
-	padding: 0.5em;
+    border: 1px solid black;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
+    text-align: center;
+    padding: 0.5em;
 }
 
 .inspector .window-inspector .geometry-size:after {
-	content: "";
-	display: block;
-	position: absolute;
-	left: -16px;
-	top: -16px;
-	width: 16px;
-	height: 16px;
+    content: "";
+    display: block;
+    position: absolute;
+    left: -16px;
+    top: -16px;
+    width: 16px;
+    height: 16px;
 
-	border-right: 1px dotted #333;
-	border-bottom: 1px dotted #333;
+    border-right: 1px dotted #333;
+    border-bottom: 1px dotted #333;
 }
 
 .inspector .window-inspector .geometry-position {
-	position: absolute;
-	left: -4px;
-	top: -2px;
-	transform: translate(-100%, -100%);
+    position: absolute;
+    left: -4px;
+    top: -2px;
+    transform: translate(-100%, -100%);
 }
 
 .inspector .window-inspector .attribute-list,
 .inspector .window-inspector .property-list {
-	margin: 1em;
+    margin: 1em;
 }
 
 .inspector .window-inspector .property,
 .inspector .window-inspector .attribute {
-	font-family: monospace;
+    font-family: monospace;
 }
 
 .inspector .window-inspector .name:after {
-	content: ':';
-	margin-right: 1em;
+    content: ':';
+    margin-right: 1em;
 }
 
 .color-display,
 .pixmap-display-thumb {
-	width: 6px;
-	height: 6px;
-	border: 1px solid black;
-	display: inline-block;
-	margin: 0 6px;
+    width: 6px;
+    height: 6px;
+    border: 1px solid black;
+    display: inline-block;
+    margin: 0 6px;
 }
 
 .pixmap-display {
-	border: 1px solid black;
+    border: 1px solid black;
 }
 
 .tooltip {
-	font-size: 0;
-	background-color: beige;
-	border: 1px solid black;
-	box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
-	padding: 10px;
-	transform: translate(25px, 25px);
-	text-align: center;
+    font-size: 0;
+    background-color: beige;
+    border: 1px solid black;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    transform: translate(25px, 25px);
+    text-align: center;
 }
 
 .tooltip-description {
-	font: italic 12px sans-serif;
-	display: block;
-	text-align: center;
-	color: #666;
+    font: italic 12px sans-serif;
+    display: block;
+    text-align: center;
+    color: #666;
 }
 
 .tooltip-description span {
-	font-weight: bold;
-	color: #333;
+    font-weight: bold;
+    color: #333;
 }
