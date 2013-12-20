@@ -124,10 +124,20 @@
     color: white !important;
 }
 
-.inspector .window-inspector .inspector-list-header {
+.inspector .window-inspector-header {
     font: bold smaller sans-serif;
     background: #eee;
     padding: 0.5em;
+}
+
+.inspector .window-inspector .no-window-selected {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background: #eee;
+    color: #000;
+    font: bold smaller sans-serif;
 }
 
 .inspector .window-inspector .geometry-size,

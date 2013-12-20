@@ -352,6 +352,26 @@
         },
     });
 
+    var HeaderBox = new Class({
+        initialize: function(title) {
+            this._toplevel = document.createElement('div');
+
+            this._header = document.createElement('div');
+            this._header.classList.add('window-inspector-header');
+            this._header.textContent = title;
+            this._toplevel.appendChild(this._header);
+
+            this.content = document.createElement('div');
+            this._toplevel.appendChild(this.content);
+
+            this.elem = this._toplevel;
+        },
+
+        setVisible: function(visible) {
+            this._toplevel.style.display = visible ? 'block' : 'none';
+        },
+    });
+
     var WindowInspector = new Class({
         initialize: function(server) {
             this._server = server;
@@ -365,36 +385,26 @@
             this._toplevel = document.createElement('div');
             this._toplevel.classList.add('window-inspector');
 
-            var headerLabel;
+            this._geometry = new HeaderBox("Geometry");
+            this._geometry.content.classList.add('geometry-box');
+            this._toplevel.appendChild(this._geometry.elem);
 
-            headerLabel = document.createElement('div');
-            headerLabel.classList.add('inspector-list-header');
-            headerLabel.textContent = "Geometry";
-            this._toplevel.appendChild(headerLabel);
+            this._attributes = new HeaderBox("Attributes");
+            this._attributes.content.classList.add('attribute-list');
+            this._toplevel.appendChild(this._attributes.elem);
 
-            this._geometry = document.createElement('div');
-            this._geometry.classList.add('geometry-box');
-            this._toplevel.appendChild(this._geometry);
+            this._properties = new HeaderBox("Properties");
+            this._properties.content.classList.add('property-list');
+            this._toplevel.appendChild(this._properties.elem);
 
-            headerLabel = document.createElement('div');
-            headerLabel.classList.add('inspector-list-header');
-            headerLabel.textContent = "Attributes";
-            this._toplevel.appendChild(headerLabel);
-
-            this._attributes = document.createElement('div');
-            this._attributes.classList.add('attribute-list');
-            this._toplevel.appendChild(this._attributes);
-
-            headerLabel = document.createElement('div');
-            headerLabel.classList.add('inspector-list-header');
-            headerLabel.textContent = "Properties";
-            this._toplevel.appendChild(headerLabel);
-
-            this._properties = document.createElement('div');
-            this._properties.classList.add('property-list');
-            this._toplevel.appendChild(this._properties);
+            this._noWindowSelected = document.createElement('div');
+            this._noWindowSelected.classList.add('no-window-selected');
+            this._noWindowSelected.textContent = "No window selected";
+            this._toplevel.appendChild(this._noWindowSelected);
 
             this.elem = this._toplevel;
+
+            this._sync();
         },
 
         _createColorDisplay: function(color) {
@@ -452,24 +462,22 @@
         },
 
         _syncGeometry: function() {
-            empty(this._geometry);
-
+            empty(this._geometry.content);
             var geometry = this._display.getGeometry({ drawableId: this._selectedWindowId });
 
             var geometrySize = document.createElement('div');
             geometrySize.classList.add('geometry-size');
             geometrySize.innerHTML = '<span>' + geometry.width + '</span>×<span>' + geometry.height + '</span>';
-            this._geometry.appendChild(geometrySize);
+            this._geometry.content.appendChild(geometrySize);
 
             var geometryPos = document.createElement('div');
             geometryPos.classList.add('geometry-position');
             geometryPos.innerHTML = '<span>' + geometry.x + '</span>, <span>' + geometry.y + '</span>';
-            this._geometry.appendChild(geometryPos);
+            this._geometry.content.appendChild(geometryPos);
         },
 
         _syncAttributes: function() {
-            empty(this._attributes);
-
+            empty(this._attributes.content);
             var attribs = this._display.getAttributes({ windowId: this._selectedWindowId });
 
             if (attribs.backgroundColor) {
@@ -481,7 +489,7 @@
                 nameNode.textContent = 'background-color';
                 node.appendChild(nameNode);
                 node.appendChild(this._createColorDisplay(attribs.backgroundColor));
-                this._attributes.appendChild(node);
+                this._attributes.content.appendChild(node);
             }
 
             if (attribs.backgroundPixmap) {
@@ -498,12 +506,12 @@
                 if (attribs.backgroundColor)
                     node.classList.add('overridden');
 
-                this._attributes.appendChild(node);
+                this._attributes.content.appendChild(node);
             }
         },
 
         _syncProperties: function() {
-            empty(this._properties);
+            empty(this._properties.content);
 
             var makeNodeForProperty = function(name, value) {
                 var node = document.createElement('div');
@@ -522,22 +530,31 @@
                 return node;
             };
 
-            if (!this._selectedWindowId)
-                return;
-
             var props = this._display.listProperties({ windowId: this._selectedWindowId });
             props.forEach(function(name) {
                 var value = this._display.getProperty({ windowId: this._selectedWindowId, name: name });
                 var node = makeNodeForProperty(name, value);
-                this._properties.appendChild(node);
+                this._properties.content.appendChild(node);
             }.bind(this));
+        },
+
+        _sync: function() {
+            var hasWindow = !!this._selectedWindowId;
+            this._geometry.setVisible(hasWindow);
+            this._attributes.setVisible(hasWindow);
+            this._properties.setVisible(hasWindow);
+            this._noWindowSelected.style.display = (!hasWindow) ? 'flex' : 'none';
+
+            if (hasWindow) {
+                this._syncGeometry();
+                this._syncAttributes();
+                this._syncProperties();
+            }
         },
 
         selectWindow: function(xid) {
             this._selectedWindowId = xid;
-            this._syncGeometry();
-            this._syncAttributes();
-            this._syncProperties();
+            this._sync();
         },
     });
 
