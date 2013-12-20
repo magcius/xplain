@@ -36,7 +36,7 @@
 
         if (addInspector) {
             var inspector = new Inspector(server);
-            elem.appendChild(inspector.elem);
+            container.appendChild(inspector.elem);
         }
 
         return { display: display, server: server };
