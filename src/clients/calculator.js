@@ -1,4 +1,5 @@
 (function(exports) {
+    "use strict";
 
     var PADDING = 10;
 
