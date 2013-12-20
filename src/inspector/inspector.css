@@ -71,6 +71,11 @@
 .inspector .pane-container > div {
     overflow: auto;
     flex: 1;
+    border-right: 1px dotted #aaa;
+}
+
+.inspector .pane-container > div:last-child {
+    border-right: none;
 }
 
 .inspector .window-tree .window .children {
