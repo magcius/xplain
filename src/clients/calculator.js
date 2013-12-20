@@ -1,43 +1,64 @@
 (function(exports) {
 
-    function Calculator(server) {
-        var connection = server.connect();
-        var display = connection.display;
-        var events = new EventRegistry();
-        var port = connection.clientPort;
-        port.addEventListener("message", function(messageEvent) {
-            events.handleEvent(messageEvent.data);
-        });
+    var PADDING = 10;
 
-        var toplevelWidth = 200;
-        var toplevelHeight = 220;
-        var toplevelId = display.createWindow({ x: 0, y: 0, width: toplevelWidth, height: toplevelHeight });
-        display.changeAttributes({ windowId: toplevelId, backgroundColor: '#ffffff' });
-        display.changeProperty({ windowId: toplevelId, name: 'WM_NAME', value: "Calculator" });
-        display.selectInput({ windowId: toplevelId, events: ['Expose'] })
+    var Calculator = new Class({
+        initialize: function(server) {
+            var connection = server.connect();
+            this._display = connection.display;
+            this._events = new EventRegistry();
+            var port = connection.clientPort;
+            port.addEventListener("message", function(messageEvent) {
+                this._events.handleEvent(messageEvent.data);
+            }.bind(this));
 
-        function strokeWindow(windowId, ctx) {
-            var geom = display.getGeometry({ drawableId: windowId });
+            this._stack = [];
+            this._currentValue = "0";
+            this._reset = true;
+
+            this.windowId = this._createToplevel();
+
+            this._createLayout()
+            this._syncCurrentValue();
+        },
+
+        _strokeWindow: function (windowId, ctx) {
+            var geom = this._display.getGeometry({ drawableId: windowId });
             ctx.lineWidth = 2;
             ctx.strokeStyle = '#000000';
             ctx.strokeRect(0, 0, geom.width, geom.height);
             return geom;
-        }
+        },
 
-        function toplevelExpose(event) {
-            display.drawTo(event.windowId, function(ctx) {
-                strokeWindow(event.windowId, ctx);
-            });
-        }
-        events.registerHandler(toplevelId, 'Expose', toplevelExpose);
+        _createToplevel: function() {
+            var display = this._display;
 
-        var padding = 10;
+            var toplevelWidth = 200;
+            var toplevelHeight = 220;
 
-        function createLabel(text, y) {
-            var windowId = display.createWindow({ x: padding, y: y, width: toplevelWidth - padding * 2, height: 30 });
+            var toplevelId = display.createWindow({ x: 0, y: 0, width: toplevelWidth, height: toplevelHeight });
+            display.changeAttributes({ windowId: toplevelId, backgroundColor: '#ffffff' });
+            display.changeProperty({ windowId: toplevelId, name: 'WM_NAME', value: "Calculator" });
+            display.selectInput({ windowId: toplevelId, events: ['Expose'] })
+
+            function toplevelExpose(event) {
+                this._display.drawTo(event.windowId, function(ctx) {
+                    this._strokeWindow(event.windowId, ctx);
+                }.bind(this));
+            }
+            this._events.registerHandler(toplevelId, 'Expose', toplevelExpose.bind(this));
+
+            return toplevelId;
+        },
+
+        _createLabel: function(text, y) {
+            var display = this._display;
+
+            var toplevelGeom = display.getGeometry({ drawableId: this.windowId });
+            var windowId = display.createWindow({ x: PADDING, y: y, width: toplevelGeom.width - PADDING * 2, height: 30 });
             display.changeAttributes({ windowId: windowId, backgroundColor: '#ffffff' });
             display.changeProperty({ windowId: windowId, name: 'DEBUG_NAME', value: "Label \"" + text + "\"" });
-            display.reparentWindow({ windowId: windowId, newParentId: toplevelId });
+            display.reparentWindow({ windowId: windowId, newParentId: this.windowId });
             display.mapWindow({ windowId: windowId });
             display.selectInput({ windowId: windowId, events: ['Expose'] })
 
@@ -50,86 +71,46 @@
                     ctx.fillText(text, 0, 0);
                 });
             }
-            events.registerHandler(windowId, 'Expose', labelExpose);
+            this._events.registerHandler(windowId, 'Expose', labelExpose);
             return windowId;
-        }
+        },
 
-        createLabel("Calculator", padding);
+        _createTextField: function(y) {
+            var display = this._display;
 
-        function createTextField(y) {
-            var windowId = display.createWindow({ x: padding, y: y, width: toplevelWidth - padding * 2, height: 30 });
+            var toplevelGeom = display.getGeometry({ drawableId: this.windowId });
+            var windowId = display.createWindow({ x: PADDING, y: y, width: toplevelGeom.width - PADDING * 2, height: 30 });
             display.changeAttributes({ windowId: windowId, backgroundColor: '#ffffff' });
             display.changeProperty({ windowId: windowId, name: 'DEBUG_NAME', value: 'Text Field' });
-            display.reparentWindow({ windowId: windowId, newParentId: toplevelId });
+            display.reparentWindow({ windowId: windowId, newParentId: this.windowId });
             display.selectInput({ windowId: windowId, events: ['Expose'] })
             display.mapWindow({ windowId: windowId });
 
             var text = "";
             function textFieldExpose(event) {
                 display.drawTo(event.windowId, function(ctx) {
-                    var geom = strokeWindow(event.windowId, ctx);
+                    var geom = this._strokeWindow(event.windowId, ctx);
                     ctx.font = 'bolder 16pt monospace';
                     ctx.textAlign = 'right';
                     ctx.textBaseline = 'top';
                     ctx.fillStyle = '#000000';
                     ctx.fillText(text, geom.width - 4, 6);
-                });
+                }.bind(this));
             }
             function setText(value) {
                 text = value;
                 display.invalidateWindow({ windowId: windowId });
             }
 
-            events.registerHandler(windowId, 'Expose', textFieldExpose);
+            this._events.registerHandler(windowId, 'Expose', textFieldExpose.bind(this));
             return { windowId: windowId, setText: setText };
-        }
+        },
 
-        var textField = createTextField(padding + 34);
+        _createButton: function(x, y, width, height, text, callback) {
+            var display = this._display;
 
-        var stack = [];
-        var currentValue = "0";
-        var reset = true;
-        function syncCurrentValue() {
-            textField.setText(currentValue);
-        }
-        function append(c) {
-            if (c == '.') {
-                if (currentValue.indexOf('.') >= 0)
-                    return;
-                currentValue += '.';
-                syncCurrentValue();
-            } else {
-                if (reset)
-                    currentValue = c;
-                else
-                    currentValue += c;
-                reset = false;
-                syncCurrentValue();
-            }
-        }
-        function enter() {
-            reset = true;
-            stack.push(parseFloat(currentValue));
-        }
-        function operator(op) {
-            if (!reset)
-                enter();
-            var v1 = stack.pop();
-            var v2 = stack.pop();
-
-            switch (op) {
-                case '+': currentValue = (v2 + v1).toString(); break;
-                case '-': currentValue = (v2 - v1).toString(); break;
-                case '*': currentValue = (v2 * v1).toString(); break;
-                case '/': currentValue = (v2 / v1).toString(); break;
-            }
-            syncCurrentValue();
-        }
-        syncCurrentValue();
-
-        function createButton(x, y, width, height, text, callback) {
             var windowId = display.createWindow({ x: x, y: y, width: width, height: height });
-            display.reparentWindow({ windowId: windowId, newParentId: toplevelId });
+            display.reparentWindow({ windowId: windowId, newParentId: this.windowId });
             display.changeAttributes({ windowId: windowId, cursor: 'pointer' });
             display.mapWindow({ windowId: windowId });
             display.changeProperty({ windowId: windowId, name: 'DEBUG_NAME', value: "Button \"" + text + "\"" });
@@ -143,13 +124,13 @@
 
             function buttonExpose(event) {
                 display.drawTo(windowId, function(ctx) {
-                    var geom = strokeWindow(windowId, ctx);
+                    var geom = this._strokeWindow(windowId, ctx);
                     ctx.font = '12pt monospace';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'top';
                     ctx.fillStyle = pressed ? '#ffffff' : '#000000';
                     ctx.fillText(text, geom.width / 2, 4);
-                });
+                }.bind(this));
             }
             function buttonEnter(event) {
                 entered = true;
@@ -171,46 +152,93 @@
 
             syncBackground();
 
-            events.registerHandler(windowId, 'Expose', buttonExpose);
-            events.registerHandler(windowId, 'Enter', buttonEnter);
-            events.registerHandler(windowId, 'Leave', buttonLeave);
-            events.registerHandler(windowId, 'ButtonPress', buttonPress);
-            events.registerHandler(windowId, 'ButtonRelease', buttonRelease);
+            this._events.registerHandler(windowId, 'Expose', buttonExpose.bind(this));
+            this._events.registerHandler(windowId, 'Enter', buttonEnter.bind(this));
+            this._events.registerHandler(windowId, 'Leave', buttonLeave.bind(this));
+            this._events.registerHandler(windowId, 'ButtonPress', buttonPress.bind(this));
+            this._events.registerHandler(windowId, 'ButtonRelease', buttonRelease.bind(this));
             return windowId;
+        },
+
+        _createButtons: function() {
+            var display = this._display;
+
+            function buttonPressed(text) {
+                if ('0123456789.'.indexOf(text) >= 0)
+                    this._append(text);
+                else if ('+-*/'.indexOf(text) >= 0)
+                    this._operator(text);
+                else if (text == 'ENT')
+                    this._enter();
+            }
+
+            var toplevelGeom = display.getGeometry({ drawableId: this.windowId });
+
+            ['7',  '8',  '9',  '*',
+             '4',  '5',  '6',  '/',
+             '1',  '2',  '3',  '+',
+             '0',  '.', 'ENT', '-'].forEach(function(text, i) {
+                var cols = 4;
+                var spacing = 5;
+                var gridY = (i / cols) | 0;
+                var gridX = (i % cols) | 0;
+
+                var baseX = PADDING;
+                var baseY = 92;
+
+                var width = (toplevelGeom.width - PADDING * 2 - (spacing * (cols - 1))) / cols;
+                var height = 25;
+
+                var x = baseX + gridX * (width + spacing);
+                var y = baseY + gridY * (height + spacing);
+
+                this._createButton(x, y, width, height, text, buttonPressed.bind(this, text));
+            }.bind(this));
+        },
+
+        _createLayout: function() {
+            this._createLabel("Calculator", PADDING);
+            this._textField = this._createTextField(PADDING + 34);
+            this._createButtons();
+        },
+
+        _syncCurrentValue: function() {
+            this._textField.setText(this._currentValue);
+        },
+        _append: function(c) {
+            if (c == '.') {
+                if (this._currentValue.indexOf('.') >= 0)
+                    return;
+                this._currentValue += '.';
+                this._syncCurrentValue();
+            } else {
+                if (this._reset)
+                    this._currentValue = c;
+                else
+                    this._currentValue += c;
+                this._reset = false;
+                this._syncCurrentValue();
+            }
+        },
+        _enter: function() {
+            this._reset = true;
+            this._stack.push(parseFloat(this._currentValue));
+        },
+        _operator: function(op) {
+            if (!this._reset)
+                this._enter();
+            var v1 = this._stack.pop();
+            var v2 = this._stack.pop();
+
+            switch (op) {
+                case '+': this._currentValue = (v2 + v1).toString(); break;
+                case '-': this._currentValue = (v2 - v1).toString(); break;
+                case '*': this._currentValue = (v2 * v1).toString(); break;
+                case '/': this._currentValue = (v2 / v1).toString(); break;
+            }
+            this._syncCurrentValue();
         }
-
-        function buttonPressed(text) {
-            if ('0123456789.'.indexOf(text) >= 0)
-                append(text);
-            else if ('+-*/'.indexOf(text) >= 0)
-                operator(text);
-            else if (text == 'ENT')
-                enter();
-        }
-
-        ['7',  '8',  '9',  '*',
-         '4',  '5',  '6',  '/',
-         '1',  '2',  '3',  '+',
-         '0',  '.', 'ENT', '-'].forEach(function(text, i) {
-            var cols = 4;
-            var spacing = 5;
-            var gridY = (i / cols) | 0;
-            var gridX = (i % cols) | 0;
-
-            var baseX = padding;
-            var baseY = 92;
-
-            var width = (toplevelWidth - padding * 2 - (spacing * (cols - 1))) / cols;
-            var height = 25;
-
-            var x = baseX + gridX * (width + spacing);
-            var y = baseY + gridY * (height + spacing);
-
-            createButton(x, y, width, height, text, buttonPressed.bind(null, text));
-        });
-
-        return toplevelId;
-    }
+    });
 
     exports.Calculator = Calculator;
 

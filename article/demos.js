@@ -49,10 +49,10 @@
         elem.appendChild(inspector.elem);
 
         var display = res.display;
-        var calculatorWindowId = Calculator(res.server);
+        var calculator = new Calculator(server);
 
-        Util.centerWindow(display, calculatorWindowId);
-        display.mapWindow({ windowId: calculatorWindowId });
+        Util.centerWindow(display, calculator.windowId);
+        display.mapWindow({ windowId: calculator.windowId });
     }
 
     var demos = [
