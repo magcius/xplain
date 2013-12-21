@@ -14,7 +14,7 @@
         return stipple;
     }
 
-    function bootstrapServer(container, addInspector) {
+    function bootstrapServer(container) {
         var elem = document.createElement("div");
         elem.classList.add('server-slot');
         container.appendChild(elem);
@@ -34,6 +34,7 @@
                                    backgroundPixmap: stipple });
         display.invalidateWindow({ windowId: display.rootWindowId });
 
+        var addInspector = container.classList.contains("demo-inspectable");
         if (addInspector) {
             var inspector = new Inspector(server);
             container.appendChild(inspector.elem);
@@ -47,7 +48,7 @@
     }
 
     function calculatorCSD(elem) {
-        var res = bootstrapServer(elem, true);
+        var res = bootstrapServer(elem);
         var server = res.server;
         var display = res.display;
         var calculator = new CalculatorCSD(server);
@@ -56,7 +57,7 @@
     }
 
     function expose(elem) {
-        var res = bootstrapServer(elem, true);
+        var res = bootstrapServer(elem);
         var server = res.server;
         var display = res.display;
         var kitten = new ExposeDemo(server, "kitten1.png");
