@@ -7,60 +7,58 @@
     // Workaround for browser bugs in drawImage:
     //   https://bugzilla.mozilla.org/show_bug.cgi?id=842110
     //   https://code.google.com/p/chromium/issues/detail?id=176714
-    function copyArea(src, dest, srcX, srcY, destX, destY, w, h) {
-        if (srcX + w < 0 || srcX > src.canvas.width)
+    function copyArea(ctx, srcX, srcY, destX, destY, w, h) {
+        if (srcX + w < 0 || srcX > ctx.canvas.width)
             return;
 
-        if (destX + w < 0 || destX > dest.canvas.width)
+        if (destX + w < 0 || destX > ctx.canvas.width)
             return;
 
-        if (srcY + h < 0 || srcY > src.canvas.height)
+        if (srcY + h < 0 || srcY > ctx.canvas.height)
             return;
 
-        if (destY + h < 0 || destY > src.canvas.height)
+        if (destY + h < 0 || destY > ctx.canvas.height)
             return;
 
-        if (src == dest) {
-            if (destX < 0) {
-                w += destX;
-                srcX -= destX;
-                destX = 0;
-            }
-
-            if (srcX < 0) {
-                destX -= srcX;
-                w += srcX;
-                srcX = 0;
-            }
-
-            if (destY < 0) {
-                h += destY;
-                srcY -= destY;
-                destY = 0;
-            }
-
-            if (srcY < 0) {
-                destY -= srcY;
-                h += srcY;
-                srcY = 0;
-            }
-
-            var mX = Math.max(srcX, destX);
-            if (mX >= dest.canvas.width)
-                return;
-
-            if (mX + w > dest.canvas.width)
-                w = dest.canvas.width - mX;
-
-            var mY = Math.max(srcY, destY);
-            if (mY >= dest.canvas.height)
-                return;
-
-            if (mY + h > dest.canvas.height)
-                h = dest.canvas.height - mY;
+        if (destX < 0) {
+            w += destX;
+            srcX -= destX;
+            destX = 0;
         }
 
-        dest.drawImage(src.canvas, srcX, srcY, w, h, destX, destY, w, h);
+        if (srcX < 0) {
+            destX -= srcX;
+            w += srcX;
+            srcX = 0;
+        }
+
+        if (destY < 0) {
+            h += destY;
+            srcY -= destY;
+            destY = 0;
+        }
+
+        if (srcY < 0) {
+            destY -= srcY;
+            h += srcY;
+            srcY = 0;
+        }
+
+        var mX = Math.max(srcX, destX);
+        if (mX >= ctx.canvas.width)
+            return;
+
+        if (mX + w > ctx.canvas.width)
+            w = ctx.canvas.width - mX;
+
+        var mY = Math.max(srcY, destY);
+        if (mY >= ctx.canvas.height)
+            return;
+
+        if (mY + h > ctx.canvas.height)
+            h = ctx.canvas.height - mY;
+
+        ctx.drawImage(ctx.canvas, srcX, srcY, w, h, destX, destY, w, h);
     }
 
     function isEventSubstructureRedirect(event) {
@@ -649,7 +647,7 @@
 
                 tmp.intersect(newRegion, oldRegion);
                 this._drawClippedToRegion(tmp, function(ctx) {
-                    copyArea(ctx, ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, oldW, oldH);
+                    copyArea(ctx, oldPos.x, oldPos.y, newPos.x, newPos.y, oldW, oldH);
                 });
             }
 
