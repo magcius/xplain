@@ -53,123 +53,112 @@
 	<article>
 		<noscript>
 		<p class="warning">
-			This article relies a lot of interactive demos that use JavaScript to show
-			how the X Window System works. The article unfortunately won't work properly
-			without these interactive demos, so if you feel like you're missing out,
-			try enabling JavaScript?
+			This article relies a lot of interactive demos that use JavaScript to show how the X Window System works.
+			The article unfortunately won't work properly without these interactive demos, so if you feel like you're
+			missing out, try enabling JavaScript?
 		</p>
 		</noscript>
 
 		<hr>
 		<h3 id="introduction">Introduction <a href="#introduction">&para;</a></h3>
 		<p>
-			Last year, I wrote <a href="http://blog.mecheye.net/2012/06/the-linux-graphics-stack/">
-			an article</a> describing the free and open-source graphics
-			stack, explaining all of the interconnected pieces: X11, graphics drivers,
-			DRM, and DRI, and their roles in getting pixels placed on the screen. In
-			the year since, I've answered a lot of really good questions from the
-			Linux community about my post, and I've started getting more involved
-			in Wayland development as part of our goal to
-			<a href="https://wiki.gnome.org/Initiatives/Wayland">port GNOME to Wayland</a>.
+			Last year, I wrote <a href="http://blog.mecheye.net/2012/06/the-linux-graphics-stack/"> an article</a>
+			describing the free and open-source graphics stack, explaining all of the interconnected pieces: X11,
+			graphics drivers, DRM, and DRI, and their roles in getting pixels placed on the screen. In the year since,
+			I've answered a lot of really good questions from the Linux community about my post, and I've started
+			getting more involved in Wayland development as part of our goal to <a
+			href="https://wiki.gnome.org/Initiatives/Wayland">port GNOME to Wayland</a>.
 		</p>
 		<p>
-			Compared to some of my colleagues, I'm relatively new to the Linux development
-			scene, with only five or so years of experience. I've also arrived late,
-			way after we've added lots of hacks to keep the X Window System fresh,
+			Compared to some of my colleagues, I'm relatively new to the Linux development scene, with only five or so
+			years of experience. I've also arrived late, way after we've added lots of hacks to keep the X Window
+			System fresh.
 		</p>
 		<p>
-			My purpose here isn't to discredit the X Window System entirely as a series of bad
-			decisions one after another, and praise Wayland as the holy grail of desktop
-			development. I do believe that the future of display server technology is with a
-			design like Wayland as opposed to something more antiquated X11.
+			My purpose here isn't to discredit the X Window System entirely as a series of bad decisions one after
+			another, and praise Wayland as the holy grail of desktop development. I do believe that the future of
+			display server technology is with a design like Wayland as opposed to something more antiquated X11.
 		</p>
 		<p>
-			Instead, Think of this article as a history lesson, starting way back at the X Window
-			System in the 80s, and slowly tacking on everything we've introduced into Linux Graphics
-			to keep it fresh, like
+			Instead, Think of this article as a history lesson, starting way back at the X Window System in the 80s,and slowly tacking on everything we've introduced into Linux Graphics to keep it fresh, like
 			<a href="http://www.x.org/releases/current/doc/renderproto/renderproto.txt">RENDER</a>,
-			<a href="http://www.x.org/releases/current/doc/compositeproto/compositeproto.txt">COMPOSITE</a>,
-			and <a href="http://dri.freedesktop.org/wiki/">DRI</a>. I'm here to lay out the facts,
-			give some historical records, and hopefully teach you a few things about how X works
-			internally if you've ever had trouble understanding it.
+			<a href="http://www.x.org/releases/current/doc/compositeproto/compositeproto.txt">COMPOSITE</a>, and
+			<a href="http://dri.freedesktop.org/wiki/">DRI</a>. I'm here to lay out the facts, give some historical
+			records, and hopefully teach you a few things about how X works internally if you've ever had trouble
+			understanding it.
 		</p>
 
 		<hr>
 		<h3 id="self-test">But before we begin... <a href="#self-test">&para;</a></h3>
 		<p>
-			Since this article contains a lot of interactive demos relying on fairly modern
-			browser technology, let's make sure that everything is OK before continuing. I've
-			been testing this on modern versions of Firefox Nightly and Chrome Canary.
+			Since this article contains a lot of interactive demos relying on fairly modern browser technology, let's
+			make sure that everything is OK before continuing. I've been testing this on modern versions of Firefox
+			Nightly and Chrome Canary.
 		</p>
 		<div class="demo-server" data-demo="test"></div>
 		<p>
-			If you can see the stipple pattern above, that means that your browser is modern
-			enough to see the interactive demos.
+			If you can see the stipple pattern above, that means that your browser is modern enough to see the
+			interactive demos.
 		</p>
 		<p>
-			You might have noticed that when you ran your mouse over the stipple, your cursor
-			changed. That's because this isn't just any old stipple image, that stipple is
-			actually the background of a full X server session running in your browser using
-			HTML5 canvas. All of the interactive demos will use this framework to explain what's
-			going on under the hood.
+			You might have noticed that when you ran your mouse over the stipple, your cursor changed. That's because
+			this isn't just any old stipple image, that stipple is actually the background of a full X server session
+			running in your browser using HTML5 canvas. All of the interactive demos will use this framework to explain
+			what's going on under the hood.
 		</p>
 
 		<hr>
 		<h3 id="basic-architecture">Basic Architecture <a href="#basic-architecture">&para;</a></h3>
 		<p>
-			Although it may sound a bit stilted, notice how I keep saying "the X Window System"
-			instead of the more traditional shorthands "X", "X11", or "Xorg"? I want to be very
-			careful to separate the ideas and design of the system from its component parts.
+			Although it may sound a bit stilted, notice how I keep saying "the X Window System" instead of the more
+			traditional shorthands "X", "X11", or "Xorg"? I want to be very careful to separate the ideas and design of
+			the system from its component parts.
 		</p>
 		<p>
-			The X Window System is a networked display system. A server component, the
-			<strong>X server</strong>, is responsible for coordinating between all of the clients
-			connected, taking input from the mouse and keyboard, and pushing pixels
-			on the output. The most popular X server implementation is the
-			<a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a>,
-			developed by the X.Org Foundation and community. There are other X server implementations:
-			you might remember that Xorg was forked from <a href="http://www.xfree86.org/">XFree86</a>
-			a decade ago, that Sun Microsystems has had several X server implementations, in both
-			<a href="http://en.wikipedia.org/wiki/Xsun">Xsun</a> and
-			<a href="http://en.wikipedia.org/wiki/Xnews_%28X11_server%29">XNeWS</a>. Today, Xorg is
-			the dominant X server implementation, getting most of the development. But back in the
-			day, multiple competing implementations existed.
+			The X Window System is a networked display system. A server component, the <strong>X server</strong>, is
+			responsible for coordinating between all of the clients connected, taking input from the mouse and
+			keyboard, and pushing pixels on the output. The most popular X server implementation is the
+			<a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a>, developed by the X.Org Foundation and
+			community. There are other X server implementations: you might remember that Xorg was forked from
+			<a href="http://www.xfree86.org/">XFree86</a> a decade ago, that Sun Microsystems has had several X server
+			implementations, in both <a href="http://en.wikipedia.org/wiki/Xsun">Xsun</a> and
+			<a href="http://en.wikipedia.org/wiki/Xnews_%28X11_server%29">XNeWS</a>. Today, Xorg is the dominant X
+			server implementation, getting most of the development. But back in the day, multiple competing
+			implementations existed.
 		</p>
 		<p>
-			X servers and X clients all talk a standardized network protocol to each other,
-			known as <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html">X11</a>.
-			This protocol is closely specified down to the wire format.
+			X servers and X clients all talk a standardized network protocol to each other, known as
+			<a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html">X11</a>. This protocol is
+			well-specified, from the wire format to the semantics of every request. The protocol documentation linked
+			above is invaluable documentation for any hacker who wants to learn more about this stuff.
 		</p>
 		<p>
-			Applications and toolkits don't write the wire format onto the socket directly,
-			however. They often use client libraries that implement the protocols, like the
-			traditional <a href="http://www.x.org/releases/current/doc/libX11/specs/libX11/libX11.html">Xlib</a>
-			library, or the somewhat newer <a href="http://xcb.freedesktop.org/">xcb</a>.
+			Applications and toolkits don't write the wire format onto the socket directly, however. They often use
+			client libraries that implement the protocols, like the traditional
+			<a href="http://www.x.org/releases/current/doc/libX11/specs/libX11/libX11.html">Xlib</a> library, or the
+			somewhat newer <a href="http://xcb.freedesktop.org/">xcb</a>.
 		</p>
 		<p>
 			I'm going to try and be precise in my nomenclature in this article.
 		</p>
 		<p>
-			When I talk about features or design decisions of the overall system, I will try to call it
-			<em>the X Window System</em>, even if it sounds a bit verbose. e.g. <q><em>The X Window
-			System</em> provides us Pixmaps, which are images in the server's memory.</q>
+			When I talk about features or design decisions of the overall system, I will try to call it <em>the X
+			Window System</em>, even if it sounds a bit verbose. e.g. <q><em>The X Window System</em> provides us
+			Pixmaps, which are images in the server's memory.</q>
 		</p>
 		<p>
-			When I talk about features or details of the network protocol, I will talk about <em>the X11
-			protocol</em>. e.g. <q><em>The X11 protocol</em> provides for a generic extension mechanism,
-			which allows for a forward-compatible way to implement new features without having to redesign
-			older parts of X11</q>.
+			When I talk about features or details of the network protocol, I will talk about <em>the X11 protocol</em>.
+			e.g. <q><em>The X11 protocol</em> provides for a generic extension mechanism, which allows for a
+			forward-compatible way to implement new features without having to redesign older parts of X11</q>.
 		</p>
 		<p>
-			When I talk about the behavior of a client or a server, I'll say <em>X client</em> or
-			<em>X server</em> e.g. <q>Using the MIT-SHM extension, <em>the X server</em> provides us with
-			a simple way of passing memory buffers around without networking or large copies</q>.
+			When I talk about the behavior of a client or a server, I'll say <em>X client</em> or <em>X server</em>
+			e.g. <q>Using the MIT-SHM extension, <em>the X server</em> provides us with a simple way for clients
+			to pass memory buffers around without networking or large copies</q>.
 		</p>
 		<p>
-			When I talk about features or the architecture in the Xorg X server implementation, I'll
-			mention it explicitly as <em>Xorg</em> or <em>the Xorg X server</em>, e.g. <q>In order to
-			make drawing calls accelerated, <em>Xorg</em> video drivers can provide hardware-accelerated
-			versions of certain drawing primitives through EXA.
+			When I talk about features or the architecture in the Xorg X server implementation, I'll mention it
+			explicitly as <em>Xorg</em> or <em>the Xorg X server</em>, e.g. <q>In order to make drawing calls accelerated, <em>Xorg</em> video drivers can provide hardware-accelerated versions of certain drawing primitives through EXA.
 		</p>
 		<p>
 			If I ever say "such-and-such is a feature of X", it's a bug.
@@ -179,40 +168,34 @@
 		<h3 id="lets-go">Let's go <a href="#lets-go">&para;</a></h3>
 		<div class="demo-server demo-inspectable" data-demo="calculatorCSD"></div>
 		<p>
-			Here's our example app. Excuse the programmer graphics, I'm simply just trying
-			to represent <a href="http://xawm.sourceforge.net/">the state of the art of the
-			time</a>. It's a simple reverse polish notiation calculator. For those of you
-			not old enough to remember them, try pressing <strong>7</strong>, <strong>ENT</strong>,
-			<strong>6</strong>, then press <strong>*</strong>. It's not built very well,
-			and you can probably break it fairly easily by making it display <strong>NaN</strong>
-			by playing around with it.
+			Here's our example app. Excuse the programmer graphics, I'm simply just trying to represent
+			<a href="http://xawm.sourceforge.net/">the state of the art of the time</a>. It's a simple reverse polish
+			notiation calculator. For those of you not old enough to remember them, try pressing <strong>7</strong>,
+			<strong>ENT</strong>, <strong>6</strong>, then press <strong>*</strong>. It's not built very well, and you
+			can probably break it fairly easily by making it display <strong>NaN</strong> by playing around with it.
 		</p>
 		<p>
-			But that's OK, because a stable calculator app isn't really the point here.
-			While not a very complex, it's good enough that it allows us to start understanding
-			the basics of the X Window System.
+			But that's OK, because a stable calculator app isn't really the point here. While not a very complex, it's
+			good enough that it allows us to start understanding the basics of the X Window System.
 		</p>
 		<p>
-			You might notice that <span class="inspector-icon">i</span> button in the top right
-			of the demo above. Click on it, and the inspector will pop open. On the left
-			side is the window tree, and on the right side are the properties and attributes for
-			the selected window.
+			You might notice that <span class="inspector-icon">i</span> button in the top right of the demo above.
+			Click on it, and the inspector will pop open. On the left side is the window tree, and on the right side
+			are the properties and attributes for the selected window.
 		</p>
 		<p>
 			<q>Wait a minute... window <em>tree</em>?</q>
 		</p>
 		<p>
-			Yes. While you might imagine that the calculator above looks like it's only one window
-			to us, the users, it's actually built of 15 distinct windows. In the X Window System,
-			as you can possibly imagine, a <em>window</em> is the basic building block of the system.
-			At a very basic level, windows are simply rectangles that can receive input events like keyboard
-			and mouse events, and display pixels in their area.
+			Yes. While you might imagine that the calculator above looks like it's only one window to us, the users,
+			it's actually built of 15 distinct windows. In the X Window System, as you can possibly imagine, a
+			<em>window</em> is the basic building block of the system. At a very basic level, windows are simply
+			rectangles that can receive input events like keyboard and mouse events, and display pixels in their area.
 		</p>
 		<p>
-			Windows always have a parent. Windows live in the coordinate space of their parent, and
-			the bounds of
-			<em><a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#glossary:Inferiors">inferior windows</a></em>,
-			or child windows, are clipped to their parent. By default, every window is parented to
+			Windows always have a parent. Windows live in the coordinate space of their parent, and the bounds of
+			<em><a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#glossary:Inferiors">inferior
+			windows</a></em>, or child windows, are clipped to their parent. By default, every window is parented to
 			the <em>root window</em>, a special window owned and created by the X server.
 		</p>
 		<p>
@@ -245,9 +228,8 @@
 		<div class="demo-server demo-inspectable" data-demo="expose"></div>
 		<p>
 			The demo above shows two windows, with one window obscuring the other. The window underneath moves from
-			side to side, and you can see that when it moves, the window is
-			Underneath it is a window that's constantly moving from side to side, also trying to draw the same rotating
-			arc. You can see that when 
+			side to side, and you can see that when it moves, the window blanks out for a moment before redrawing
+			itself. What's going on?
 
 			The <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#events:Expose" class="c-name">
 			Expose</a>
@@ -256,16 +238,15 @@
 		<hr>
 		<h3 id="credits">Credit where credit's due <a href="#credits">&para;</a></h3>
 		<p>
-			The source code to this article and all demos is freely available under the MIT/X11
-			license on <a href="http://github.com/magcius/xserver.js">GitHub</a> for inspection.
+			The source code to this article and all demos is freely available under the MIT/X11 license on
+			<a href="http://github.com/magcius/xserver.js">GitHub</a> for inspection.
 		</p>
 
 		<p>
 			Some of the more tricky code in there has been ported from the
-			<a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a> itself, and
-			the code doing region calculations has been compiled from the
-			<a href="http://cgit.freedesktop.org/pixman/">pixman</a> graphics library
-			using <a href="https://github.com/kripken/emscripten">emscripten</a>.
+			<a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a> itself, and the code doing region
+			calculations has been compiled from the <a href="http://cgit.freedesktop.org/pixman/">pixman</a> graphics
+			library	using <a href="https://github.com/kripken/emscripten">emscripten</a>.
 		</p>
 
 		<p>
@@ -273,10 +254,8 @@
 			<a href="https://blogs.oracle.com/alanc/">Alan Coopersmith</a>,
 			<a href="http://people.freedesktop.org/~ajax/">Adam Jackson</a>,
 			<a href="http://who-t.blogspot.com/">Peter Hutterer</a>, and
-			<a href="http://fishsoup.net/">Owen Taylor</a> for digging into the source code,
-			protocols, mailing lists and other archives to help me figure out some of the more
-			hairy X semantics I had to write into the source code. Sorry for driving you guys
-			crazy with this project.
+			<a href="http://fishsoup.net/">Owen Taylor</a> for digging into the source code, protocols, mailing lists
+			and other archives to help me figure out some of the more hairy X semantics I had to write into the source code. Sorry for driving you guys crazy with this project.
 		</p>
 	</article>
 
