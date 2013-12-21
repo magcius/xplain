@@ -59,8 +59,8 @@
 		</p>
 		</noscript>
 
-		<hr>
-		<h3 id="introduction">Introduction <a href="#introduction">&para;</a></h3>
+		<section id="introduction">
+		<h3>Introduction <a href="#introduction">&para;</a></h3>
 		<p>
 			Last year, I wrote <a href="http://blog.mecheye.net/2012/06/the-linux-graphics-stack/"> an article</a>
 			describing the free and open-source graphics stack, explaining all of the interconnected pieces: X11,
@@ -86,10 +86,10 @@
 			<a href="http://dri.freedesktop.org/wiki/">DRI</a>. I'm here to lay out the facts, give some historical
 			records, and hopefully teach you a few things about how X works internally if you've ever had trouble
 			understanding it.
-		</p>
+		</section>
 
-		<hr>
-		<h3 id="self-test">But before we begin... <a href="#self-test">&para;</a></h3>
+		<section id="self-test">
+		<h3>But before we begin... <a href="#self-test">&para;</a></h3>
 		<p>
 			Since this article contains a lot of interactive demos relying on fairly modern browser technology, let's
 			make sure that everything is OK before continuing. I've been testing this on modern versions of Firefox
@@ -106,9 +106,10 @@
 			running in your browser using HTML5 canvas. All of the interactive demos will use this framework to explain
 			what's going on under the hood.
 		</p>
+		</section>
 
-		<hr>
-		<h3 id="basic-architecture">Basic Architecture <a href="#basic-architecture">&para;</a></h3>
+		<section id="basic-architecture">
+		<h3>Basic Architecture <a href="#basic-architecture">&para;</a></h3>
 		<p>
 			Although it may sound a bit stilted, notice how I keep saying "the X Window System" instead of the more
 			traditional shorthands "X", "X11", or "Xorg"? I want to be very careful to separate the ideas and design of
@@ -158,14 +159,15 @@
 		</p>
 		<p>
 			When I talk about features or the architecture in the Xorg X server implementation, I'll mention it
-			explicitly as <em>Xorg</em> or <em>the Xorg X server</em>, e.g. <q>In order to make drawing calls accelerated, <em>Xorg</em> video drivers can provide hardware-accelerated versions of certain drawing primitives through EXA.
+			explicitly as <em>Xorg</em> or <em>the Xorg X server</em>, e.g. <q>In order to make drawing calls accelerated, <em>Xorg</em> video drivers can provide hardware-accelerated versions of certain drawing primitives through EXA.</q>
 		</p>
 		<p>
 			If I ever say "such-and-such is a feature of X", it's a bug.
 		</p>
+		</section>
 
-		<hr>
-		<h3 id="lets-go">Let's go <a href="#lets-go">&para;</a></h3>
+		<section id="lets-go">
+		<h3>Let's go <a href="#lets-go">&para;</a></h3>
 		<div class="demo-server demo-inspectable" data-demo="calculatorCSD"></div>
 		<p>
 			Here's our example app. Excuse the programmer graphics, I'm simply just trying to represent
@@ -205,9 +207,10 @@
 			subtle differences that make the X Window System's abstractions a bit less useful for building
 			widgets on. And that's what we're gonna be exploring next.
 		</p>
+		</section>
 
-		<hr>
-		<h3 id="expose-model">Exposing historical baggage</h3>
+		<section id="expose-model">
+		<h3>Exposing historical baggage</h3>
 		<p>
 			In the late 80s, when the X Window System was designed, RAM was costly, and was a scarce resource.
 			If we stored window contents in system memory, if you want to have a maximzed window, that would be,
@@ -253,8 +256,10 @@
 			<a href="http://msdn.microsoft.com/en-us/library/windows/desktop/dd145213%28v=vs.85%29.aspx" class="code-literal">WM_PAINT</a>
 			instead.
 		</p>
-		<hr>
-		<h3 id="credits">Credit where credit's due <a href="#credits">&para;</a></h3>
+		</section>
+
+		<section id="credits">
+		<h3>Credit where credit's due <a href="#credits">&para;</a></h3>
 		<p>
 			The source code to this article and all demos is freely available under the MIT/X11 license on
 			<a href="http://github.com/magcius/xserver.js">GitHub</a> for inspection.
@@ -290,6 +295,7 @@
 			and other archives to help me figure out some of the more hairy X semantics I had to write into the source
 			code. Sorry for driving you guys crazy with this project.
 		</p>
+		</section>
 	</article>
 
 	<script src="../src/pixman-region.js"></script>

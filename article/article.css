@@ -9,7 +9,6 @@ html, body {
 	min-height: 100%;
 	width: 800px;
 	margin: 0 auto;
-	background-color: white;
 }
 
 h1, h2, h3 {
@@ -35,12 +34,12 @@ h2 {
 	font-weight: normal;
 }
 
-hr {
-	height: 1em;
-	background-color: #eee;
-	border: 0;
-	margin: 0;
-	padding: 0;
+section, header {
+	background-color: white;
+}
+
+section {
+	margin: 0.5em 0;
 }
 
 h3 {
