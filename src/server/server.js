@@ -946,7 +946,17 @@
             if (!listeningFor)
                 listeningFor = this._eventWindows[windowId] = [];
 
-            listeningFor.push.apply(listeningFor, eventTypes);
+            eventTypes.forEach(function(eventType) {
+                // If we have "!ButtonPress", remove it from the list.
+                if (eventType.startsWith("!")) {
+                    var idx = listeningFor.indexOf(eventType.slice(1));
+                    if (idx < 0)
+                        return;
+                    listeningFor.splice(idx, 1);
+                } else {
+                    listeningFor.push(eventType);
+                }
+            });
         },
         makeGrabInfo: function(event) {
             return { serverClient: this,

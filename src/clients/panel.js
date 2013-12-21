@@ -76,7 +76,8 @@
         },
         _removeButton: function(box, button) {
             var idx = box.indexOf(button);
-            // XXX -- way to unselect for input
+            this._display.selectInput({ windowId: button.windowId,
+                                        events: ["!ConfigureNotify"] });
             this._display.reparentWindow({ windowId: button.windowId,
                                            newParentId: this._display.rootWindowId });
             box.splice(idx, 1);
