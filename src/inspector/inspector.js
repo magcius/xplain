@@ -1,4 +1,5 @@
 (function(exports) {
+    "use strict";
 
     var InspectorHighlighter = new Class({
         initialize: function(server) {
