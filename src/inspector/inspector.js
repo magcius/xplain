@@ -583,8 +583,29 @@
             }
         },
 
+        _handleEvent: function(event) {
+            switch (event.type) {
+                case 'ConfigureNotify':
+                    this._syncGeometry();
+                    this._syncAttributes();
+                break;
+                case 'PropertyNotify':
+                    this._syncProperties();
+                break;
+            }
+        },
+
         selectWindow: function(xid) {
+            if (this._selectedWindowId == xid)
+                return;
+
+            if (this._selectedWindowId)
+                this._display.selectInput({ windowId: this._selectedWindowId,
+                                            events: ['!ConfigureNotify', '!PropertyNotify'] });
             this._selectedWindowId = xid;
+            if (this._selectedWindowId)
+                this._display.selectInput({ windowId: this._selectedWindowId,
+                                            events: ['ConfigureNotify', 'PropertyNotify'] });
             this._sync();
         },
     });
