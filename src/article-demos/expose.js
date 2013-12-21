@@ -58,7 +58,8 @@
         },
     });
 
-    // DelayedExposeImage waits half a bit before processing expose events.
+    // DelayedExposeImage waits a bit before processing expose events, to
+    // emulate a "hung" or "slow" app and show off how expose processing works.
     var DelayedExposeImage = new Class({
         Extends: BaseImage,
 
@@ -68,9 +69,6 @@
         },
 
         _handleExpose: function(event) {
-            // If we don't have a scheduled redraw already, schedule a
-            // redraw in a second. This is to try to demonstrate a "hung"
-            // client who can't process incoming events from X fast enough.
             if (this._drawTimeoutId)
                 return;
 

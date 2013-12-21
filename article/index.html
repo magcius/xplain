@@ -240,7 +240,9 @@
 			When the X server needs pixels from a window, it tells the window to redraw the area it's missing
 			pixels for using an
 			<a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#events:Expose" class="code-literal">
-			Expose</a> event.
+			Expose</a> event. The window then responds by submitting drawing commands back to the X server.
+			The X server then processes all these drawing commands, touching pixels on the front buffer where the
+			window is.
 		</p>
 		<p>
 			You can also drag <span class="code-literal">kitten1.jpg</span> around. Try it, and see if you can figure
@@ -248,7 +250,8 @@
 			<a href="http://www.mrdoob.com/lab/javascript/effects/ie6/">Does it seem familiar?</a> The authors of
 			Windows 95 chose the same design when they wrote their display server, however they called their Expose
 			like event
-			<a href="http://msdn.microsoft.com/en-us/library/windows/desktop/dd145213%28v=vs.85%29.aspx" class="code-literal">WM_PAINT</a> instead.
+			<a href="http://msdn.microsoft.com/en-us/library/windows/desktop/dd145213%28v=vs.85%29.aspx" class="code-literal">WM_PAINT</a>
+			instead.
 		</p>
 		<hr>
 		<h3 id="credits">Credit where credit's due <a href="#credits">&para;</a></h3>
