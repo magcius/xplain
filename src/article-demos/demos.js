@@ -1,6 +1,10 @@
+// Contains the "demo framework", along with some of the more simple demos.
+
 (function(exports) {
     "use strict";
 
+    // Makes a stipple checkerboard pattern as seen in classic X.
+    // Let's party_like_its_1989.
     function makeStipple(display) {
         var stipple = display.createPixmap({ width: 2, height: 2 });
         display.drawTo(stipple, function(ctx) {
@@ -14,6 +18,9 @@
         return stipple;
     }
 
+    // Creates a server instance for each demo, and sets up "demo things".
+    // It sizes each server according to the containing element, adds the
+    // stipple pattern, and (optionally) adds the inspector as well.
     function bootstrapDemo(name, elem) {
         var serverSlot = document.createElement("div");
         serverSlot.classList.add('demo-' + name);
@@ -44,15 +51,19 @@
     }
 
     var demos = {};
-    function registerDemo(name, func) {
-        demos[name] = func;
-    }
 
-    registerDemo("test", function() {
-        // Nothing to do, just a simple stripe.
+    var ArticleDemos = {};
+    ArticleDemos.registerDemo = function(name, func) {
+        demos[name] = func;
+    };
+
+    // The "test" demo used in the first paragraph to let the user test
+    // that everything is working fine on their browser...
+    ArticleDemos.registerDemo("test", function() {
+        // Nothing to do.
     });
 
-    registerDemo("calculatorCSD", function(res) {
+    ArticleDemos.registerDemo("calculatorCSD", function(res) {
         var server = res.server;
         var display = res.display;
         var calculator = new CalculatorCSD(server);
@@ -60,27 +71,23 @@
         display.mapWindow({ windowId: calculator.windowId });
     });
 
-    registerDemo("expose", function(res) {
-        var server = res.server;
-        var display = res.display;
-        var kitten = new ExposeDemo(server, "kitten1.png");
-        Util.centerWindow(display, kitten.windowId, { x: 15, y: 15 });
-        display.mapWindow({ windowId: kitten.windowId });
-    });
+    ArticleDemos.runDemo = function(elem) {
+        var demoName = elem.dataset.demo;
+        var demoFunc = demos[demoName];
+        if (!demoFunc)
+            console.error("Unknown demo: " + demo);
 
-    function run() {
+        var res = bootstrapDemo(demoName, elem);
+        demoFunc(res);
+    };
+
+    // The "main" function of the article. Goes over all the demo elements
+    // the article's source code and runs the according demo for them.
+    ArticleDemos.runAllDemos = function() {
         var elems = document.querySelectorAll(".demo-server");
-        [].forEach.call(elems, function(elem) {
-            var demoName = elem.dataset.demo;
-            var demoFunc = demos[demoName];
-            if (!demoFunc)
-                console.error("Unknown demo: " + demo);
+        [].forEach.call(elems, ArticleDemos.runDemo);
+    };
 
-            var res = bootstrapDemo(demoName, elem);
-            demoFunc(res);
-        });
-    }
-
-    run();
+    exports.ArticleDemos = ArticleDemos;
 
 })(window);

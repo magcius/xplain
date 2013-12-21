@@ -1,9 +1,22 @@
 <!doctype html>
 <html>
 <head>
+	<script>
+		// Hi there! Since you're looking at this, I'm sure you'd like to know a
+		// bit more about the demos in this article. I don't blame you.
+		//
+		// For starters, as I mention at the end of the article, all the code
+		// is at https://github.com/magcius/xserver.js .
+		//
+		// Most of the code that I've written is in the server itself, which can
+		// be found at src/server/server.js
+		//
+		// I've tried to document it quite well, but if you have any questions,
+		// please feel free to contact me at my email, <jstpierre@mecheye.net>.
+	</script>
 	<meta charset="utf8">
 	<link rel="stylesheet" href="article.css">
-	<link rel="stylesheet" href="demos.css">
+	<link rel="stylesheet" href="../src/article-demos/demos.css">
 	<link rel="stylesheet" href="../src/inspector/inspector.css">
 	<link rel="stylesheet" href="../src/server/server.css">
 	<title>Xplain</title>
@@ -251,8 +264,16 @@
 	<script src="../src/clients/wm.js"></script>
 	<script src="../src/clients/toolkit.js"></script>
 	<script src="../src/clients/calculator.js"></script>
-	<script src="../src/clients/expose-processing.js"></script>
 	<script src="../src/inspector/inspector.js"></script>
-	<script src="demos.js"></script>
+
+	<script src="../src/article-demos/demos.js"></script>
+	<script src="../src/article-demos/expose.js"></script>
+
+	<script>
+		(function() {
+			"use strict";
+			window.addEventListener("load", ArticleDemos.runAllDemos);
+		})();
+	</script>
 </div></body>
 </html>

@@ -1,3 +1,4 @@
+/* Contains some generic server rules. Mostly about cursor styling. */
 
 .xserver.js {
     cursor: url(arrow.png) 10 5, auto;

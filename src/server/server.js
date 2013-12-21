@@ -1,3 +1,6 @@
+// Contains most of the display server. Deals with input and output management.
+// Doesn't do much without clients to drive it.
+
 (function(exports) {
     "use strict";
 
@@ -100,6 +103,9 @@
     var tmpCanvas = document.createElement("canvas");
     var tmpCtx = tmpCanvas.getContext('2d');
 
+    // A Pixmap is essentially a wrapper around a <canvas>, as
+    // that's the closest we have to an actual pixel buffer in
+    // HTML5.
     var Pixmap = new Class({
         initialize: function() {
             this.canvas = document.createElement("canvas");
@@ -137,6 +143,13 @@
         }
     });
 
+    // The "wire" object for a Pixmap. Pixmaps are used internally in the
+    // X server (for e.g. the root window contents), even when they don't
+    // have XIDs and aren't exposed on the wire.
+    //
+    // Thus, a ServerPixmap manages the wire form of a "Pixmap", which means
+    // that it keeps track of XIDs, and also exposes helper methods that
+    // implement the "Drawable" interface.
     var ServerPixmap = new Class({
         initialize: function(xid, server, props) {
             this.xid = xid;
@@ -272,6 +285,9 @@
         }
     });
 
+    // The server-side form of a Window. There's no split like Pixmap, since
+    // the X server doesn't have Windows that aren't exposed on the wire in
+    // any form.
     var ServerWindow = new Class({
         initialize: function(xid, server, props) {
             this.xid = xid;
@@ -773,6 +789,9 @@
         },
     });
 
+    // This is the object returned to the client when it calls "connect",
+    // so this contains the user-facing Xlib-like API. These marshalling
+    // methods are installed below.
     var ClientConnection = new Class({
         initialize: function(serverClient, server) {
             this._serverClient = serverClient;
@@ -832,27 +851,47 @@
         'setWindowShapeRegion',
     ];
 
+    // Install the API method for every request.
     publicRequests.forEach(function(requestName) {
         ClientConnection.prototype[requestName] = function(props) {
             return this._server.handleRequest(this._serverClient, requestName, props);
         };
     });
 
-    ClientConnection.prototype.drawTo = function(windowId, func) {
-        return this._server.drawTo(this._serverClient, windowId, func);
+    // drawTo takes a callback that receives a Canvas2DRenderingContext.
+    // At one point in time, I had the idea of making clients live in
+    // separate WebWorker instances, but this was the big issue:
+    // callbacks and Canvas2DRenderingContext can't withstand through a
+    // web worker.
+    //
+    // As such, drawTo has "custom marshalling", and isn't considered a
+    // request as above.
+    ClientConnection.prototype.drawTo = function(drawableId, func) {
+        return this._server.drawTo(this._serverClient, drawableId, func);
     };
 
-    // A simple container so we don't litter the DOM.
-    var iframeContainer = document.createElement("message-ports");
-    iframeContainer.style.display = 'none';
-    document.body.appendChild(iframeContainer);
+    // A simple MessagePort polyfill by using a bunch of <iframe>s
+    // for each port opened. Events are sent back to each client through
+    // postMessage on these.
+    (function() {
+        window.MessagePort = (function() {
+            // A simple container for MessagePorts so we don't litter the DOM.
+            var iframeContainer = document.createElement("message-ports");
+            iframeContainer.style.display = 'none';
+            document.body.appendChild(iframeContainer);
 
-    function MessagePort() {
-        var iframe = document.createElement("iframe");
-        iframeContainer.appendChild(iframe);
-        return iframe.contentWindow;
-    }
+            return function MessagePort() {
+                var iframe = document.createElement("iframe");
+                iframeContainer.appendChild(iframe);
+                return iframe.contentWindow;
+            };
+        })();
+    })();
 
+    // We often use Object.create() when passing objects to postMessage,
+    // but the structured cloning algorithm can't deal with prototype
+    // inheritance for whatever reason, so we need to flatten objects
+    // before we send them.
     function flattenObject(obj) {
         var flat = {};
         // Flatten the prototype chain.
@@ -861,6 +900,8 @@
         return flat;
     }
 
+    // A ServerClient manages the server's internal state for every client.
+    // Mostly contains things about events.
     var ServerClient = new Class({
         initialize: function(server) {
             this._server = server;
@@ -915,9 +956,10 @@
         },
     });
 
-    // A ServerGrabClient is a helper class that handles some
-    // details about grabs to make event delivery and other things
-    // easier.
+    // A ServerGrabClient manages what happens when somebody takes
+    // a pointer or keyboard grab. It contains the frozen event queue
+    // and associated logic for Sync grabs, as well as lots of other
+    // fun grab-related things.
     var ServerGrabClient = new Class({
         initialize: function(server, grabInfo, isPassive) {
             this._server = server;
@@ -1015,6 +1057,7 @@
         return false;
     }
 
+    // Do a and b have a common ancestor?
     function commonAncestor(a, b) {
         for (b = b.windowTreeParent; b; b = b.windowTreeParent) {
             if (isWindowDescendentOf(b, a))
@@ -1023,12 +1066,15 @@
         return null;
     }
 
+    // When the server has some internal processing, we throw a clientError,
+    // and then report it back to the client through an "Error" event.
     function clientError(error) {
         var error = new Error(error);
         error.isClientError = true;
         return error;
     }
 
+    // The main part of the server.
     var Server = new Class({
         initialize: function() {
             this._setupDOM();
@@ -1615,7 +1661,8 @@
             });
         },
 
-        // Client request handlers.
+        // Everything that starts with "_handle_" is a client request handler.
+        // Most of these should be fairly simple and only call internal methods.
         _handle_createWindow: function(client, props) {
             var serverWindow = this._createWindowInternal(props);
             serverWindow.parentWindow(this._rootWindow);
@@ -1798,6 +1845,9 @@
             serverWindow.setWindowShapeRegion(props.shapeType, props.region);
         },
 
+        // This is called by ClientConnection above for each of its generated
+        // requests, which marshalls and wraps each of the request handlers
+        // above.
         handleRequest: function(client, requestName, props) {
             var handler = this['_handle_' + requestName];
             try {
@@ -1823,7 +1873,7 @@
             this._clients.splice(idx, 1);
         },
 
-        // Not a request, as it requires custom marshalling.
+        // See the note about this above in ClientConnection.prototype.drawTo.
         drawTo: function(client, drawableId, func) {
             var drawable = this.getDrawable(client, drawableId);
             if (!drawable.canDraw())

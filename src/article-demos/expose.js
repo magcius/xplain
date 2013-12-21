@@ -1,6 +1,11 @@
+// Contains the demo in the "Exposing Historical Baggage" section, with a
+// few moving windows, showing off how the Expose model of drawing works.
+
 (function(exports) {
     "use strict";
 
+    // A simple helper to manage timed events, for moving the window below.
+    // Perhaps we should consider using requestAnimationFrame for this?
     var Timer = new Class({
         initialize: function(delay, func) {
             this._delay = delay;
@@ -85,6 +90,7 @@
     // The number of pixels to sway to either side.
     var SWAY_AMOUNT = 100;
 
+    // A simple moving window.
     var ExposeDemo = new Class({
         Extends: SimpleImage,
 
@@ -116,6 +122,12 @@
         },
     });
 
-    exports.ExposeDemo = ExposeDemo;
+    ArticleDemos.registerDemo("expose", function(res) {
+        var server = res.server;
+        var display = res.display;
+        var kitten = new ExposeDemo(server, "kitten1.png");
+        Util.centerWindow(display, kitten.windowId, { x: 15, y: 15 });
+        display.mapWindow({ windowId: kitten.windowId });
+    });
 
 })(window);

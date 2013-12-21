@@ -1,3 +1,6 @@
+// Contains a very simple gnome-panel-like app that can contain widgets
+// in the left/right zones.
+
 (function(exports) {
     "use strict";
 

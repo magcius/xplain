@@ -1,13 +1,19 @@
+// Contains a basic dummy toolkit, along with various utility functions
+// that might come in handy when building demos.
+
 (function(exports) {
     "use strict";
 
     var Util = {};
+
+    // Constructs a path on a <canvas>, given a pixman region.
     Util.pathFromRegion = function(ctx, region) {
         region.iter_rectangles(function(rect) {
             ctx.rect(rect.x, rect.y, rect.width, rect.height);
         });
     };
 
+    // Loads an a remote image URL as a server-side pixmap.
     Util.loadImageAsPixmap = function(display, src, callback) {
         var image = new Image();
         image.addEventListener("load", function() {
@@ -24,6 +30,7 @@
         image.src = src;
     };
 
+    // Centers the given window on the server, plus or minus an offset.
     Util.centerWindow = function(display, windowId, offset) {
         var rootGeom = display.getGeometry({ drawableId: display.rootWindowId });
         var winGeom = display.getGeometry({ drawableId: windowId });
@@ -34,6 +41,7 @@
         display.configureWindow({ windowId: windowId, x: x, y: y });
     };
 
+    // Creates a "rounded" pixman region.
     Util.roundedRectRegion = function(geom, corners) {
         var shapeRegion = new Region();
         shapeRegion.init_rect(0, 0, geom.width, geom.height);
@@ -79,6 +87,10 @@
         return shapeRegion;
     };
 
+    // A simple helper object that deals with the more-complicated
+    // aspects of Expose event handling, like accumulating an exposed
+    // region to redraw, and calling the draw function when we've
+    // processed all the Expose events in the current chain.
     var ExposeHandler = new Class({
         initialize: function(drawFn) {
             this._exposedRegion = new Region();
@@ -97,6 +109,8 @@
         },
     });
 
+    // A simple helper utility to help manage event processing in general.
+    // Used for the Calculator demo, not sure I like it in general...
     var EventRegistry = new Class({
         initialize: function() {
             this._registry = {};
@@ -116,6 +130,8 @@
         },
     });
 
+    // A simple "Window" that manages a server-side window and provides
+    // various helpers. Quite simplistic, not sure I like it much anymore...
     var Window = new Class({
         initialize: function() {
             this.x = 0;

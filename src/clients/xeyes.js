@@ -1,3 +1,5 @@
+// Contains a clone of the classic "xeyes" demos.
+
 (function(exports) {
     "use strict";
 

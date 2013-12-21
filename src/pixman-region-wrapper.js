@@ -1,3 +1,6 @@
+// Contains a bunch of convenience wrappers for the emscripten-generated
+// region code from pixman.
+
 (function(exports) {
     "use strict";
 
