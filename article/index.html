@@ -3,16 +3,38 @@
 <head>
 	<script>
 		// Hi there! Since you're looking at this, I'm sure you'd like to know a
-		// bit more about the demos in this article. I don't blame you.
+		// bit more about the demos in this article.
 		//
-		// For starters, as I mention at the end of the article, all the code
-		// is at https://github.com/magcius/xserver.js .
+		// For starters, as I mention at the end of the article, the code that
+		// powers all the demos in this article is at GitHub:
 		//
-		// Most of the code that I've written is in the server itself, which can
-		// be found at src/server/server.js
+		// https://github.com/magcius/xserver.js
 		//
-		// I've tried to document it quite well, but if you have any questions,
-		// please feel free to contact me at my email, <jstpierre@mecheye.net>.
+		// Most of the code that I've written is in the X server itself,
+		// which can be found at src/server/server.js
+		//
+		// The extensive "Inspector" can be found in src/inspector/inspector.js
+		//
+		// The rest of the demos are clients that connect to that server, and
+		// they can be found in src/article-demos/.
+		//
+		// The main demo "runner" framework is at src/article-demos/demos.js,
+		// and the code for all the demos in the article are littered around
+		// in that directory.
+		//
+		// I've tried to document it quite well, but if you have any more questions
+		// about the code, about anything in this article, or just want to flame
+		// me about Wayland or Mir, feel free to contact me through email.
+		//
+		// I can be reached at <jstpierre@mecheye.net>
+		//
+		// --
+		//   Jasper
+		//
+		// P.S. I tried to find one of those Medium-style "margin comment"
+		// systems so people could comment on this article in one place,
+		// but couldn't find any hosted or open-source solutions I could
+		// deploy!
 	</script>
 	<meta charset="utf8">
 	<link rel="stylesheet" href="article.css">
@@ -271,6 +293,7 @@
 	<script src="../src/article-demos/expose.js"></script>
 
 	<script>
+		// Run all the demos
 		(function() {
 			"use strict";
 			window.addEventListener("load", ArticleDemos.runAllDemos);
