@@ -87,7 +87,7 @@ p.warning {
 	font-weight: bold;
 }
 
-.c-name {
+.code-literal {
 	font-family: monospace;
 	padding: 4px;
 	background-color: #eee;

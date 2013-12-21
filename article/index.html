@@ -212,7 +212,7 @@
 			In the late 80s, when the X Window System was designed, RAM was costly, and was a scarce resource.
 			If we stored window contents in system memory, if you want to have a maximzed window, that would be,
 			well, 1 byte * (800 * 600 pixels) =
-			<a href="https://www.google.com/search?q=1%20byte%20*%20800%20*%20600%20=">almost half a megabyte!</a>.
+			<a href="https://www.google.com/search?q=1%20byte%20*%20800%20*%20600%20=">almost half a megabyte!</a>
 			The user can't open more than 10 maximized windows before exhausting the 5MB in his workstation, and
 			with 16-bit True Color around the corner, we can't fit more than 5! No, no, this can't possibly scale.
 		</p>
@@ -221,18 +221,34 @@
 			somewhere, <em>right</em>?
 		</p>
 		<p>
-			Nope. The trick the authors realized is that the pixels for a window don't have to exist at all. We only
-			have one giant set of pixels for the entire screen, and windows take up a portion of it. Windows can only
-			draw to their portion of the screen.
+			Nope. The trick the X Window System authors realized is that the pixels for a window don't have to exist
+			at all. We only have one giant buffer of pixels for the entire screen, the <em>front buffer</em>, and
+			windows borrow pixels to draw to.
 		</p>
 		<div class="demo-server demo-inspectable" data-demo="expose"></div>
 		<p>
 			The demo above shows two windows, with one window obscuring the other. The window underneath moves from
 			side to side, and you can see that when it moves, the window blanks out for a moment before redrawing
-			itself. What's going on?
-
-			The <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#events:Expose" class="c-name">
-			Expose</a>
+			itself.
+		</p>
+		<p>
+			The window on top, marked as <span class="code-literal">kitten1.jpg</span> in the inspector, owns
+			a rectangle in the center of the screen. The window below, <span class="code-literal">kitten2.jpg</span>,
+			owns a "L" shape slightly above and to the left.
+		</p>
+		<p>
+			When the X server needs pixels from a window, it tells the window to redraw the area it's missing
+			pixels for using an
+			<a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#events:Expose" class="code-literal">
+			Expose</a> event.
+		</p>
+		<p>
+			You can also drag <span class="code-literal">kitten1.jpg</span> around. Try it, and see if you can figure
+			out how this behaves.
+			<a href="http://www.mrdoob.com/lab/javascript/effects/ie6/">Does it seem familiar?</a> The authors of
+			Windows 95 chose the same design when they wrote their display server, however they called their Expose
+			like event
+			<a href="http://msdn.microsoft.com/en-us/library/windows/desktop/dd145213%28v=vs.85%29.aspx" class="code-literal">WM_PAINT</a> instead.
 		</p>
 
 		<hr>
