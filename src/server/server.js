@@ -1792,19 +1792,27 @@
             serverWindow.setWindowShapeRegion(props.shapeType, props.region);
         },
 
-        // This is called by ClientConnection above for each of its generated
-        // requests, which marshalls and wraps each of the request handlers
-        // above.
-        handleRequest: function(client, requestName, props) {
-            var handler = this['_handle_' + requestName];
+        // A wrapper which will catch any client errors thrown in the method
+        // implementation and send them back to the client as an "Error" event.
+        _errorWrapper: function(client, func) {
             try {
-                return handler.call(this, client, props);
+                return func();
             } catch (e) {
                 if (e.isClientError)
                     this._sendError(client, e.error);
                 else
                     throw e;
             }
+        },
+
+        // This is called by ClientConnection above for each of its generated
+        // requests, which marshalls and wraps each of the request handlers
+        // above.
+        handleRequest: function(client, requestName, props) {
+            var handler = this['_handle_' + requestName];
+            return this._errorWrapper(client, function() {
+                return handler.call(this, client, props);
+            }.bind(this));
         },
 
         // Called by the client to get a socket connection.
@@ -1822,11 +1830,13 @@
 
         // See the note about this above in ClientConnection.prototype.drawTo.
         drawTo: function(client, drawableId, func) {
-            var drawable = this.getDrawable(client, drawableId);
-            if (!drawable.canDraw())
-                throw clientError("BadDrawable");
+            return this._errorWrapper(client, function() {
+                var drawable = this.getDrawable(client, drawableId);
+                if (!drawable.canDraw())
+                    throw clientError("BadDrawable");
 
-            drawable.drawTo(func);
+                drawable.drawTo(func);
+            }.bind(this));
         },
     });
 
