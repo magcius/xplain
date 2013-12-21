@@ -383,7 +383,7 @@
             this._toplevel = document.createElement('div');
 
             this._header = document.createElement('div');
-            this._header.classList.add('window-inspector-header');
+            this._header.classList.add('details-header');
             this._header.textContent = title;
             this._toplevel.appendChild(this._header);
 

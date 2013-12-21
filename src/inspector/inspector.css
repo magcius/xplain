@@ -124,7 +124,7 @@
     color: white !important;
 }
 
-.inspector .window-details-header {
+.inspector .details-header {
     font: bold smaller sans-serif;
     background: #eee;
     padding: 0.5em;
