@@ -60,7 +60,7 @@
 		</noscript>
 
 		<section id="introduction">
-		<h3>Introduction <a href="#introduction">&para;</a></h3>
+		<h3>Introduction</h3>
 		<p>
 			Last year, I wrote <a href="http://blog.mecheye.net/2012/06/the-linux-graphics-stack/"> an article</a>
 			describing the free and open-source graphics stack, explaining all of the interconnected pieces: X11,
@@ -89,7 +89,7 @@
 		</section>
 
 		<section id="self-test">
-		<h3>But before we begin... <a href="#self-test">&para;</a></h3>
+		<h3>But before we begin...</h3>
 		<p>
 			Since this article contains a lot of interactive demos relying on fairly modern browser technology, let's
 			make sure that everything is OK before continuing. I've been testing this on modern versions of Firefox
@@ -109,7 +109,7 @@
 		</section>
 
 		<section id="basic-architecture">
-		<h3>Basic Architecture <a href="#basic-architecture">&para;</a></h3>
+		<h3>Basic Architecture</h3>
 		<p>
 			Although it may sound a bit stilted, notice how I keep saying "the X Window System" instead of the more
 			traditional shorthands "X", "X11", or "Xorg"? I want to be very careful to separate the ideas and design of
@@ -167,7 +167,7 @@
 		</section>
 
 		<section id="lets-go">
-		<h3>Let's go <a href="#lets-go">&para;</a></h3>
+		<h3>Let's go</h3>
 		<div class="demo-server demo-inspectable" data-demo="calculatorCSD"></div>
 		<p>
 			Here's our example app. Excuse the programmer graphics, I'm simply just trying to represent
@@ -259,7 +259,7 @@
 		</section>
 
 		<section id="credits">
-		<h3>Credit where credit's due <a href="#credits">&para;</a></h3>
+		<h3>Credit where credit's due</h3>
 		<p>
 			The source code to this article and all demos is freely available under the MIT/X11 license on
 			<a href="http://github.com/magcius/xserver.js">GitHub</a> for inspection.
@@ -298,6 +298,8 @@
 		</section>
 	</article>
 
+	<script src="article.js"></script>
+
 	<script src="../src/pixman-region.js"></script>
 	<script src="../src/pixman-region-wrapper.js"></script>
 	<script src="../src/class.js"></script>
@@ -312,10 +314,16 @@
 	<script src="../src/article-demos/expose.js"></script>
 
 	<script>
-		// Run all the demos
 		(function() {
 			"use strict";
-			window.addEventListener("load", ArticleDemos.runAllDemos);
+
+			window.addEventListener("load", function() {
+				// Generate all the section permalinks
+				Article.generateSectionLinks();
+
+				// Run all the demos
+				ArticleDemos.runAllDemos();
+			});
 		})();
 	</script>
 </div></body>
