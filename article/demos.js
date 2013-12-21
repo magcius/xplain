@@ -59,6 +59,9 @@
         var res = bootstrapServer(elem, true);
         var server = res.server;
         var display = res.display;
+        var kitten = new ExposeDemo(server, "kitten1.png");
+        Util.centerWindow(display, kitten.windowId, { x: 15, y: 15 });
+        display.mapWindow({ windowId: kitten.windowId });
     }
 
     var demos = [

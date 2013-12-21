@@ -86,3 +86,9 @@ p.warning {
 	font-family: monospace;
 	font-weight: bold;
 }
+
+.c-name {
+	font-family: monospace;
+	padding: 4px;
+	background-color: #eee;
+}

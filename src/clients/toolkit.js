@@ -24,12 +24,12 @@
         image.src = src;
     };
 
-    Util.centerWindow = function(display, windowId) {
+    Util.centerWindow = function(display, windowId, offset) {
         var rootGeom = display.getGeometry({ drawableId: display.rootWindowId });
         var winGeom = display.getGeometry({ drawableId: windowId });
 
-        var x = (rootGeom.width - winGeom.width) / 2;
-        var y = (rootGeom.height - winGeom.height) / 2;
+        var x = (rootGeom.width - winGeom.width) / 2 + (offset ? offset.x : 0);
+        var y = (rootGeom.height - winGeom.height) / 2 + (offset ? offset.y : 0);
 
         display.configureWindow({ windowId: windowId, x: x, y: y });
     };
