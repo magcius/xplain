@@ -66,9 +66,7 @@
                     this._ctx.moveTo(coords.x + 0.5, parentCoords.y);
                     this._ctx.lineTo(coords.x + 0.5, coords.y);
 
-                    this._ctx.strokeStyle = 'rgb(20, 75, 20)';
-                    this._ctx.setLineDash([1]);
-                    this._ctx.lineDashOffset = 1;
+                    this._ctx.strokeStyle = 'rgb(20, 75, 20, 0.5)';
                     this._ctx.stroke();
                 }
             }
