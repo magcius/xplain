@@ -117,16 +117,16 @@
 			the system from its component parts.
 		</p>
 		<p>
-			The X Window System is a networked display system. A server component, the <strong>X server</strong>, is
-			responsible for coordinating between all of the clients connected, taking input from the mouse and
-			keyboard, and pushing pixels on the output. The most popular X server implementation is the
-			<a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a>, developed by the X.Org Foundation and
-			community. There are other X server implementations: you might remember that Xorg was forked from
-			<a href="http://www.xfree86.org/">XFree86</a> a decade ago, that Sun Microsystems has had several X server
-			implementations, in both <a href="http://en.wikipedia.org/wiki/Xsun">Xsun</a> and
-			<a href="http://en.wikipedia.org/wiki/Xnews_%28X11_server%29">XNeWS</a>. Today, Xorg is the dominant X
-			server implementation, getting most of the development. But back in the day, multiple competing
-			implementations existed.
+			The X Window System is a networked display system. A server component, the
+			<span class="definition">X server</span>, is responsible for coordinating between all of the clients
+			connected, taking input from the mouse and keyboard, and pushing pixels on the output. The most popular X
+			server implementation is the <a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a>,
+			developed by the X.Org Foundation and community. There are other X server implementations: you might
+			remember that Xorg was forked from <a href="http://www.xfree86.org/">XFree86</a> a decade ago, that Sun
+			Microsystems has had several X server implementations, in both
+			<a href="http://en.wikipedia.org/wiki/Xsun">Xsun</a> and
+			<a href="http://en.wikipedia.org/wiki/Xnews_%28X11_server%29">XNeWS</a>. Today, Xorg is the dominant
+			X server implementation, getting most of the development. But back in the day, multiple competing implementations existed.
 		</p>
 		<p>
 			X servers and X clients all talk a standardized network protocol to each other, known as
@@ -144,23 +144,27 @@
 			I'm going to try and be precise in my nomenclature in this article.
 		</p>
 		<p>
-			When I talk about features or design decisions of the overall system, I will try to call it <em>the X
-			Window System</em>, even if it sounds a bit verbose. e.g. <q><em>The X Window System</em> provides us
-			Pixmaps, which are images in the server's memory.</q>
+			When I talk about features or design decisions of the overall system, I will try to call it
+			<span class="definition">the X Window System</span>, even if it sounds a bit verbose. e.g.
+			<q><span class="definition">The X Window System</span> provides us Pixmaps, which are images in the server's memory.</q>
 		</p>
 		<p>
-			When I talk about features or details of the network protocol, I will talk about <em>the X11 protocol</em>.
-			e.g. <q><em>The X11 protocol</em> provides for a generic extension mechanism, which allows for a
-			forward-compatible way to implement new features without having to redesign older parts of X11</q>.
+			When I talk about features or details of the network protocol, I will talk about
+			<span class="definition">the X11 protocol</span>. e.g. <q><span class="definition">The X11 protocol</span>
+			provides for a generic extension mechanism, which allows for a forward-compatible way to implement new
+			features without having to redesign older parts of X11</q>.
 		</p>
 		<p>
-			When I talk about the behavior of a client or a server, I'll say <em>X client</em> or <em>X server</em>
-			e.g. <q>Using the MIT-SHM extension, <em>X clients</em> can pass memory buffers to the <em>X server</em>
-			using POSIX shared memory, which prevents networking and large copies</q>.
+			When I talk about the behavior of a client or a server, I'll say <span class="definition">X client</span>
+			or <span class="definition">X server</span> e.g. <q>Using the MIT-SHM extension, <span class="definition">X
+			clients</span> can pass memory buffers to the <span class="definition">X server</span> using POSIX shared
+			memory, which prevents networking and large copies</q>.
 		</p>
 		<p>
 			When I talk about features or the architecture in the Xorg X server implementation, I'll mention it
-			explicitly as <em>Xorg</em> or <em>the Xorg X server</em>, e.g. <q>In order to make drawing calls accelerated, <em>Xorg</em> video drivers can provide hardware-accelerated versions of certain drawing primitives through EXA.</q>
+			explicitly as <span class="definition">Xorg</span> or <span class="definition">the Xorg X server</span>,
+			e.g. <q>In order to make drawing calls accelerated, <span class="definition">Xorg</span> video drivers can
+			provide hardware-accelerated versions of certain drawing primitives through EXA.</q>
 		</p>
 		<p>
 			If I ever say "such-and-such is a feature of X", it's a bug.
@@ -173,9 +177,11 @@
 		<p>
 			Here's our example app. Excuse the programmer graphics, I'm simply just trying to represent
 			<a href="http://xawm.sourceforge.net/">the state of the art of the time</a>. It's a simple reverse polish
-			notiation calculator. For those of you not old enough to remember them, try pressing <strong>7</strong>,
-			<strong>ENT</strong>, <strong>6</strong>, then press <strong>*</strong>. It's not built very well, and you
-			can probably break it fairly easily by making it display <strong>NaN</strong> by playing around with it.
+			notiation calculator. For those of you not old enough to remember them, try pressing
+			<span class="calculator-button">7</span>, <span class="calculator-button">ENT</span>,
+			<span class="calculator-button">6</span>, then press <span class="calculator-button">*</span>.
+			It's not built very well, and you can probably break it fairly easily by making it display
+			<span class="calculator-result">NaN</span> by playing around with it.
 		</p>
 		<p>
 			But that's OK, because a stable calculator app isn't really the point here. While not a very complex, it's
@@ -192,14 +198,15 @@
 		<p>
 			Yes. While you might imagine that the calculator above looks like it's only one window to us, the users,
 			it's actually built of 15 distinct windows. In the X Window System, as you can possibly imagine, a
-			<em>window</em> is the basic building block of the system. At a very basic level, windows are simply
-			rectangles that can receive input events like keyboard and mouse events, and display pixels in their area.
+			<span class="definition">window</span> is the basic building block of the system. At a very basic level,
+			windows are simply rectangles that can receive input events like keyboard and mouse events, and display
+			pixels in their area.
 		</p>
 		<p>
 			Windows always have a parent. Windows live in the coordinate space of their parent, and the bounds of
-			<em><a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#glossary:Inferiors">inferior
-			windows</a></em>, or child windows, are clipped to their parent. By default, every window is parented to
-			the <em>root window</em>, a special window owned and created by the X server.
+			<a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#glossary:Inferiors" class="definition">inferior windows</a>,
+			or child windows, are clipped to their parent. By default, every window is parented to
+			the <span class="definition">root window</span>, a special window owned and created by the X server.
 		</p>
 		<p>
 			If this sounds familiar to you, you might realize that this sounds an awful lot like the DOM tree
@@ -226,8 +233,8 @@
 		</p>
 		<p>
 			Nope. The trick the X Window System authors realized is that the pixels for a window don't have to exist
-			at all. We only have one giant buffer of pixels for the entire screen, the <em>front buffer</em>, and
-			windows borrow pixels to draw to.
+			at all. We only have one giant buffer of pixels for the entire screen, the
+			<span class="definition">front buffer</span>, and windows borrow pixels to draw to.
 		</p>
 		<div class="demo-server demo-inspectable" data-demo="expose"></div>
 		<p>
@@ -252,8 +259,8 @@
 			You can also drag <span class="code-literal">kitten1.jpg</span> around. Try it, and see if you can figure
 			out how this behaves.
 			<a href="http://www.mrdoob.com/lab/javascript/effects/ie6/">Does it seem familiar?</a> The authors of
-			Windows 95 chose the same design when they wrote their display server, however they called their Expose
-			like event
+			Windows 95 chose the same design when they wrote their display server, however they called their equivalent
+			to the Expose event
 			<a href="http://msdn.microsoft.com/en-us/library/windows/desktop/dd145213%28v=vs.85%29.aspx" class="code-literal">WM_PAINT</a>
 			instead.
 		</p>

@@ -74,16 +74,29 @@ p.warning {
 	margin: 0;
 }
 
-.inspector-icon {
+.inspector-icon,
+.calculator-button {
 	display: inline-block;
-	width: 32px;
-	height: 32px;
-	line-height: 32px;
 	border: 1px solid black;
 	text-align: center;
 	text-indent: 0;
-	font-family: monospace;
-	font-weight: bold;
+	font: bold smaller monospace;
+}
+
+.inspector-icon {
+	width: 32px;
+	height: 32px;
+	line-height: 32px;
+}
+
+.calculator-button {
+	width: 30px;
+	height: 25px;
+	line-height: 25px;
+}
+
+.definition {
+	font-style: italic;
 }
 
 .code-literal {
