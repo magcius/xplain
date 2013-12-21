@@ -6,13 +6,6 @@
 
     var Util = {};
 
-    // Constructs a path on a <canvas>, given a pixman region.
-    Util.pathFromRegion = function(ctx, region) {
-        region.iter_rectangles(function(rect) {
-            ctx.rect(rect.x, rect.y, rect.width, rect.height);
-        });
-    };
-
     // Loads an a remote image URL as a server-side pixmap.
     Util.loadImageAsPixmap = function(display, src, callback) {
         var image = new Image();
@@ -97,7 +90,7 @@
             this._draw = drawFn;
         },
         clip: function(ctx) {
-            Util.pathFromRegion(ctx, this._exposedRegion);
+            CanvasUtil.pathFromRegion(ctx, this._exposedRegion);
             ctx.clip();
             ctx.beginPath();
             this._exposedRegion.clear();

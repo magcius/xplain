@@ -4,6 +4,13 @@
 
     var CanvasUtil = {};
 
+    // Constructs a path on a <canvas>, given a pixman region.
+    CanvasUtil.pathFromRegion = function(ctx, region) {
+        region.iter_rectangles(function(rect) {
+            ctx.rect(rect.x, rect.y, rect.width, rect.height);
+        });
+    };
+
     // Workaround for browser bugs in drawImage when the source and
     // destination <canvas> images are the same:
     //

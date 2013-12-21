@@ -339,7 +339,7 @@
         },
         _drawClippedToRegion: function(region, func) {
             this.drawTree.pixmap.drawTo(function(ctx) {
-                Util.pathFromRegion(ctx, region);
+                CanvasUtil.pathFromRegion(ctx, region);
                 ctx.clip();
                 ctx.beginPath();
                 func(ctx);
