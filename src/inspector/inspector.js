@@ -1,6 +1,11 @@
+// Contains the "Inspector", which allows the user to inspect and investigate
+// the X server interactively.
+
 (function(exports) {
     "use strict";
 
+    // A <canvas> that overlays the X server and highlights certain windows
+    // by drawing semi-transparent boxes and anchor lines.
     var InspectorHighlighter = new Class({
         initialize: function(server) {
             this._server = server;
@@ -75,6 +80,7 @@
         },
     });
 
+    // A simple window that opens/closes the inspector when clicking on it.
     var InspectorButton = new Class({
         Extends: Window,
         initialize: function(inspector) {
@@ -97,6 +103,7 @@
             var rootGeom = this._display.getGeometry({ drawableId: this._display.rootWindowId });
             var selfGeom = this._display.getGeometry({ drawableId: this.windowId });
 
+            // Place in the top-right of the root window.
             var padding = 10;
             var x = rootGeom.width - selfGeom.width - padding;
             var y = padding;
@@ -145,6 +152,9 @@
         },
     });
 
+    // A simple client that takes a pointer grab, allowing the user to click
+    // on a window. It also takes a highlighter, which it will use to highlight
+    // a specific window on hover.
     var WindowChooser = new Class({
         initialize: function(server, highlighter) {
             this._server = server;
@@ -186,6 +196,8 @@
         },
     });
 
+    // A simple custom-content tooltip that tracks the cursor when
+    // the user hovers over the target element.
     var Tooltip = new Class({
         initialize: function(target) {
             this._target = target;
@@ -386,6 +398,8 @@
         },
     });
 
+    // The right-hand pane of the inspector. It shows the window's geometry,
+    // its attributes, and any custom properties.
     var WindowInspector = new Class({
         initialize: function(server) {
             this._server = server;
@@ -421,6 +435,7 @@
             this._sync();
         },
 
+        // Creates a simple box/label to show a color.
         _createColorDisplay: function(color) {
             var node = document.createElement('span');
 
@@ -438,6 +453,8 @@
             return node;
         },
 
+        // Creates a box that shows a pixmap, and shows the full pixmap
+        // in a Tooltip when hovering over it.
         _createPixmapDisplay: function(xid) {
             var node = document.createElement('span');
 
