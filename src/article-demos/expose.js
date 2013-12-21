@@ -48,7 +48,7 @@
             }.bind(this));
 
             this.windowId = this._display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
-            this._display.changeProperty({ windowId: this.windowId, name: 'WM_NAME', value: "Image Window" });
+            this._display.changeProperty({ windowId: this.windowId, name: 'WM_NAME', value: imgSrc });
             this._display.selectInput({ windowId: this.windowId, events: ['Expose'] });
 
             this._pixmapId = 0;
