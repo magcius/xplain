@@ -870,22 +870,20 @@
         return this._server.drawTo(this._serverClient, drawableId, func);
     };
 
-    // A simple MessagePort polyfill by using a bunch of <iframe>s
-    // for each port opened. Events are sent back to each client through
-    // postMessage on these.
-    (function() {
-        window.MessagePort = (function() {
-            // A simple container for MessagePorts so we don't litter the DOM.
-            var iframeContainer = document.createElement("message-ports");
-            iframeContainer.style.display = 'none';
-            document.body.appendChild(iframeContainer);
+    // A simple MessageChannel equivalent (since Firefox is missing it) by
+    // using a bunch of <iframe>s for each port opened. Events are sent back
+    // to each client by calling postMessage on these.
+    var createMessagePort = (function() {
+        // A simple container for MessagePorts so we don't litter the DOM.
+        var iframeContainer = document.createElement("message-ports");
+        iframeContainer.style.display = 'none';
+        document.body.appendChild(iframeContainer);
 
-            return function MessagePort() {
-                var iframe = document.createElement("iframe");
-                iframeContainer.appendChild(iframe);
-                return iframe.contentWindow;
-            };
-        })();
+        return function createMessagePort() {
+            var iframe = document.createElement("iframe");
+            iframeContainer.appendChild(iframe);
+            return iframe.contentWindow;
+        };
     })();
 
     // We often use Object.create() when passing objects to postMessage,
@@ -909,7 +907,7 @@
             // window id => list of event types
             this._eventWindows = {};
 
-            this.clientPort = new MessagePort();
+            this.clientPort = createMessagePort();
             this.display = new ClientConnection(this, server);
         },
 
