@@ -160,12 +160,12 @@
 
         // The shaking window that's behind.
         var kitten2 = new DelayedExposeImage(server, "kitten2.png");
-        Util.centerWindow(display, kitten2.windowId);
+        Util.centerWindow(display, kitten2.windowId, { x: -20, y: -40 });
         display.mapWindow({ windowId: kitten2.windowId });
 
         // The window on top that's obscuring the window behind it.
         var kitten1 = new SimpleImage(server, "kitten1.png");
-        Util.centerWindow(display, kitten1.windowId, { x: 15, y: 15 });
+        Util.centerWindow(display, kitten1.windowId);
         display.mapWindow({ windowId: kitten1.windowId });
 
         var shaker = new WindowShaker(server, kitten2.windowId);
