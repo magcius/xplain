@@ -247,11 +247,24 @@
             this.elem = this._toplevel;
         },
 
-        _handleEvent: function(event) {
-            if (event.type === "X-CursorWindowChanged") {
-                this._setCursorWindow(event.oldCursorWindow, event.newCursorWindow);
-            } else {
+        _handleConfigureNotify: function(event) {
+            // The only thing that can change the window tree is a
+            // restack. Resizes and moves won't change the window tree,
+            // so don't rebuild it in that case.
+            if (event.stackMode !== undefined)
                 this._syncWindowTree();
+        },
+
+        _handleEvent: function(event) {
+            switch (event.type) {
+                case "X-CursorWindowChanged":
+                    return this._setCursorWindow(event.oldCursorWindow, event.newCursorWindow);
+                case "ConfigureNotify":
+                    return this._handleConfigureNotify(event);
+                case "MapNotify":
+                case "UnmapNotify":
+                case "DestroyNotify":
+                    return this._syncWindowTree();
             }
         },
 
