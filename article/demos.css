@@ -3,14 +3,14 @@
 	margin: 1em;
 }
 
-.demo-server[data-demo="test"] .demo-server-slot {
+.demo-server .demo-test {
 	height: 2em;
 }
 
-.demo-server[data-demo="calculatorCSD"] .demo-server-slot {
+.demo-server .demo-calculatorCSD {
 	height: 300px;
 }
 
-.demo-server[data-demo="expose"] .demo-server-slot {
+.demo-server .demo-expose {
 	height: 300px;
 }

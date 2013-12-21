@@ -14,17 +14,17 @@
         return stipple;
     }
 
-    function bootstrapServer(container) {
-        var elem = document.createElement("div");
-        elem.classList.add('demo-server-slot');
-        container.appendChild(elem);
+    function bootstrapDemo(name, elem) {
+        var serverSlot = document.createElement("div");
+        serverSlot.classList.add('demo-' + name);
+        elem.appendChild(serverSlot);
 
-        var width = elem.clientWidth;
-        var height = elem.clientHeight;
+        var width = serverSlot.clientWidth;
+        var height = serverSlot.clientHeight;
 
         var server = new Server();
         server.resize(width, height);
-        elem.appendChild(server.elem);
+        serverSlot.appendChild(server.elem);
 
         var connection = server.connect();
         var display = connection.display;
@@ -34,10 +34,10 @@
                                    backgroundPixmap: stipple });
         display.invalidateWindow({ windowId: display.rootWindowId });
 
-        var addInspector = container.classList.contains("demo-inspectable");
+        var addInspector = elem.classList.contains("demo-inspectable");
         if (addInspector) {
             var inspector = new Inspector(server);
-            container.appendChild(inspector.elem);
+            elem.appendChild(inspector.elem);
         }
 
         return { display: display, server: server };
@@ -48,12 +48,11 @@
         demos[name] = func;
     }
 
-    registerDemo("test", function(elem) {
-        bootstrapServer(elem);
+    registerDemo("test", function() {
+        // Nothing to do, just a simple stripe.
     });
 
-    registerDemo("calculatorCSD", function(elem) {
-        var res = bootstrapServer(elem);
+    registerDemo("calculatorCSD", function(res) {
         var server = res.server;
         var display = res.display;
         var calculator = new CalculatorCSD(server);
@@ -61,8 +60,7 @@
         display.mapWindow({ windowId: calculator.windowId });
     });
 
-    registerDemo("expose", function(elem) {
-        var res = bootstrapServer(elem);
+    registerDemo("expose", function(res) {
         var server = res.server;
         var display = res.display;
         var kitten = new ExposeDemo(server, "kitten1.png");
@@ -78,7 +76,8 @@
             if (!demoFunc)
                 console.error("Unknown demo: " + demo);
 
-            demoFunc(elem);
+            var res = bootstrapDemo(demoName, elem);
+            demoFunc(res);
         });
     }
 
