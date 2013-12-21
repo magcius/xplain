@@ -150,6 +150,7 @@
             this.pixmap.resize(this._rootWindow.width, this._rootWindow.height);
         },
 
+        // A helper method to send an Expose to a window's effective region.
         exposeWindow: function(serverWindow, force, includeChildren) {
             if (!serverWindow.viewable && !force)
                 return;
@@ -159,53 +160,63 @@
             region.finalize();
         },
 
+        // Given a region, walk through the window tree and try to send
+        // Expose events to all the windows that are in that region.
         exposeRegion: function(exposedRegion) {
-            var recursivelyExpose = function(serverWindow, inputRegion) {
+            // inRegion is a modification of inRegion that's translated into
+            // serverWindow's parent's space, and clipped to the bounding
+            // region of serverWindow's parent.
+            var recursivelyExpose = function(serverWindow, inRegion) {
+                // Skip mapped windows.
                 if (!serverWindow.mapped)
                     return;
+                // Skip redirected windows.
                 if (serverWindow.drawTree != this)
                     return;
 
-                // The obscuring region is the part of @inputRegion that
-                // will obscure other windows. It doesn't include its child
-                // windows obscuring regions either, as the window shouldn't
-                // draw into the region owned by its children.
+                // The obscuringRegion is the intersection of inRegion that
+                // serverWindow will eventually draw to.
                 var obscuringRegion = new Region();
 
-                // Transform into the child's space.
-                inputRegion.translate(-serverWindow.x, -serverWindow.y);
+                // Translate into serverWindow's space.
+                inRegion.translate(-serverWindow.x, -serverWindow.y);
 
-                // Clip the exposed region to the bounding region to get
-                // the maximum area that's obscured.
+                // Clip inRegion to the bounding region of our region to get
+                // the part of the exposed region that our window tree "owns".
                 var bounding = serverWindow.getBoundingRegion();
-                obscuringRegion.intersect(inputRegion, bounding);
+                obscuringRegion.intersect(inRegion, bounding);
                 bounding.finalize();
 
-                // We're guaranteed that the window plus children is covering
-                // this area, so subtract it out of the input region first as
-                // we're handling it.
-                inputRegion.subtract(inputRegion, obscuringRegion);
+                // Either us or one of our inferiors is going to handle this
+                // region, so subtract it out of inRegion first.
+                inRegion.subtract(inRegion, obscuringRegion);
 
-                // Child windows need to be exposed first -- they'll subtract
-                // out parts of inputRegion that we want to not be exposed for.
+                // Our child windows need to be exposed first -- they'll
+                // subtract out parts of inRegion that they're handling and
+                // that we should not send exposes to.
                 serverWindow.children.forEach(function(serverWindow) {
                     recursivelyExpose(serverWindow, obscuringRegion);
                 });
 
-                serverWindow.sendExpose(obscuringRegion);
+                serverWindow.exposeRegion(obscuringRegion);
                 obscuringRegion.finalize();
 
-                // And transform back.
-                inputRegion.translate(serverWindow.x, serverWindow.y);
+                // And translate back.
+                inRegion.translate(serverWindow.x, serverWindow.y);
             }.bind(this);
 
             recursivelyExpose(this._rootWindow, exposedRegion);
         },
 
-        // For a given window, return the region that would be
-        // immediately exposed if the window was removed. That is,
-        // the window's shape region clipped to the areas that are
-        // visible.
+        // For a given window, return the region of the draw tree that the
+        // window can display pixels on. In the Xorg server parlance, this
+        // is known as a window's "clip list".
+        //
+        // It's the window's bounding region, minus the bounding region of
+        // any windows that are occluding this one.
+        //
+        // If includeChildren is false, the returned region also excludes
+        // parts of serverWindow that children are occluding.
         calculateEffectiveRegionForWindow: function(serverWindow, includeChildren) {
             var region = serverWindow.calculateTransformedBoundingRegion();
 
@@ -355,7 +366,7 @@
                 ctx.fillRect(0, 0, this.width, this.height);
             }.bind(this));
         },
-        sendExpose: function(region) {
+        exposeRegion: function(region) {
             if (region.is_empty())
                 return;
 
@@ -365,6 +376,8 @@
                                          count: count });
             }.bind(this));
 
+            // Sending an Expose event for a region is a guarantee that we always
+            // draw the background for the window.
             this._drawBackground(region);
         },
         _syncBackgroundPattern: function(client) {
@@ -538,7 +551,13 @@
 
             return inputRegion;
         },
+
+        // Recursively tries to find the window at the position given,
+        // assuming we need to test for input (e.g. a mouse click).
+        // That means we should ignore unmapped windows, and test against
+        // the input region, not the bounding region.
         pickInput: function(x, y) {
+            // Translate the passed-in coordinates to our own space.
             x -= this.x;
             y -= this.y;
 
@@ -546,23 +565,47 @@
             var containsPoint = inputRegion.contains_point(x, y);
             inputRegion.finalize();
 
+            // If we don't contain the given point, return "null", which
+            // indicates that the coordinates are outside our input region.
             if (!containsPoint)
                 return null;
 
             for (var i = 0; i < this.children.length; i++) {
                 var child = this.children[i];
+                // Ignore unmapped children.
                 if (!child.mapped)
                     continue;
 
+                // Try recursing into the child itself. If it returns null,
+                // that means the coordinates weren't inside the window, and
+                // we should move onto the next child.
                 var deepestChild = child.pickInput(x, y);
                 if (deepestChild)
                     return deepestChild;
             }
 
+            // We couldn't find any children which covered the passed-in
+            // coordinates, but the position was inside our input region,
+            // so that means we are the child window.
             return this;
         },
 
-        _wrapWindowChange: function(func) {
+        // When the window reconfigures or changes its bounding region, we
+        // need to send Expose events to any windows that might need to be
+        // redrawn as as a result.
+        //
+        // Additionally, if the window moves at all, we can copy over the
+        // old parts of the front buffer, rather than require that we redraw
+        // the client from scratch.
+        //
+        // This function takes care of figuring out the changes in the
+        // bounding region, copying the appropriate parts of the front buffer
+        // from one place to another, and sending Expose events for windows
+        // that need to be redrawn.
+        _wrapBoundingRegionChange: function(func) {
+            // If we're not viewable, we still need to make sure we do the
+            // change, but we won't send any exposes or need to resync the
+            // cursor window.
             if (!this.viewable) {
                 func();
                 return;
@@ -573,28 +616,39 @@
             var oldPos = this._getDrawOffset();
             var oldW = this.width, oldH = this.height;
 
+            // Do the change.
             func();
 
+            // Determine the new state.
             var newRegion = this.drawTree.calculateEffectiveRegionForWindow(this, true);
             var newPos = this._getDrawOffset();
 
             var tmp = new Region();
             var exposedRegion = new Region();
 
-            // Pixels need to be exposed under the window in places where the
-            // old region is, but the new region isn't.
+            // There are three things we need to do:
+            // 1) Send expose events to previously obscured windows
+            // 2) If the window moved, copy the old pixel contents of the
+            //    window over.
+            // 3) If the window resized, send expose events to the newly
+            //    exposed parts of the window.
+
+            // 1)
+            // Send Expose events for places where the window was before, but
+            // isn't now, or the old region minus the new region.
             tmp.subtract(oldRegion, newRegion);
             exposedRegion.union(exposedRegion, tmp);
 
-            function pointEqual(a, b) {
-                return a.x == b.x && a.y == b.y;
-            }
+            var dx = newPos.x - oldPos.x;
+            var dy = newPos.y - oldPos.y;
 
-            if (oldRegion.not_empty() && !pointEqual(oldPos, newPos)) {
-                // We're going to copy the contents of the old region into
-                // the area of the new region, so translate the old region
-                // into the coordinate space of the new region.
-                oldRegion.translate(newPos.x - oldPos.x, newPos.y - oldPos.y);
+            // 2)
+            if (oldRegion.not_empty() && (dx != 0 || dy != 0)) {
+                // Copying the pixel contents effectively "nullifies" the move.
+                // The only case left, 3), cares about the newly exposed places,
+                // so we put the old region in the coordinate space of the
+                // new region.
+                oldRegion.translate(dx, dy);
 
                 tmp.intersect(newRegion, oldRegion);
                 this._drawClippedToRegion(tmp, function(ctx) {
@@ -602,8 +656,9 @@
                 });
             }
 
-            // Pixels need to be exposed on the window in places where the
-            // new region is, but the old region isn't.
+            // 3)
+            // Send Expose events for places where the window is now, but
+            // wasn't before, or the new region minus the old region.
             tmp.subtract(newRegion, oldRegion);
             exposedRegion.union(exposedRegion, tmp);
 
@@ -683,7 +738,7 @@
                 event.type = "ConfigureNotify";
                 this._server.sendEvent(event);
 
-                this._wrapWindowChange(function() {
+                this._wrapBoundingRegionChange(function() {
                     this._configureWindow(props);
                 }.bind(this));
 
@@ -719,7 +774,7 @@
         },
         setWindowShapeRegion: function(shapeType, region) {
             if (shapeType === "Bounding") {
-                this._wrapWindowChange(function() {
+                this._wrapBoundingRegionChange(function() {
                     this._setBoundingRegion(region);
                 }.bind(this));
             } else if (shapeType == "Input") {
