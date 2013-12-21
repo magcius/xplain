@@ -16,7 +16,7 @@
 
     function bootstrapServer(container) {
         var elem = document.createElement("div");
-        elem.classList.add('server-slot');
+        elem.classList.add('demo-server-slot');
         container.appendChild(elem);
 
         var width = elem.clientWidth;
@@ -43,37 +43,45 @@
         return { display: display, server: server };
     }
 
-    function test(elem) {
-        bootstrapServer(elem);
+    var demos = {};
+    function registerDemo(name, func) {
+        demos[name] = func;
     }
 
-    function calculatorCSD(elem) {
+    registerDemo("test", function(elem) {
+        bootstrapServer(elem);
+    });
+
+    registerDemo("calculatorCSD", function(elem) {
         var res = bootstrapServer(elem);
         var server = res.server;
         var display = res.display;
         var calculator = new CalculatorCSD(server);
         Util.centerWindow(display, calculator.windowId);
         display.mapWindow({ windowId: calculator.windowId });
-    }
+    });
 
-    function expose(elem) {
+    registerDemo("expose", function(elem) {
         var res = bootstrapServer(elem);
         var server = res.server;
         var display = res.display;
         var kitten = new ExposeDemo(server, "kitten1.png");
         Util.centerWindow(display, kitten.windowId, { x: 15, y: 15 });
         display.mapWindow({ windowId: kitten.windowId });
+    });
+
+    function run() {
+        var elems = document.querySelectorAll(".demo-server");
+        [].forEach.call(elems, function(elem) {
+            var demoName = elem.dataset.demo;
+            var demoFunc = demos[demoName];
+            if (!demoFunc)
+                console.error("Unknown demo: " + demo);
+
+            demoFunc(elem);
+        });
     }
 
-    var demos = [
-        test,
-        calculatorCSD,
-        expose
-    ];
-
-    demos.forEach(function(func) {
-        var elem = document.querySelector(".demo-server." + func.name);
-        func(elem);
-    });
+    run();
 
 })(window);
