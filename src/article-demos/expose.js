@@ -17,7 +17,7 @@
             this._timeoutId = setTimeout(function() {
                 this._func();
                 this._schedule();
-            }, this._delay);
+            }.bind(this), this._delay);
         },
 
         stop: function() {
@@ -85,17 +85,18 @@
     var TAU = Math.PI * 2;
 
     // The time, in seconds, to complete a full movement.
-    var PERIOD = 2;
+    var PERIOD = 4;
 
     // The number of pixels to sway to either side.
-    var SWAY_AMOUNT = 100;
+    var SWAY_AMOUNT = 25;
 
-    // A simple moving window.
-    var ExposeDemo = new Class({
-        Extends: SimpleImage,
+    // Shakes a window
+    var WindowShaker = new Class({
+        initialize: function(server, windowId) {
+            var connection = server.connect();
+            this._display = connection.display;
 
-        initialize: function(server, imgSrc) {
-            this.parent(server, imgSrc);
+            this._windowId = windowId;
 
             this._timer = new Timer(TICK_MSEC, this._tick.bind(this));
             this._tickCount = 0;
@@ -103,17 +104,16 @@
         },
 
         start: function() {
-            var geometry = this._display.getGeometry({ drawableId: this.windowId });
+            var geometry = this._display.getGeometry({ drawableId: this._windowId });
             this._startX = geometry.x;
-
             this._timer.start();
         },
 
         // Make it move.
         _sync: function() {
-            var theta = TAU * (this._tickCount / TICKS_PER_SEC * PERIOD);
+            var theta = TAU * (this._tickCount / TICKS_PER_SEC / PERIOD);
             var x = this._startX + SWAY_AMOUNT * Math.sin(theta);
-            this._display.configureWindow({ windowId: this.windowId, x: x });
+            this._display.configureWindow({ windowId: this._windowId, x: x });
         },
 
         _tick: function() {
@@ -125,9 +125,19 @@
     ArticleDemos.registerDemo("expose", function(res) {
         var server = res.server;
         var display = res.display;
-        var kitten = new ExposeDemo(server, "kitten1.png");
-        Util.centerWindow(display, kitten.windowId, { x: 15, y: 15 });
-        display.mapWindow({ windowId: kitten.windowId });
+
+        // The shaking window that's behind.
+        var kitten2 = new SimpleImage(server, "kitten2.png");
+        Util.centerWindow(display, kitten2.windowId);
+        display.mapWindow({ windowId: kitten2.windowId });
+
+        // The window on top that's obscuring the window behind it.
+        var kitten1 = new SimpleImage(server, "kitten1.png");
+        Util.centerWindow(display, kitten1.windowId, { x: 15, y: 15 });
+        display.mapWindow({ windowId: kitten1.windowId });
+
+        var shaker = new WindowShaker(server, kitten2.windowId);
+        shaker.start();
     });
 
 })(window);
