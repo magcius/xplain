@@ -400,7 +400,7 @@
 
     // The right-hand pane of the inspector. It shows the window's geometry,
     // its attributes, and any custom properties.
-    var WindowInspector = new Class({
+    var WindowDetails = new Class({
         initialize: function(server) {
             this._server = server;
             var connection = server.connect();
@@ -411,7 +411,7 @@
             }.bind(this));
 
             this._toplevel = document.createElement('div');
-            this._toplevel.classList.add('window-inspector');
+            this._toplevel.classList.add('window-details');
 
             this._geometry = new HeaderBox("Geometry");
             this._geometry.content.classList.add('geometry-box');
@@ -636,8 +636,8 @@
             this._windowTree = new WindowTree(server);
             this._paneContainer.appendChild(this._windowTree.elem);
 
-            this._windowInspector = new WindowInspector(server);
-            this._paneContainer.appendChild(this._windowInspector.elem);
+            this._windowDetails = new WindowDetails(server);
+            this._paneContainer.appendChild(this._windowDetails.elem);
 
             this._highlighter = new InspectorHighlighter(server);
 
@@ -661,7 +661,7 @@
 
         _selectWindow: function(xid) {
             this._windowTree.selectWindow(xid);
-            this._windowInspector.selectWindow(xid);
+            this._windowDetails.selectWindow(xid);
         },
 
         _chooseWindow: function() {
