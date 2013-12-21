@@ -4,6 +4,7 @@
 (function(exports) {
     "use strict";
 
+    // Is this event something that's included in SubstructureRedirect?
     function isEventSubstructureRedirect(event) {
         switch (event.type) {
         case "MapRequest":
@@ -13,6 +14,7 @@
         return false;
     }
 
+    // Is this event something that's included in SubstructureNotify?
     function isEventSubstructureNotify(event) {
         switch (event.type) {
         case "MapNotify":
@@ -24,7 +26,9 @@
         return false;
     }
 
-    function isEventInputEvent(event) {
+    // Is this event a pointer input event? Used for the purposes of
+    // routing events when somebody has a pointer grab.
+    function isEventPointerInputEvent(event) {
         switch (event.type) {
         case "Enter":
         case "Leave":
@@ -36,8 +40,12 @@
         return false;
     }
 
-    function valueUpdated(a, b) {
-        return a !== undefined && a !== b;
+    // Several APIs take a bag of properties. If a property is missing
+    // from the bag, it's assumed to mean "keep the same value as before".
+    // Thus, a value is updated if it's not undefined and not the same
+    // as the existing value.
+    function valueUpdated(newValue, existingValue) {
+        return newValue !== undefined && newValue !== existingValue;
     }
 
     // A canvas to save data on during resizes.
@@ -227,8 +235,8 @@
     });
 
     // The server-side form of a Window. There's no split like Pixmap, since
-    // the X server doesn't have Windows that aren't exposed on the wire in
-    // any form.
+    // the X server doesn't maintain any windows that aren't also exposed on the
+    // wire in some form.
     var ServerWindow = new Class({
         initialize: function(xid, server, props) {
             this.xid = xid;
@@ -1129,7 +1137,7 @@
             });
         },
         sendEvent: function(event, except) {
-            if (isEventInputEvent(event) && this._grabClient) {
+            if (isEventPointerInputEvent(event) && this._grabClient) {
                 this._grabClient.sendEvent(event);
                 return true;
             } else {
