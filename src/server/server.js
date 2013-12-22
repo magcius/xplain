@@ -546,6 +546,8 @@
             var inputRegion = new Region();
             if (this._shapedInputRegion)
                 inputRegion.intersect(this._shapedInputRegion, this._unshapedBoundingRegion);
+            else if (this._shapedBoundingRegion)
+                inputRegion.copy(this._shapedBoundingRegion);
             else
                 inputRegion.copy(this._unshapedBoundingRegion);
 
