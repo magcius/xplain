@@ -750,6 +750,11 @@
             return { x: this.x, y: this.y, width: this.width, height: this.height };
         },
 
+        _sendShapeNotify: function(shapeType) {
+            this._server.sendEvent({ windowId: this.xid,
+                                     type: "ShapeNotify",
+                                     shapeType: shapeType });
+        },
         _setInputRegion: function(region) {
             if (region) {
                 if (!this._shapedInputRegion)
@@ -760,6 +765,7 @@
                     this._shapedInputRegion.finalize();
                 this._shapedInputRegion = null;
             }
+            this._sendShapeNotify("Input");
         },
         _setBoundingRegion: function(region) {
             if (region) {
@@ -771,14 +777,32 @@
                     this._shapedBoundingRegion.finalize();
                 this._shapedBoundingRegion = null;
             }
+            this._sendShapeNotify("Bounding");
         },
         setWindowShapeRegion: function(shapeType, region) {
             if (shapeType === "Bounding") {
                 this._wrapBoundingRegionChange(function() {
                     this._setBoundingRegion(region);
                 }.bind(this));
-            } else if (shapeType == "Input") {
+            } else if (shapeType === "Input") {
                 this._setInputRegion(region);
+            }
+        },
+        getWindowShapeRegion: function(shapeType) {
+            if (shapeType === "Bounding") {
+                if (this._shapedBoundingRegion) {
+                    var region = new Region();
+                    region.copy(this._shapedBoundingRegion);
+                    return region;
+                }
+            } else if (shapeType === "Input") {
+                if (this._shapedInputRegion) {
+                    var region = new Region();
+                    region.copy(this._shapedInputRegion);
+                    return region;
+                }
+            } else {
+                throw clientError("Invalid shapeType");
             }
         },
 
@@ -853,6 +877,7 @@
 
         // SHAPE / XFixes
         'setWindowShapeRegion',
+        'getWindowShapeRegion',
     ];
 
     // Install the API method for every request.
@@ -1855,6 +1880,10 @@
         _handle_setWindowShapeRegion: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             serverWindow.setWindowShapeRegion(props.shapeType, props.region);
+        },
+        _handle_getWindowShapeRegion: function(client, props) {
+            var serverWindow = this.getServerWindow(client, props.windowId);
+            return serverWindow.getWindowShapeRegion(props.shapeType);
         },
 
         // A wrapper which will catch any client errors thrown in the method

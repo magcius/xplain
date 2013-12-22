@@ -42,15 +42,28 @@
 
         _draw: function() {
             this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
-            this._ctx.beginPath();
 
             if (this._highlightedWindowId != null) {
                 var geom = this._display.getGeometry({ drawableId: this._highlightedWindowId });
                 var coords = this._display.translateCoordinates({ srcWindowId: this._highlightedWindowId,
                                                                   destWindowId: this._display.rootWindowId,
                                                                   x: 0, y: 0 });
+
                 this._ctx.fillStyle = 'rgba(100, 140, 200, 0.6)';
                 this._ctx.fillRect(coords.x, coords.y, geom.width, geom.height);
+
+                var shape = this._display.getWindowShapeRegion({ windowId: this._highlightedWindowId,
+                                                                 shapeType: 'Bounding' });
+                if (shape) {
+                    this._ctx.save();
+                    this._ctx.globalCompositeOperation = 'source-atop';
+                    this._ctx.translate(coords.x, coords.y);
+                    CanvasUtil.pathFromRegion(this._ctx, shape);
+                    this._ctx.fillStyle = 'yellow';
+                    this._ctx.fill();
+                    this._ctx.restore();
+                    this._ctx.beginPath();
+                }
 
                 var query = this._display.queryTree({ windowId: this._highlightedWindowId });
                 if (query.parent) {
@@ -68,12 +81,20 @@
 
                     this._ctx.strokeStyle = 'rgb(20, 75, 20, 0.5)';
                     this._ctx.stroke();
+                    this._ctx.beginPath();
                 }
             }
         },
 
         setWindowToHighlight: function(xid) {
+            if (this._highlightedWindowId)
+                this._display.selectInput({ windowId: this._highlightedWindowId,
+                                            events: ['!ShapeNotify'] });
             this._highlightedWindowId = xid;
+            if (this._highlightedWindowId)
+                this._display.selectInput({ windowId: this._highlightedWindowId,
+                                            events: ['ShapeNotify'] });
+
             this._draw();
         },
     });
