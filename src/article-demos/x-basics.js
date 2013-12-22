@@ -58,6 +58,21 @@
         },
     });
 
+    ArticleDemos.registerDemo("two-kittens", function(res) {
+        var server = res.server;
+        var display = res.display;
+
+        // The window on the left.
+        var kitten1 = new SimpleImage(server, "kitten1.png");
+        DemoCommon.centerWindow(display, kitten1.windowId, { x: -125, y: 0 });
+        display.mapWindow({ windowId: kitten1.windowId });
+
+        // The window on the right.
+        var kitten2 = new SimpleImage(server, "kitten2.png");
+        DemoCommon.centerWindow(display, kitten2.windowId, { x: +125, y: 0 });
+        display.mapWindow({ windowId: kitten2.windowId });
+    });
+
     // DelayedExposeImage waits a bit before processing expose events, to
     // emulate a "hung" or "slow" app and show off how expose processing works.
     var DelayedExposeImage = new Class({

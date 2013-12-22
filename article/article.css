@@ -83,23 +83,20 @@ h3 a {
 	float: right;
 }
 
-p, .table-of-contents li {
+p, li {
 	font-size: 14pt;
 	line-height: 1.5em;
+	text-align: justify;
+	margin: 1em 2em;
 }
 
 p {
-	margin: 1em 0;
-	padding: 0 3em;
-	text-align: justify;
 	text-indent: 1em;
 }
 
 .table-of-contents li {
-	margin-left: 2em;
-	font-weight: bold;
 	list-style-type: lower-roman;
-	list-style-position: outside;
+	font-weight: bold;
 }
 
 p.warning {
@@ -149,4 +146,10 @@ p.warning {
 	margin: 1em;
 	background-color: #eee;
 	white-space: pre;
+}
+
+.inspector-section-header {
+	font: bold smaller sans-serif;
+	background: #eee;
+	padding: 4px;
 }

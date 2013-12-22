@@ -52,6 +52,8 @@
     </header>
 
     <article>
+        <h2></h2>
+
         <noscript>
         <p class="warning">
             This article relies a lot of interactive demos that use JavaScript to show how the X Window System works.
@@ -60,51 +62,43 @@
         </p>
         </noscript>
 
-        <h2></h2>
-
         <section id="lets-go">
         <h3>Let's go</h3>
-        <div class="demo-server demo-inspectable" data-demo="calculatorCSD"></div>
+        <div class="demo-server demo-inspectable" data-demo="two-kittens"></div>
         <p>
-            Here's our example app. Excuse the programmer graphics, I'm simply just trying to represent
-            <a href="http://xawm.sourceforge.net/">the state of the art of the time</a>. It's a simple reverse polish
-            notiation calculator. For those of you not old enough to remember them, try pressing
-            <span class="calculator-button">7</span>, <span class="calculator-button">ENT</span>,
-            <span class="calculator-button">6</span>, then press <span class="calculator-button">*</span>.
-            It's not built very well, and you can probably break it fairly easily by making it display
-            <span class="calculator-result">NaN</span> by playing around with it.
-        </p>
-        <p>
-            But that's OK, because a stable calculator app isn't really the point here. While not a very complex, it's
-            good enough that it allows us to start understanding the basics of the X Window System.
+            Let's start super simple. Here's a simple X server with two windows in it. They don't have any title bars,
+            and you can't drag them around because I haven't launched any
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#glossary:Window_manager" class="definition">window manager</a>
+            yet. There's just two windows, each showing each kitten.
         </p>
         <p>
             You might notice that <span class="inspector-icon">i</span> button in the top right of the demo above.
-            Click on it, and the inspector will pop open. On the left side is the window tree, and on the right side
-            are the properties and attributes for the selected window.
+            Click on it, and the inspector will pop open. On the left side of the inspector is a list of windows,
+            and on the right side are the properties and attributes for the selected window.
         </p>
         <p>
-            <q>Wait a minute... window <em>tree</em>?</q>
+            This lets you dig into all the demos in this article in detail, showing how things are constructed.
+            So, if you ever find yourself not quite understanding something I'm saying, playing around with the
+            inspector can often help.
         </p>
         <p>
-            Yes. While you might imagine that the calculator above looks like it's only one window to us, the users,
-            it's actually built of 15 distinct windows. In the X Window System, as you can possibly imagine, a
-            <span class="definition">window</span> is the basic building block of the system. At a very basic level,
-            windows are simply rectangles that can receive input events like keyboard and mouse events, and display
-            pixels in their area.
+            A <span class="definition">window</span>, in the X11 protocol, is a structure that allows an
+            <span class="definition">X client</span> connecting to the X server to display something on the screen,
+            and take input as well. Windows have a stacking order, and the top window in the stacking order
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#glossary:Occlude" class="definition">occludes</a>
+            other windows below it.
         </p>
         <p>
-            Windows always have a parent. Windows live in the coordinate space of their parent, and the bounds of
-            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#glossary:Inferiors" class="definition">inferior windows</a>,
-            or child windows, are clipped to their parent. By default, every window is parented to
-            the <span class="definition">root window</span>, a special window owned and created by the X server.
+            For historical reasons related to some initial implementations, showing a window in the X11 protocol
+            is called <span class="definition">mapping</span> a window, and hiding a window is called
+            <span class="definition">unmapping</span>. Windows, when initially created, are unmapped (or hidden).
+            Clients have to map windows they create by sending a
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:MapWindow">MapWindow</a>
+            request to the X server. Keep in mind, unmapping a window isn't the same as destroying a window, since
+            the window can be mapped again later. It's more like minimizing a window.
         </p>
         <p>
-            If this sounds familiar to you, you might realize that this sounds an awful lot like the DOM tree
-            in HTML. A recursive data structure where every node can take input and draw to the screen... and
-            I don't blame you. However, windows in the X Window System and HTML-style DOM nodes have a lot of
-            subtle differences that make the X Window System's abstractions a bit less useful for building
-            widgets on. And that's what we're gonna be exploring next.
+            So, we know what windows are. But how are those kittens getting on the screen?
         </p>
         </section>
 
@@ -134,8 +128,8 @@
             itself.
         </p>
         <p>
-            The window on top, marked as <span class="code-literal">kitten1.jpg</span> in the inspector, owns
-            a rectangle in the center of the screen. The window below, <span class="code-literal">kitten2.jpg</span>,
+            The window on top, marked as <span class="code-literal">kitten1.png</span> in the inspector, owns
+            a rectangle in the center of the screen. The window below, <span class="code-literal">kitten2.png</span>,
             owns a "L" shape slightly above and to the left.
         </p>
         <p>
@@ -147,7 +141,7 @@
             window is.
         </p>
         <p>
-            You can also drag <span class="code-literal">kitten1.jpg</span> around. Try it, and see if you can figure
+            You can also drag <span class="code-literal">kitten1.png</span> around. Try it, and see if you can figure
             out how this behaves.
             <a href="http://www.mrdoob.com/lab/javascript/effects/ie6/">Does it seem familiar?</a> The authors of
             Windows 95 chose the same design when they wrote their display server, however they called their equivalent
@@ -161,10 +155,13 @@
         <h3>Windows of all shapes and sizes</h3>
         <div class="demo-server demo-inspectable" data-demo="shape"></div>
         <p>
-            I said above that windows are rectangles. Strictly speaking, that's not quite true. Above is a window
-            that has a circle shape. Dragging it around might slow your system down to a crawl, though. Internally, the
-            X server keeps a 1-bit bitmap (think white/black pixel mask) for every window, containing the part of the
-            overall rectangle that is currently showing on the screen. This data structure is called the
+            I said above that windows are rectangles. In the above demo, you see a circular window, so it's quite
+            obvious that I lied. You can still drag the top window around, but it might slow your browser down to a
+            crawl. Sorry, the math here is a lot more computationally expensive, especially in JavaScript.
+        </p>
+        <p>
+            Internally, the X server keeps a 1-bit bitmap (think white/black pixel mask) for every window, containing
+            the part of the overall rectangle that is currently showing on the screen. This data structure is called the
             <span class="definition">clip list</span> in Xorg. It's not actually a 1-bit bitmap, though, it's actually
             a data structure known as a <span class="definition">region</span>. You might recognize this if you've
             ever used the <a href="http://cairographics.org">cairo graphics library</a>, as it has an implementation
@@ -172,9 +169,10 @@
             <a href="http://cairographics.org/manual/cairo-Regions.html" class="code-literal">cairo_region_t</a>.
         </p>
         <p>
-            A region is an alternate representation for a 1-bit bitmap: a list of rectangles. In almost of the cases
+            A region is a equivalent representation for a 1-bit bitmap: a list of rectangles. In almost of the cases
             that the X server will use a region, this representation is both more computationally-efficient and
-            memory-efficient than a 1-bit bitmap. A simple exception is a checkerboard pattern (like the stipple background on the server above!), since there will be a lot of small, 1-pixel rectangles.
+            memory-efficient than a 1-bit bitmap. A simple exception is a checkerboard pattern (like the stipple
+            background on the server above!), since there will be a lot of small, 1-pixel rectangles.
         </p>
         <p>
             If you're an old Linux user, you might remember old versions of the
@@ -193,7 +191,7 @@
     region.add_rectangle(window.bounding_rectangle);
 
     region.intersect_rectangle(other_window.whatever);
-    display.draw_some_nonsense(region);
+    draw_some_nonsense(region);
 }</div>
         <p>
             That is, the code was almost always taking the window's bounding rectangle, and then converting it into a
@@ -211,23 +209,83 @@
         </p>
         <p>
             There's two more notes I want to make here. Although this might seem like it would allow for some windows
-            to be transparent by poking holes in them, it's an all-or-nothing proposition. That is, if you point to
-            any pixel in the server, I can tell you the window that will paint to that pixel. The X SHAPE Extension
-            doesn't change this, it just makes the logic for figuring out which window "owns" a specific pixel more
-            complicated. In order to allow truly transparent windows, we'll have to somehow figure out to blend between
-            what windows draw.
+            to be transparent by poking holes in them, it's an all-or-nothing proposition. That is, if you take your
+            finger and point to any pixel on the above display, I can do some math and tell you the exact window that
+            will paint to that pixel at any point in time. The X SHAPE Extension doesn't change this, it just makes the
+            logic for figuring out which window "owns" a specific pixel more complicated than simply comparing
+            rectangles. In order to allow truly transparent windows, we'll have to somehow figure out a way to blend
+            between what windows draw.
         </p>
         <p>
-            Also, setting a bounding region larger than the window's width/height can't actually make the
-            window own pixels that it wouldn't own otherwise. The bounding region only allows a window to carve
-            away from where it would normally paint and give that space to the windows underneath.
+            Also, setting a window shape larger than the window's width/height can't actually make the window own some
+            pixels that it wouldn't own otherwise. Setting a window shape only allows a window to carve away from where
+            it would normally paint and give that space to the windows underneath.
         </p>
+        </section>
+
+        <section id="pixmaps">
+        <h3>Pixmaps</h3>
+        <p>
+            The nosy of you playing around with that last demo might have noticed something special on
+            <span class="code-literal">kittencircle.png</span> in the last demo. In the
+            <span class="inspector-section-header">Attributes</span> section of the inspector,
+            you might have noticed a <span class="code-literal">background-pixmap</span> attribute, and hovering over
+            it shows the circle kitten image! That raises up the question: what is a Pixmap,and why did the other
+            windows have a <span class="code-literal">background-color</span> instead?
+        </p>
+        <p>
+            You might have been wondering how it could have been efficient to keep transfering missing pixels for the
+            for the kitten images at 60 frames per second. The answer is that we're not. Instead, we create a
+            <span class="definition">Pixmap</span>, which allows us to have memory-backed pixel storage on the server.
+            We then draw the kitten image to the Pixmap once, using
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:PutImage" class="code-literal">PutImage</a>.
+        </p>
+        <p>
+            Whenever we want to draw to the window from an <span class="code-literal">Expose</span> event, we simply
+            tell the X server to
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:CopyArea" class="code-literal">CopyArea</a>
+            from the Pixmap to the Window.
+        </p>
+        <p>
+            You might have noticed the word <span class="definition">Drawable</span> in the protocol documentation.
+            A <span class="Definition">Drawable</span> is something that the user can draw to, which is either a
+            Pixmap or a Window. A Pixmap draws to its own memory storage, but a Window draws to the pixels on the
+            front buffer which it owns.
+        </p>
+        <p>
+            <q>OK, so, then what's this about <span class="code-literal">background-color</span> and
+            <span class="code-literal">background-pixmap</span>?</q>
+        </p>
+        <p>
+            When the X server sends <span class="code-literal">Expose</span> events to a window, keep in mind that
+            means that there are pixels "missing" from the front buffer that need to be redrawn. It needs to fill in
+            the missing pixels with <em>something</em>, and the X server provides a window with three options:
+        </p>
+        <ol>
+            <li>
+                It can fill the pixels with a color. This is what the
+                <span class="code-literal">background-color</span> attribute specifies.
+            </li>
+            <li>
+                It can fill the pixels with the contents of a pixmap. This is what the
+                <span class="code-literal">background-pixmap</span> attribute specifies.
+            </li>
+            <li>
+                It can do nothing, and simply leave whatever pixels were there before, and wait for the application
+                to redraw. This is also the default, and it's what you get when there's no explicit
+                <span class="code-literal">background-color</span> or
+                <span class="code-literal">background-pixmap</span> attributes.
+
+                This is how Windows works, and why you see the the repeated "IE6 crashed" window when
+                explorer.exe crashes.
+            </li>
+        </ol>
         </section>
 
         <section id="next-time">
         <h3>Coming up...</h3>
         <p>
-            Next time, we're going to look at input management, including pointer input, keyboard input, and grabs!
+            Next time, we're going to delve into more depth about windows: the window tree, window managers.
         </p>
     </article>
 
@@ -238,14 +296,11 @@
     <script src="../src/class.js"></script>
     <script src="../src/canvas-util.js"></script>
     <script src="../src/server/server.js"></script>
-    <script src="../src/clients/wm.js"></script>
-    <script src="../src/clients/toolkit.js"></script>
-    <script src="../src/clients/calculator.js"></script>
     <script src="../src/inspector/inspector.js"></script>
-
+    <script src="../src/clients/toolkit.js"></script>
     <script src="../src/article-demos/demos.js"></script>
     <script src="../src/article-demos/demo-common.js"></script>
-    <script src="../src/article-demos/expose.js"></script>
+    <script src="../src/article-demos/x-basics.js"></script>
 
     <script>
         (function() {
