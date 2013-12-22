@@ -948,7 +948,7 @@
 
             eventTypes.forEach(function(eventType) {
                 // If we have "!ButtonPress", remove it from the list.
-                if (eventType.startsWith("!")) {
+                if (eventType[0] == "!") {
                     var idx = listeningFor.indexOf(eventType.slice(1));
                     if (idx < 0)
                         return;
