@@ -25,21 +25,21 @@
     }
 
     var Xeyes = new Class({
-        Extends: Window,
-        connect: function(server) {
-            this.parent(server);
+        initialize: function(server) {
+            var connection = server.connect();
+            this._display = connection.display;
+            var port = connection.clientPort;
+            port.addEventListener("message", function(messageEvent) {
+                this._handleEvent(messageEvent.data);
+            }.bind(this));
 
             this._pointerRootX = -1;
             this._pointerRootY = -1;
 
-            this._display.selectInput({ windowId: this.windowId,
-                                        events: ["MapNotify", "UnmapNotify"] });
-            this._display.configureWindow({ windowId: this.windowId,
-                                            width: 200, height: 150 });
-            this._display.changeProperty({ windowId: this.windowId,
-                                           name: "WM_NAME",
-                                           value: "xeyes.js" });
-            this._display.mapWindow({ windowId: this.windowId });
+            this.windowId = this._display.createWindow({ x: 0, y: 0, width: 200, height: 150 });
+            this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ConfigureNotify", "MapNotify", "UnmapNotify"] });
+            this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "xeyes.js" });
+            this._exposeHandler = new ExposeHandler(this._draw.bind(this));
         },
         _start: function() {
             this._intervalId = setInterval(function() {
@@ -57,20 +57,25 @@
             clearInterval(this._intervalId);
             this._intervalId = 0;
         },
-        configureNotify: function(event) {
-            this.parent(event);
-            this._display.invalidateWindow({ windowId: this.windowId });
+        _configureNotify: function(event) {
+            // Invalidate the entire window when we get resized, as we need
+            // to repaint all contents to fit the new size.
+            if (event.width !== undefined || event.height !== undefined)
+                this._display.invalidateWindow({ windowId: this.windowId });
         },
         handleEvent: function(event) {
             switch(event.type) {
+            case "Expose":
+                return this._exposeHandler.handleExpose(event);
+            case "ConfigureNotify":
+                return this._configureNotify(event);
             case "MapNotify":
                 return this._start();
             case "UnmapNotify":
                 return this._stop();
-            default:
-                return this.parent(event);
             }
         },
+
         _draw: function() {
             var eyeRX = this.width / 4 - 6;
             var eyeRY = this.height / 2 - 6;
