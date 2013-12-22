@@ -79,7 +79,7 @@
                     this._ctx.moveTo(coords.x + 0.5, parentCoords.y);
                     this._ctx.lineTo(coords.x + 0.5, coords.y);
 
-                    this._ctx.strokeStyle = 'rgb(20, 75, 20, 0.5)';
+                    this._ctx.strokeStyle = 'rgba(20, 20, 75, 0.5)';
                     this._ctx.stroke();
                     this._ctx.beginPath();
                 }
