@@ -572,7 +572,7 @@
             this._geometry.setVisible(hasWindow);
             this._attributes.setVisible(hasWindow);
             this._properties.setVisible(hasWindow);
-            this._noWindowSelected.style.display = (!hasWindow) ? 'flex' : 'none';
+            this._noWindowSelected.classList.toggle('visible', !hasWindow);
 
             if (hasWindow) {
                 this._syncGeometry();

@@ -131,13 +131,18 @@
 }
 
 .inspector .window-details .no-window-selected {
-    display: flex;
+    display: none;
+
     align-items: center;
     justify-content: center;
     height: 224px;
     background: #eee;
     color: #000;
     font: bold smaller sans-serif;
+}
+
+.inspector .window-details .no-window-selected.visible {
+    display: flex;
 }
 
 .inspector .window-details .geometry-size,
