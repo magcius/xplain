@@ -105,3 +105,12 @@ p.warning {
 	padding: 4px;
 	background-color: #eee;
 }
+
+.code-block {
+	font-size: larger;
+	font-family: monospace;
+	padding: 2em;
+	margin: 1em;
+	background-color: #eee;
+	white-space: pre;
+}
