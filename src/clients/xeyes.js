@@ -39,7 +39,7 @@
             this.windowId = this._display.createWindow({ x: 0, y: 0, width: 200, height: 150 });
             this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ConfigureNotify", "MapNotify", "UnmapNotify"] });
             this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "xeyes.js" });
-            this._exposeHandler = new ExposeHandler(this._draw.bind(this));
+            this._exposeHandler = new DemoCommon.ExposeHandler(this._draw.bind(this));
         },
         _start: function() {
             this._intervalId = setInterval(function() {

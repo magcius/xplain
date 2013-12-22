@@ -125,7 +125,7 @@
 
             this._display.mapWindow({ windowId: this._windowId });
 
-            this._exposeHandler = new ExposeHandler(this._draw.bind(this));
+            this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
         },
 
         _syncShowing: function() {

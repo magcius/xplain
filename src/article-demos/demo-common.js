@@ -5,23 +5,6 @@
 
     var DemoCommon = {};
 
-    // Loads an a remote image URL as a server-side pixmap.
-    DemoCommon.loadImageAsPixmap = function(display, src, callback) {
-        var image = new Image();
-        image.addEventListener("load", function() {
-            var width = image.width;
-            var height = image.height;
-
-            var pixmapId = display.createPixmap({ width: width, height: height });
-            display.drawTo(pixmapId, function(ctx) {
-                ctx.drawImage(image, 0, 0);
-            });
-
-            callback(pixmapId);
-        });
-        image.src = src;
-    };
-
     // Centers the given window on the server, plus or minus an offset.
     DemoCommon.centerWindow = function(display, windowId, offset) {
         var rootGeom = display.getGeometry({ drawableId: display.rootWindowId });
@@ -35,7 +18,7 @@
 
     // Allows the user to drag and drop a window with the standard
     // "press left-click", "move mouse", "release left-click" motions.
-    var WindowDragger = new Class({
+    DemoCommon.WindowDragger = new Class({
         initialize: function(server, windowId) {
             var connection = server.connect();
             this._display = connection.display;
@@ -108,8 +91,6 @@
             }
         },
     });
-
-    DemoCommon.WindowDragger = WindowDragger;
 
     exports.DemoCommon = DemoCommon;
 

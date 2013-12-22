@@ -23,7 +23,7 @@
             this._display.selectInput({ windowId: this.windowId, events: ['Expose'] });
 
             this._pixmapId = 0;
-            DemoCommon.loadImageAsPixmap(this._display, imgSrc, function(pixmapId) {
+            ClientUtil.loadImageAsPixmap(this._display, imgSrc, function(pixmapId) {
                 this._pixmapId = pixmapId;
                 this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this));
@@ -232,7 +232,7 @@
 
             this._display.changeProperty({ windowId: this.windowId, name: 'WM_NAME', value: imgSrc });
 
-            DemoCommon.loadImageAsPixmap(this._display, imgSrc, function(pixmapId) {
+            ClientUtil.loadImageAsPixmap(this._display, imgSrc, function(pixmapId) {
                 this._setShape(pixmapId);
                 this._display.changeAttributes({ windowId: this.windowId, backgroundPixmap: pixmapId });
                 this._display.invalidateWindow({ windowId: this.windowId });
