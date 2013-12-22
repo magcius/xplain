@@ -101,46 +101,72 @@
 
     // A simple window that opens/closes the inspector when clicking on it.
     var InspectorButton = new Class({
-        Extends: Window,
-        initialize: function(inspector) {
-            this.parent();
-            this._inspector = inspector;
-        },
-        connect: function(server) {
-            this.parent(server);
-            this._display.changeAttributes({ windowId: this.windowId, cursor: 'pointer', overrideRedirect: true });
-            this._display.changeProperty({ windowId: this.windowId, name: 'DEBUG_NAME', value: "Inspector Button" });
-            this._display.selectInput({ windowId: this.windowId, events: ["ButtonRelease"] });
-            this._display.selectInput({ windowId: this._display.rootWindowId, events: ["ConfigureNotify"] });
-            this._display.configureWindow({ windowId: this.windowId, width: 32, height: 32 });
-            this._syncConfiguration();
+        initialize: function(server, inspector) {
+            var connection = server.connect();
+            this._display = connection.display;
+            var port = connection.clientPort;
+            port.addEventListener("message", function(messageEvent) {
+                this._handleEvent(messageEvent.data);
+            }.bind(this));
 
-            this.setShowing(false);
-            this._display.mapWindow({ windowId: this.windowId });
+            this._inspector = inspector;
+
+
+            this._windowId = this._display.createWindow({ x: 0, y: 0, width: 32, height: 32 });
+            this._display.changeAttributes({ windowId: this._windowId, cursor: 'pointer', overrideRedirect: true });
+            this._display.changeProperty({ windowId: this._windowId, name: 'DEBUG_NAME', value: "Inspector Button" });
+            this._display.selectInput({ windowId: this._windowId, events: ["ButtonRelease", "Expose", "ConfigureNotify"] });
+            this._display.selectInput({ windowId: this._display.rootWindowId, events: ["ConfigureNotify"] });
+
+            this._showing = false;
+
+            this._placeButton();
+            this._syncShowing();
+
+            this._display.mapWindow({ windowId: this._windowId });
+
+            this._exposeHandler = new ExposeHandler(this._draw.bind(this));
         },
-        _syncConfiguration: function() {
+
+        _syncShowing: function() {
+            var color = this._showing ? '#000000' : '#ffffff';
+            this._display.changeAttributes({ windowId: this._windowId, backgroundColor: color });
+            this._display.invalidateWindow({ windowId: this._windowId });
+        },
+        setShowing: function(showing) {
+            if (this._showing == showing)
+                return;
+
+            this._showing = showing;
+            this._syncShowing();
+        },
+
+        _placeButton: function() {
             var rootGeom = this._display.getGeometry({ drawableId: this._display.rootWindowId });
-            var selfGeom = this._display.getGeometry({ drawableId: this.windowId });
+            var selfGeom = this._display.getGeometry({ drawableId: this._windowId });
 
             // Place in the top-right of the root window.
             var padding = 10;
             var x = rootGeom.width - selfGeom.width - padding;
             var y = padding;
-            this._display.configureWindow({ windowId: this.windowId, x: x, y: y });
+            this._display.configureWindow({ windowId: this._windowId, x: x, y: y });
         },
-        configureNotify: function(event) {
+
+        _clicked: function() {
+            this._inspector.toggle();
+        },
+        _configureNotify: function(event) {
             if (event.windowId == this._display.rootWindowId) {
-                this._syncConfiguration();
-                this._display.invalidateWindow({ windowId: this.windowId });
+                this._placeButton();
+                this._display.invalidateWindow({ windowId: this._windowId });
             } else {
-                this.parent(event);
-                this._display.invalidateWindow({ windowId: this.windowId });
+                this._display.invalidateWindow({ windowId: this._windowId });
             }
         },
         _draw: function() {
-            this._display.drawTo(this.windowId, function(ctx) {
+            this._display.drawTo(this._windowId, function(ctx) {
                 this._exposeHandler.clip(ctx);
-                var geom = this._display.getGeometry({ drawableId: this.windowId });
+                var geom = this._display.getGeometry({ drawableId: this._windowId });
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = '#000000';
                 ctx.strokeRect(0, 0, geom.width, geom.height);
@@ -152,21 +178,14 @@
                 ctx.fillText('i', geom.width / 2, 8);
             }.bind(this));
         },
-        _clicked: function() {
-            this._inspector.toggle();
-        },
-        setShowing: function(showing) {
-            this._showing = showing;
-            var color = this._showing ? '#000000' : '#ffffff';
-            this._display.changeAttributes({ windowId: this.windowId, backgroundColor: color });
-            this._display.invalidateWindow({ windowId: this.windowId });
-        },
-        handleEvent: function(event) {
+        _handleEvent: function(event) {
             switch (event.type) {
             case "ButtonRelease":
                 return this._clicked(event);
-            default:
-                return this.parent(event);
+            case "ConfigureNotify":
+                return this._configureNotify(event);
+            case "Expose":
+                return this._exposeHandler.handleExpose(event);
             }
         },
     });
@@ -688,8 +707,7 @@
                 this._selectWindow(xid);
             }.bind(this);
 
-            this._button = new InspectorButton(this);
-            this._button.connect(server);
+            this._button = new InspectorButton(server, this);
 
             this.elem = this._toplevel;
         },
