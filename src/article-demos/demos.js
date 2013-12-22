@@ -57,20 +57,6 @@
         demos[name] = func;
     };
 
-    // The "test" demo used in the first paragraph to let the user test
-    // that everything is working fine on their browser...
-    ArticleDemos.registerDemo("test", function() {
-        // Nothing to do.
-    });
-
-    ArticleDemos.registerDemo("calculatorCSD", function(res) {
-        var server = res.server;
-        var display = res.display;
-        var calculator = new CalculatorCSD(server);
-        DemoCommon.centerWindow(display, calculator.windowId);
-        display.mapWindow({ windowId: calculator.windowId });
-    });
-
     ArticleDemos.runDemo = function(elem) {
         var demoName = elem.dataset.demo;
         var demoFunc = demos[demoName];
