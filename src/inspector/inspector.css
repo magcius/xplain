@@ -182,6 +182,7 @@
     left: -4px;
     top: -2px;
     transform: translate(-100%, -100%);
+    -webkit-transform: translate(-100%, -100%);
 }
 
 .inspector .window-details .attribute-list,
@@ -219,6 +220,7 @@
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
     padding: 10px;
     transform: translate(25px, 25px);
+    -webkit-transform: translate(25px, 25px);
     text-align: center;
 }
 
