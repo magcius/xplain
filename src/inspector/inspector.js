@@ -648,15 +648,43 @@
         },
     });
 
+    var WindowsTab = new Class({
+        initialize: function(server) {
+            this.tabButton = document.createElement('div');
+            this.tabButton.classList.add('inspector-tab-button');
+            this.tabButton.textContent = "Windows";
+
+            this._toplevel = document.createElement('div');
+            this._toplevel.classList.add('inspector-tab');
+            this._toplevel.classList.add('pane-container');
+
+            this._windowTree = new WindowTree(server);
+            this._toplevel.appendChild(this._windowTree.elem);
+
+            this._windowDetails = new WindowDetails(server);
+            this._toplevel.appendChild(this._windowDetails.elem);
+
+            this.elem = this._toplevel;
+
+            this._windowTree.onWindowHighlighted = function(xid) {
+                this.onWindowHighlighted(xid);
+            }.bind(this);
+            this._windowTree.onWindowSelected = function(xid) {
+                this.selectWindow(xid);
+            }.bind(this);
+        },
+
+        selectWindow: function(xid) {
+            this._windowTree.selectWindow(xid);
+            this._windowDetails.selectWindow(xid);
+        },
+    });
+
     var Inspector = new Class({
         initialize: function(server) {
             this._server = server;
             var connection = server.connect();
             this._display = connection.display;
-            this._port = connection.clientPort;
-            this._port.addEventListener("message", function(messageEvent) {
-                this._handleEvent(messageEvent.data);
-            }.bind(this));
 
             this._toplevel = document.createElement('div');
             this._toplevel.classList.add('inspector');
@@ -667,8 +695,15 @@
 
             this._header = document.createElement('div');
             this._header.classList.add('header');
-            this._header.textContent = 'Inspector';
             this._toplevel.appendChild(this._header);
+
+            this._windowsTab = new WindowsTab(server);
+            this._windowsTab.onWindowHighlighted = function(xid) {
+                this._highlighter.setWindowToHighlight(xid);
+            }.bind(this);
+            this._addTab(this._windowsTab);
+
+            this._selectTab(this._windowsTab);
 
             this._closeButton = document.createElement('div');
             this._closeButton.classList.add('close-button');
@@ -688,26 +723,8 @@
             this._refreshButton.addEventListener("click", this._redrawServer.bind(this));
             this._header.appendChild(this._refreshButton);
 
-            this._paneContainer = document.createElement('div');
-            this._paneContainer.classList.add('pane-container');
-            this._toplevel.appendChild(this._paneContainer);
-
-            this._windowTree = new WindowTree(server);
-            this._paneContainer.appendChild(this._windowTree.elem);
-
-            this._windowDetails = new WindowDetails(server);
-            this._paneContainer.appendChild(this._windowDetails.elem);
-
-            this._highlighter = new InspectorHighlighter(server);
-
-            this._windowTree.onWindowHighlighted = function(xid) {
-                this._highlighter.setWindowToHighlight(xid);
-            }.bind(this);
-            this._windowTree.onWindowSelected = function(xid) {
-                this._selectWindow(xid);
-            }.bind(this);
-
             this._button = new InspectorButton(server, this);
+            this._highlighter = new InspectorHighlighter(server);
 
             this.elem = this._toplevel;
         },
@@ -717,9 +734,35 @@
             this._button.setShowing(this.elem.classList.contains("visible"));
         },
 
+        _addTab: function(tab) {
+            this._header.appendChild(tab.tabButton);
+            this._toplevel.appendChild(tab.elem);
+
+            tab.tabButton.addEventListener('click', function() {
+                this._selectTab(tab);
+            }.bind(this));
+        },
+
+        _selectTab: function(tab) {
+            if (this._currentTab == tab)
+                return;
+
+            if (this._currentTab) {
+                this._currentTab.tabButton.classList.remove('selected');
+                this._currentTab.elem.classList.remove('visible');
+            }
+
+            this._currentTab = tab;
+
+            if (this._currentTab) {
+                this._currentTab.tabButton.classList.add('selected');
+                this._currentTab.elem.classList.add('visible');
+            }
+        },
+
         _selectWindow: function(xid) {
-            this._windowTree.selectWindow(xid);
-            this._windowDetails.selectWindow(xid);
+            this._selectTab(this._windowsTab);
+            this._windowsTab.selectWindow(xid);
         },
 
         _chooseWindow: function() {

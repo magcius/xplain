@@ -29,6 +29,23 @@
     padding-left: 1em;
 }
 
+.inspector .inspector-tab-button {
+    display: inline-block;
+    padding: 0 1em;
+    margin: 0 0.25em;
+    cursor: default;
+}
+
+.inspector .inspector-tab-button.selected {
+    background: radial-gradient(ellipse at center bottom, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 50%),
+                linear-gradient(to bottom, #ccc, #aaa, #ccc);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+    border-width: 1px;
+    border-style: none solid;
+    border-color: rgba(0, 0, 0, 0.3);
+    text-shadow: 0px 1px rgba(255, 255, 255, 0.4);
+}
+
 .inspector .close-button,
 .inspector .refresh-button,
 .inspector .choose-window-button {
