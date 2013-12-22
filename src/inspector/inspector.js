@@ -517,7 +517,7 @@
             tooltip.elem.appendChild(pixmapDisplay);
 
             var tooltipDescription = document.createElement('span');
-            tooltipDescription.innerHTML = "<span>" + image.width + "</span>×<span>" + image.height + "</span>, pixmap ID <span>" + xid + "</span>";
+            tooltipDescription.innerHTML = "<span>" + image.width + "</span>×<span>" + image.height + "</span>, XID <span>" + xid + "</span>";
             tooltipDescription.classList.add('tooltip-description');
             tooltip.elem.appendChild(tooltipDescription);
 

@@ -89,14 +89,17 @@
     cursor: default;
 }
 
-.inspector .window-tree .window .title .debug-name {
+.inspector .xid {
+    color: #449944;
+    font-style: italic;
+}
+
+.inspector .debug-name {
     color: #994499;
 }
 
 .inspector .window-tree .window .title .xid {
-    color: #449944;
     padding-left: 1em;
-    font-style: italic;
 }
 
 .inspector .window-tree .window .cursor-window-emblem {
