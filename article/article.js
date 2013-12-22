@@ -1,8 +1,13 @@
+// Contains various utility methods to help generate the more dynamic parts
+// of the articles. You may be looking for the code for some of the demos,
+// which are in src/article-demos.
+
 (function(exports) {
     "use strict";
 
     var Article = {};
 
+    // The master table of contents.
     var TOC = [
         { id: "index", title: "Introduction & Table of Contents" },
         { id: "x-basics", title: "X Window System Basics" }
@@ -19,6 +24,7 @@
         return entry.id + '.html';
     }
 
+    // Generate the table of contents
     Article.generateTOC = function() {
         var tocElem = document.querySelector('.table-of-contents');
         TOC.forEach(function(entry) {
@@ -32,6 +38,8 @@
         });
     };
 
+    // Generate the <h2> at the top of each page, along with nav buttons linking
+    // to the next/previous articles.
     Article.generateNavButtons = function() {
         var h2 = document.querySelector('h2');
         var entryIndex = findTOCEntryIndex(document.body.id);
@@ -63,6 +71,7 @@
         createNavButton(TOC[entryIndex + 1], '&rang;');
     };
 
+    // Generate the permalinks to each section in the article for easy linking.
     Article.generateSectionLinks = function() {
         var sections = document.querySelectorAll('section');
         [].forEach.call(sections, function(section) {

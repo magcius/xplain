@@ -240,17 +240,9 @@
             "use strict";
 
             window.addEventListener("load", function() {
-                // Generate the Table of Contents
                 Article.generateTOC();
-
-                // Generate the prev/next buttons at the top/bottom of each
-                // article, along with the dynamic H2 element.
                 Article.generateNavButtons();
-
-                // Generate all the section permalinks
                 Article.generateSectionLinks();
-
-                // Run all the demos
                 ArticleDemos.runAllDemos();
             });
         })();
