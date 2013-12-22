@@ -11,7 +11,8 @@ html, body {
 	margin: 0 auto;
 }
 
-h1, h2, h3 {
+h1, .subtitle, h2, h3 {
+	display: block;
 	font-family: "Adobe Garamond Pro";
 	text-align: center;
 	margin: 0;
@@ -29,9 +30,10 @@ h1 span {
 	padding: 8px 20px 0px 20px;
 }
 
-h2 {
+.subtitle {
 	font-style: italic;
 	font-weight: normal;
+	font-size: 18pt;
 }
 
 section, header {
@@ -41,6 +43,30 @@ section, header {
 section {
 	margin: 1em 0;
 	padding: 1em 0;
+}
+
+h2 {
+	text-align: center;
+	font-size: 24pt;
+	background-color: white;
+	margin-top: .5em;
+	padding: .5em 0;
+
+	display: flex;
+	align-items: center;
+}
+
+h2 .text-slot {
+	flex: 1;
+}
+
+h2 .nav-button {
+	width: 64px;
+}
+
+h2 .nav-button a {
+	color: black;
+	text-decoration: none;
 }
 
 h3 {
@@ -57,13 +83,23 @@ h3 a {
 	float: right;
 }
 
+p, .table-of-contents li {
+	font-size: 14pt;
+	line-height: 1.5em;
+}
+
 p {
 	margin: 1em 0;
 	padding: 0 3em;
-	font-size: 14pt;
 	text-align: justify;
 	text-indent: 1em;
-	line-height: 1.5;
+}
+
+.table-of-contents li {
+	margin-left: 2em;
+	font-weight: bold;
+	list-style-type: lower-roman;
+	list-style-position: outside;
 }
 
 p.warning {
