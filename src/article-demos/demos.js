@@ -67,7 +67,7 @@
         var server = res.server;
         var display = res.display;
         var calculator = new CalculatorCSD(server);
-        Util.centerWindow(display, calculator.windowId);
+        DemoCommon.centerWindow(display, calculator.windowId);
         display.mapWindow({ windowId: calculator.windowId });
     });
 

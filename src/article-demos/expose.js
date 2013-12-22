@@ -23,7 +23,7 @@
             this._display.selectInput({ windowId: this.windowId, events: ['Expose'] });
 
             this._pixmapId = 0;
-            Util.loadImageAsPixmap(this._display, imgSrc, function(pixmapId) {
+            DemoCommon.loadImageAsPixmap(this._display, imgSrc, function(pixmapId) {
                 this._pixmapId = pixmapId;
                 this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this));
@@ -158,12 +158,12 @@
 
         // The shaking window that's behind.
         var kitten2 = new DelayedExposeImage(server, "kitten2.png");
-        Util.centerWindow(display, kitten2.windowId, { x: -20, y: -40 });
+        DemoCommon.centerWindow(display, kitten2.windowId, { x: -20, y: -40 });
         display.mapWindow({ windowId: kitten2.windowId });
 
         // The window on top that's obscuring the window behind it.
         var kitten1 = new SimpleImage(server, "kitten1.png");
-        Util.centerWindow(display, kitten1.windowId);
+        DemoCommon.centerWindow(display, kitten1.windowId);
         display.mapWindow({ windowId: kitten1.windowId });
 
         var dragger = new DemoCommon.WindowDragger(server, kitten1.windowId);
@@ -217,7 +217,7 @@
 
             this._display.changeProperty({ windowId: this.windowId, name: 'WM_NAME', value: imgSrc });
 
-            Util.loadImageAsPixmap(this._display, imgSrc, function(pixmapId) {
+            DemoCommon.loadImageAsPixmap(this._display, imgSrc, function(pixmapId) {
                 this._setShape(pixmapId);
                 this._display.changeAttributes({ windowId: this.windowId, backgroundPixmap: pixmapId });
                 this._display.invalidateWindow({ windowId: this.windowId });
@@ -243,12 +243,12 @@
 
         // The shaking window that's behind.
         var kitten2 = new DelayedExposeImage(server, "kitten2.png");
-        Util.centerWindow(display, kitten2.windowId, { x: -20, y: -40 });
+        DemoCommon.centerWindow(display, kitten2.windowId, { x: -20, y: -40 });
         display.mapWindow({ windowId: kitten2.windowId });
 
         // The circle window that's on top.
         var kittencircle = new ShapedImage(server, 'kittencircle.png');
-        Util.centerWindow(display, kittencircle.windowId);
+        DemoCommon.centerWindow(display, kittencircle.windowId);
         display.mapWindow({ windowId: kittencircle.windowId });
 
         var dragger = new DemoCommon.WindowDragger(server, kittencircle.windowId);
