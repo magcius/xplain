@@ -600,7 +600,7 @@
                 var xidLabel = document.createElement('span');
                 xidLabel.classList.add('value');
                 xidLabel.classList.add('xid');
-                xidLabel.textContent = xid;
+                xidLabel.textContent = attribs.backgroundPixmap;
                 this._toplevel.appendChild(xidLabel);
 
                 if (attribs.backgroundColor)
