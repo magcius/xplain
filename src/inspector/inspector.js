@@ -234,6 +234,11 @@
         },
     });
 
+
+    // A simple container to not litter the DOM...
+    var tooltipsContainer = document.createElement('tooltips-container');
+    document.body.appendChild(tooltipsContainer);
+
     // A simple custom-content tooltip that tracks the cursor when
     // the user hovers over the target element.
     var Tooltip = new Class({
@@ -246,7 +251,7 @@
             this.elem = document.createElement("div");
             this.elem.classList.add("tooltip");
             this.elem.style.position = "absolute";
-            document.body.appendChild(this.elem);
+            tooltipsContainer.appendChild(this.elem);
 
             this._setVisible(false);
         },
