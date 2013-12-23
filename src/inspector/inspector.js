@@ -436,6 +436,65 @@
         },
     });
 
+
+    // Creates a simple that shows a small pixmap, and shows the full
+    // pixmap in a Tooltip when hovering over it.
+    var PixmapDisplay = new Class({
+        initialize: function(server, xid) {
+            this._server = server;
+            var connection = server.connect();
+            this._display = connection.display;
+
+            this._xid = xid;
+
+            this._toplevel = document.createElement('span');
+
+            this._thumbCanvas = document.createElement('canvas');
+            this._thumbCanvas.classList.add('pixmap-display-thumb');
+            this._toplevel.appendChild(this._thumbCanvas);
+
+            this._tooltip = new Tooltip(this._thumbCanvas);
+            this._tooltipCanvas = document.createElement('canvas');
+            this._tooltipCanvas.classList.add('pixmap-display');
+            this._tooltip.elem.appendChild(this._tooltipCanvas);
+
+            this._tooltipDescription = document.createElement('span');
+            this._tooltipDescription.classList.add('tooltip-description');
+            this._tooltip.elem.appendChild(this._tooltipDescription);
+
+            var xidLabel = document.createElement('span');
+            xidLabel.classList.add('value');
+            xidLabel.classList.add('xid');
+            xidLabel.textContent = xid;
+            this._toplevel.appendChild(xidLabel);
+
+            this.update();
+
+            this.elem = this._toplevel;
+        },
+
+        destroy: function() {
+            this._display.disconnect();
+            this._display = null;
+            empty(this.elem);
+        },
+
+        update: function() {
+            var image = this._display.getPixmapImage({ pixmapId: this._xid });
+
+            function updateCanvas(canvas) {
+                canvas.width = image.width;
+                canvas.height = image.height;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(image, 0, 0);
+            }
+
+            this._tooltipDescription.innerHTML = "<span>" + image.width + "</span>×<span>" + image.height + "</span>, XID <span>" + this._xid + "</span>";
+            updateCanvas(this._thumbCanvas);
+            updateCanvas(this._tooltipCanvas);
+        },
+    });
+
     // The right-hand pane of the inspector. It shows the window's geometry,
     // its attributes, and any custom properties.
     var WindowDetails = new Class({
@@ -491,45 +550,6 @@
             return node;
         },
 
-        // Creates a box that shows a pixmap, and shows the full pixmap
-        // in a Tooltip when hovering over it.
-        _createPixmapDisplay: function(xid) {
-            var node = document.createElement('span');
-
-            var image = this._display.getPixmapImage({ pixmapId: xid });
-
-            function createCanvas() {
-                var canvas = document.createElement('canvas');
-                canvas.width = image.width;
-                canvas.height = image.height;
-                var ctx = canvas.getContext('2d');
-                ctx.drawImage(image, 0, 0);
-                return canvas;
-            }
-
-            var pixmapDisplayThumb = createCanvas();
-            pixmapDisplayThumb.classList.add('pixmap-display-thumb');
-            node.appendChild(pixmapDisplayThumb);
-
-            var tooltip = new Tooltip(pixmapDisplayThumb);
-            var pixmapDisplay = createCanvas();
-            pixmapDisplay.classList.add('pixmap-display');
-            tooltip.elem.appendChild(pixmapDisplay);
-
-            var tooltipDescription = document.createElement('span');
-            tooltipDescription.innerHTML = "<span>" + image.width + "</span>×<span>" + image.height + "</span>, XID <span>" + xid + "</span>";
-            tooltipDescription.classList.add('tooltip-description');
-            tooltip.elem.appendChild(tooltipDescription);
-
-            var valueItem = document.createElement('span');
-            valueItem.classList.add('value');
-            valueItem.classList.add('xid');
-            valueItem.textContent = xid;
-            node.appendChild(valueItem);
-
-            return node;
-        },
-
         _syncGeometry: function() {
             empty(this._geometry.content);
             var geometry = this._display.getGeometry({ drawableId: this._selectedWindowId });
@@ -548,6 +568,11 @@
         _syncAttributes: function() {
             empty(this._attributes.content);
             var attribs = this._display.getAttributes({ windowId: this._selectedWindowId });
+
+            if (this._pixmapDisplay) {
+                this._pixmapDisplay.destroy();
+                this._pixmapDisplay = null;
+            }
 
             if (attribs.backgroundColor) {
                 var node = document.createElement('div');
@@ -570,7 +595,8 @@
                 nameNode.textContent = 'background-pixmap';
                 node.appendChild(nameNode);
 
-                node.appendChild(this._createPixmapDisplay(attribs.backgroundPixmap));
+                this._pixmapDisplay = new PixmapDisplay(this._server, attribs.backgroundPixmap);
+                node.appendChild(this._pixmapDisplay.elem);
 
                 if (attribs.backgroundColor)
                     node.classList.add('overridden');
@@ -656,13 +682,16 @@
 
             this._toplevel = document.createElement('div');
             this._toplevel.classList.add('inspector-tab');
-            this._toplevel.classList.add('pane-container');
+
+            this._paneContainer = document.createElement('div');
+            this._paneContainer.classList.add('pane-container');
+            this._toplevel.appendChild(this._paneContainer);
 
             this._windowTree = new WindowTree(server);
-            this._toplevel.appendChild(this._windowTree.elem);
+            this._paneContainer.appendChild(this._windowTree.elem);
 
             this._windowDetails = new WindowDetails(server);
-            this._toplevel.appendChild(this._windowDetails.elem);
+            this._paneContainer.appendChild(this._windowDetails.elem);
 
             this.elem = this._toplevel;
 
@@ -678,6 +707,87 @@
             this._windowTree.selectWindow(xid);
             this._windowDetails.selectWindow(xid);
         },
+    });
+
+    var PixmapsList = new Class({
+        initialize: function(server) {
+            this._server = server;
+            var connection = server.connect();
+            this._display = connection.display;
+            var port = connection.clientPort;
+            port.addEventListener("message", function(messageEvent) {
+                this._handleEvent(messageEvent.data);
+            }.bind(this));
+
+            this._display.selectInput({ windowId: this._server.rootWindowId,
+                                        events: ['X-PixmapCreated', 'X-PixmapDestroyed', 'X-PixmapUpdated'] });
+            this._pixmapDisplays = {};
+
+            this._toplevel = document.createElement('div');
+            this._toplevel.classList.add('pixmap-list');
+
+            var pixmaps = this._display.listPixmaps();
+            pixmaps.forEach(function(xid) {
+                return this._pixmapCreated(xid);
+            }.bind(this));
+
+            this.elem = this._toplevel;
+        },
+
+        _pixmapCreated: function(xid) {
+            if (this._pixmapDisplays[xid]) {
+                console.log("already have display for xid", xid);
+                return;
+            }
+
+            var pixmapDisplay = new PixmapDisplay(this._server, xid)
+            this._pixmapDisplays[xid] = pixmapDisplay;
+            this._toplevel.appendChild(pixmapDisplay.elem);
+        },
+        _pixmapDestroyed: function(xid) {
+            if (!this._pixmapDisplays[xid]) {
+                console.log("don't have any display for xid", xid);
+                return;
+            }
+
+            this._pixmapDisplays[xid].destroy();
+            this._pixmapDisplays[xid] = null;
+        },
+        _pixmapUpdated: function(xid) {
+            if (!this._pixmapDisplays[xid]) {
+                console.log("don't have any display for xid", xid);
+                return;
+            }
+
+            this._pixmapDisplays[xid].update();
+        },
+
+        _handleEvent: function(event) {
+            switch (event.type) {
+                case 'X-PixmapCreated':
+                    return this._pixmapCreated(event.xid);
+                case 'X-PixmapDestroyed':
+                    return this._pixmapDestroyed(event.xid);
+                case 'X-PixmapUpdated':
+                    return this._pixmapUpdated(event.xid);
+            }
+        }
+    });
+
+    var PixmapsTab = new Class({
+        initialize: function(server) {
+            this.tabButton = document.createElement('div');
+            this.tabButton.classList.add('inspector-tab-button');
+            this.tabButton.textContent = "Pixmaps";
+
+            this._toplevel = document.createElement('div');
+            this._toplevel.classList.add('inspector-tab');
+
+            this._pixmapsList = new PixmapsList(server);
+            this._toplevel.appendChild(this._pixmapsList.elem);
+
+            this.elem = this._toplevel;
+        }
     });
 
     var Inspector = new Class({
@@ -702,6 +812,9 @@
                 this._highlighter.setWindowToHighlight(xid);
             }.bind(this);
             this._addTab(this._windowsTab);
+
+            this._pixmapsTab = new PixmapsTab(server);
+            this._addTab(this._pixmapsTab);
 
             this._selectTab(this._windowsTab);
 

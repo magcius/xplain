@@ -105,9 +105,11 @@
             this._server = server;
             this._pixmap = new Pixmap();
             this._pixmap.resize(props.width, props.height);
+            this._server.pixmapCreated(this);
         },
         destroy: function() {
             this._pixmap.destroy();
+            this._server.pixmapDestroyed(this);
             this._server.xidDestroyed(this.xid);
         },
         canDraw: function() {
@@ -115,6 +117,7 @@
         },
         drawTo: function(func) {
             this._pixmap.drawTo(func);
+            this._server.pixmapUpdated(this);
         },
         getGeometry: function() {
             return { width: this._pixmap.canvas.width,
@@ -868,14 +871,17 @@
         // the server.
         'selectInput',
 
-        // JS extension -- simplifies the case of drawing
+        // My extension -- simplifies the case of drawing
         // by letting someone use an existing expose handler.
         // This is the model used by GDK internally.
         'invalidateWindow',
 
-        // JS extension -- allows manipulating pixmaps when
+        // My extension -- allows manipulating pixmaps when
         // drawing them, like transforms or similar.
         'getPixmapImage',
+
+        // My extension -- list all pixmaps for the inspector
+        'listPixmaps',
 
         // SHAPE / XFixes
         'setWindowShapeRegion',
@@ -1700,6 +1706,17 @@
             });
         },
 
+        // The inspector uses these events to update its list of pixmaps.
+        pixmapCreated: function(pixmap) {
+            this.sendEvent({ windowId: this.rootWindowId, type: "X-PixmapCreated", xid: pixmap.xid });
+        },
+        pixmapDestroyed: function(pixmap) {
+            this.sendEvent({ windowId: this.rootWindowId, type: "X-PixmapDestroyed", xid: pixmap.xid });
+        },
+        pixmapUpdated: function(pixmap) {
+            this.sendEvent({ windowId: this.rootWindowId, type: "X-PixmapUpdated", xid: pixmap.xid });
+        },
+
         // Everything that starts with "_handle_" is a client request handler.
         // Most of these should be fairly simple and only call internal methods.
         _handle_createWindow: function(client, props) {
@@ -1878,6 +1895,15 @@
         _handle_getPixmapImage: function(client, props) {
             var pixmap = this.getServerPixmap(client, props.pixmapId);
             return pixmap.getImage();
+        },
+        _handle_listPixmaps: function(client, props) {
+            var pixmapXids = [];
+            for (var xid in this._xidToObject) {
+                var obj = this._xidToObject[xid];
+                if (obj instanceof ServerPixmap)
+                    pixmapXids.push(xid);
+            }
+            return pixmapXids;
         },
         _handle_setWindowShapeRegion: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
