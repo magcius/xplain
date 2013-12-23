@@ -467,12 +467,6 @@
             this._tooltipDescription.classList.add('tooltip-description');
             this._tooltip.elem.appendChild(this._tooltipDescription);
 
-            var xidLabel = document.createElement('span');
-            xidLabel.classList.add('value');
-            xidLabel.classList.add('xid');
-            xidLabel.textContent = xid;
-            this._toplevel.appendChild(xidLabel);
-
             this.update();
 
             this.elem = this._toplevel;
@@ -603,6 +597,12 @@
                 this._pixmapDisplay = new PixmapDisplay(this._server, attribs.backgroundPixmap);
                 node.appendChild(this._pixmapDisplay.elem);
 
+                var xidLabel = document.createElement('span');
+                xidLabel.classList.add('value');
+                xidLabel.classList.add('xid');
+                xidLabel.textContent = xid;
+                this._toplevel.appendChild(xidLabel);
+
                 if (attribs.backgroundColor)
                     node.classList.add('overridden');
 
@@ -726,7 +726,7 @@
 
             this._display.selectInput({ windowId: this._server.rootWindowId,
                                         events: ['X-PixmapCreated', 'X-PixmapDestroyed', 'X-PixmapUpdated'] });
-            this._pixmapDisplays = {};
+            this._pixmaps = {};
 
             this._toplevel = document.createElement('div');
             this._toplevel.classList.add('pixmap-list');
@@ -740,31 +740,46 @@
         },
 
         _pixmapCreated: function(xid) {
-            if (this._pixmapDisplays[xid]) {
+            if (this._pixmaps[xid]) {
                 console.log("already have display for xid", xid);
                 return;
             }
 
+            var entry = {};
+            this._pixmaps[xid] = entry;
+
+            var elem = document.createElement('div');
+            elem.classList.add('pixmap');
+            entry.elem = elem;
+
             var pixmapDisplay = new PixmapDisplay(this._server, xid)
-            this._pixmapDisplays[xid] = pixmapDisplay;
-            this._toplevel.appendChild(pixmapDisplay.elem);
+            elem.appendChild(pixmapDisplay.elem);
+            entry.display = pixmapDisplay;
+
+            var xidLabel = document.createElement('span');
+            xidLabel.classList.add('xid');
+            xidLabel.textContent = xid;
+            elem.appendChild(xidLabel);
+
+            this._toplevel.appendChild(elem);
         },
         _pixmapDestroyed: function(xid) {
-            if (!this._pixmapDisplays[xid]) {
+            if (!this._pixmaps[xid]) {
                 console.log("don't have any display for xid", xid);
                 return;
             }
 
-            this._pixmapDisplays[xid].destroy();
-            this._pixmapDisplays[xid] = null;
+            this._pixmaps[xid].display.destroy();
+            this._toplevel.removeChild(this._pixmaps[xid].elem);
+            this._pixmaps[xid] = null;
         },
         _pixmapUpdated: function(xid) {
-            if (!this._pixmapDisplays[xid]) {
+            if (!this._pixmaps[xid]) {
                 console.log("don't have any display for xid", xid);
                 return;
             }
 
-            this._pixmapDisplays[xid].update();
+            this._pixmaps[xid].display.update();
         },
 
         _handleEvent: function(event) {

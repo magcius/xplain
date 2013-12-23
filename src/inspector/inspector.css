@@ -89,8 +89,11 @@
     background-image: url(choose-window-button-over.png);
 }
 
-.inspector .pane-container {
+.inspector .inspector-tab {
     height: 224px;
+}
+
+.inspector .pane-container {
     display: flex;
 }
 
@@ -110,9 +113,21 @@
 
 .inspector .window-tree .window .title {
     font-family: monospace;
-    padding-left: 1em;
+    padding: 2px 1em;
     border-left: 1px dotted #eee;
     cursor: default;
+}
+
+.inspector .window-tree .window .title:hover {
+    background: #eeeeff;
+}
+
+.inspector .window-tree .window.selected > .title {
+    background-color: #0088ff;
+}
+
+.inspector .window-tree .window.selected > .title * {
+    color: white !important;
 }
 
 .inspector .xid {
@@ -134,23 +149,10 @@
 
 .inspector .window-tree .window.cursor-window > .title .cursor-window-emblem {
     display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 3px;
-    background: red;
-    margin: 0 6px;
-}
-
-.inspector .window-tree .window .title:hover {
-    background: #eeeeff;
-}
-
-.inspector .window-tree .window.selected > .title {
-    background-color: #0088ff;
-}
-
-.inspector .window-tree .window.selected > .title * {
-    color: white !important;
+    background: url(cursor-window-emblem.png) no-repeat 50% 50%;
+    width: 24px;
+    height: 14px;
+    vertical-align: middle;
 }
 
 .inspector .details-header {
@@ -234,13 +236,42 @@
     margin-right: 1em;
 }
 
-.color-display,
-.pixmap-display-thumb {
+.inspector .window-details .color-display,
+.inspector .window-details .pixmap-display-thumb {
+    border: 1px solid black;
+    margin: 0 6px;
+    display: inline-block;
     width: 6px;
     height: 6px;
-    border: 1px solid black;
+}
+
+.inspector .pixmap-list {
+    background: #eee;
+    padding: 1em;
+    min-height: 100%;
+}
+
+.inspector .pixmap-list .pixmap {
     display: inline-block;
-    margin: 0 6px;
+    background: white;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.25);
+    margin: 0.25em;
+}
+
+.inspector .pixmap-list .pixmap-display-thumb {
+    display: block;
+    width: 50px;
+    height: 50px;
+    margin: 0.5em;
+    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
+}
+
+.inspector .pixmap-list .pixmap .xid {
+    display: block;
+    text-align: center;
+    font-family: monospace;
+    font-style: normal;
+    margin: 0.5em;
 }
 
 .pixmap-display {
