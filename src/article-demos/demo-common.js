@@ -5,6 +5,24 @@
 
     var DemoCommon = {};
 
+    DemoCommon.makeStipple = function(display, windowId) {
+        var stipple = display.createPixmap({ width: 2, height: 2 });
+        display.drawTo(stipple, function(ctx) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 2, 2);
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 1, 1);
+            ctx.fillRect(1, 1, 1, 1);
+        });
+        return stipple;
+    };
+
+    DemoCommon.setBackground = function(display, pixmapId) {
+    	display.changeAttributes({ windowId: display.rootWindowId, backgroundPixmap: pixmapId });
+        display.invalidateWindow({ windowId: display.rootWindowId });
+    };
+
     // Centers the given window on the server, plus or minus an offset.
     DemoCommon.centerWindow = function(display, windowId, offset) {
         var rootGeom = display.getGeometry({ drawableId: display.rootWindowId });

@@ -164,7 +164,10 @@
         addInspector(res);
 
         var server = res.server;
-        var display = res.display;
+        var connection = server.connect();
+        var display = connection.display;
+
+        DemoCommon.setBackground(display, DemoCommon.makeStipple(display));
 
         // The window on the left.
         var kitten1 = new SimpleImage(server, "kitten1.png");
@@ -275,7 +278,10 @@
         addInspector(res);
 
         var server = res.server;
-        var display = res.display;
+        var connection = server.connect();
+        var display = connection.display;
+
+        DemoCommon.setBackground(display, DemoCommon.makeStipple(display));
 
         // The shaking window that's behind.
         var kitten2 = new DelayedExposeImage(server, "kitten2.png");
@@ -362,7 +368,10 @@
         addInspector(res);
 
         var server = res.server;
-        var display = res.display;
+        var connection = server.connect();
+        var display = connection.display;
+
+        DemoCommon.setBackground(display, DemoCommon.makeStipple(display));
 
         // The shaking window that's behind.
         var kitten2 = new DelayedExposeImage(server, "kitten2.png");

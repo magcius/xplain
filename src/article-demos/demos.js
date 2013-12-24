@@ -3,21 +3,6 @@
 (function(exports) {
     "use strict";
 
-    // Makes a stipple checkerboard pattern as seen in classic X.
-    // Let's party_like_its_1989.
-    function makeStipple(display) {
-        var stipple = display.createPixmap({ width: 2, height: 2 });
-        display.drawTo(stipple, function(ctx) {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 2, 2);
-
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, 1, 1);
-            ctx.fillRect(1, 1, 1, 1);
-        });
-        return stipple;
-    }
-
     // Creates a server instance for each demo, and sets up "demo things".
     // It sizes each server according to the containing element, adds the
     // stipple pattern, and (optionally) adds the inspector as well.
@@ -33,15 +18,7 @@
         server.resize(width, height);
         serverSlot.appendChild(server.elem);
 
-        var connection = server.connect();
-        var display = connection.display;
-
-        var stipple = makeStipple(display);
-        display.changeAttributes({ windowId: display.rootWindowId,
-                                   backgroundPixmap: stipple });
-        display.invalidateWindow({ windowId: display.rootWindowId });
-
-        return { display: display, server: server, elem: elem };
+        return { server: server, elem: elem };
     }
 
     var demos = {};
