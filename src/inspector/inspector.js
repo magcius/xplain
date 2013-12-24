@@ -99,97 +99,6 @@
         },
     });
 
-    // A simple window that opens/closes the inspector when clicking on it.
-    var InspectorButton = new Class({
-        initialize: function(server, inspector) {
-            var connection = server.connect();
-            this._display = connection.display;
-            var port = connection.clientPort;
-            port.addEventListener("message", function(messageEvent) {
-                this._handleEvent(messageEvent.data);
-            }.bind(this));
-
-            this._inspector = inspector;
-
-
-            this._windowId = this._display.createWindow({ x: 0, y: 0, width: 32, height: 32 });
-            this._display.changeAttributes({ windowId: this._windowId, cursor: 'pointer', overrideRedirect: true });
-            this._display.changeProperty({ windowId: this._windowId, name: 'DEBUG_NAME', value: "Inspector Button" });
-            this._display.selectInput({ windowId: this._windowId, events: ["ButtonRelease", "Expose", "ConfigureNotify"] });
-            this._display.selectInput({ windowId: this._display.rootWindowId, events: ["ConfigureNotify"] });
-
-            this._showing = false;
-
-            this._placeButton();
-            this._syncShowing();
-
-            this._display.mapWindow({ windowId: this._windowId });
-
-            this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
-        },
-
-        _syncShowing: function() {
-            var color = this._showing ? '#000000' : '#ffffff';
-            this._display.changeAttributes({ windowId: this._windowId, backgroundColor: color });
-            this._display.invalidateWindow({ windowId: this._windowId });
-        },
-        setShowing: function(showing) {
-            if (this._showing == showing)
-                return;
-
-            this._showing = showing;
-            this._syncShowing();
-        },
-
-        _placeButton: function() {
-            var rootGeom = this._display.getGeometry({ drawableId: this._display.rootWindowId });
-            var selfGeom = this._display.getGeometry({ drawableId: this._windowId });
-
-            // Place in the top-right of the root window.
-            var padding = 10;
-            var x = rootGeom.width - selfGeom.width - padding;
-            var y = padding;
-            this._display.configureWindow({ windowId: this._windowId, x: x, y: y });
-        },
-
-        _clicked: function() {
-            this._inspector.toggle();
-        },
-        _configureNotify: function(event) {
-            if (event.windowId == this._display.rootWindowId) {
-                this._placeButton();
-                this._display.invalidateWindow({ windowId: this._windowId });
-            } else {
-                this._display.invalidateWindow({ windowId: this._windowId });
-            }
-        },
-        _draw: function() {
-            this._display.drawTo(this._windowId, function(ctx) {
-                this._exposeHandler.clip(ctx);
-                var geom = this._display.getGeometry({ drawableId: this._windowId });
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = '#000000';
-                ctx.strokeRect(0, 0, geom.width, geom.height);
-
-                ctx.font = 'bold 12pt monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-                ctx.fillStyle = this._showing ? '#ffffff' : '#000000';
-                ctx.fillText('i', geom.width / 2, 8);
-            }.bind(this));
-        },
-        _handleEvent: function(event) {
-            switch (event.type) {
-            case "ButtonRelease":
-                return this._clicked(event);
-            case "ConfigureNotify":
-                return this._configureNotify(event);
-            case "Expose":
-                return this._exposeHandler.handleExpose(event);
-            }
-        },
-    });
-
     // A simple client that takes a pointer grab, allowing the user to click
     // on a window. It also takes a highlighter, which it will use to highlight
     // a specific window on hover.
@@ -856,15 +765,22 @@
             this._refreshButton.addEventListener("click", this._redrawServer.bind(this));
             this._header.appendChild(this._refreshButton);
 
-            this._button = new InspectorButton(server, this);
+            this._buttons = [];
             this._highlighter = new InspectorHighlighter(server);
 
             this.elem = this._toplevel;
         },
 
+        addButton: function(button) {
+            this._buttons.push(button)
+        },
+
         toggle: function() {
             this.elem.classList.toggle("visible");
-            this._button.setShowing(this.elem.classList.contains("visible"));
+            var visible = this.elem.classList.contains("visible");
+            this._buttons.forEach(function(button) {
+                button.setShowing(visible);
+            });
         },
 
         _addTab: function(tab) {

@@ -41,13 +41,7 @@
                                    backgroundPixmap: stipple });
         display.invalidateWindow({ windowId: display.rootWindowId });
 
-        var addInspector = elem.classList.contains("demo-inspectable");
-        if (addInspector) {
-            var inspector = new Inspector(server);
-            elem.appendChild(inspector.elem);
-        }
-
-        return { display: display, server: server };
+        return { display: display, server: server, elem: elem };
     }
 
     var demos = {};
