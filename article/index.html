@@ -67,30 +67,51 @@
         <section id="introduction">
         <h3>Introduction</h3>
         <p>
-            Last year, I wrote <a href="http://blog.mecheye.net/2012/06/the-linux-graphics-stack/"> an article</a>
+            Last year, I wrote <a href="http://blog.mecheye.net/2012/06/the-linux-graphics-stack/">an article</a>
             describing the free and open-source graphics stack, explaining all of the interconnected pieces: X11,
             graphics drivers, DRM, and DRI, and their roles in getting pixels placed on the screen. In the year since,
-            I've answered a lot of really good questions from the Linux community about my post, and I've started
-            getting more involved in Wayland development as part of our goal to <a
-            href="https://wiki.gnome.org/Initiatives/Wayland">port GNOME to Wayland</a>.
+            I've answered a lot of really good questions from the Linux community about my post, about X11, and about
+            Wayland. I've learned a lot.
+            <a href="http://en.wikipedia.org/wiki/Mir_%28software%29">Several</a>
+            <a href="https://dvdhrm.wordpress.com/2013/09/01/splitting-drm-and-kms-device-nodes/">new</a>
+            <a href="http://lists.freedesktop.org/archives/dri-devel/2013-October/046618.html">technologies</a>
+            have appeared, and I myself have
+            <a href="http://lists.freedesktop.org/archives/wayland-devel/2013-November/011879.html">started to take a
+            more active role in this myself</a>, as part of our efforts to
+            <a href="https://wiki.gnome.org/Initiatives/Wayland">port GNOME to Wayland</a>.
         </p>
         <p>
-            Compared to some of my colleagues, I'm relatively new to the Linux development scene, with only five or so
-            years of experience. I've also arrived late, way after we've added lots of hacks to keep the X Window
-            System fresh.
+            However, I still field plenty of questions from lots of people about this, and a lot of the time, it's
+            extremely simple stuff: "What is X?" "How does it interact with my graphics card and mouse/keyboard?"
+            "What do apps use X for?" "What is Wayland, and how does it fit into the picture?" "What problems did X
+            have that made us want to write new display server technologies?"
         </p>
         <p>
-            My purpose here isn't to discredit the X Window System entirely as a series of bad decisions one after
-            another, and praise Wayland as the holy grail of desktop development. I do believe that the future of
-            display server technology is with a design like Wayland as opposed to something more antiquated X11.
+            These sort of questions were what inspired me to write "The Linux Graphics Stack" in the first place, but
+            there's really never been a comprehensive, historical writeup of our display server technologies in
+            general. So, I chose to spend my free time at Red Hat writing it.
         </p>
         <p>
-            Instead, Think of this article as a history lesson, starting way back at the X Window System in the 80s,and slowly tacking on everything we've introduced into Linux Graphics to keep it fresh, like
-            <a href="http://www.x.org/releases/current/doc/renderproto/renderproto.txt">RENDER</a>,
-            <a href="http://www.x.org/releases/current/doc/compositeproto/compositeproto.txt">COMPOSITE</a>, and
-            <a href="http://dri.freedesktop.org/wiki/">DRI</a>. I'm here to lay out the facts, give some historical
-            records, and hopefully teach you a few things about how X works internally if you've ever had trouble
-            understanding it.
+            Now, compared to some of my colleagues, I'm relatively new to the Linux development scene, with only five
+            or so years of experience. I've also arrived late, way after we've added lots of hacks to keep the X Window
+            System fresh. Most of my knowledge comes from talking to my more experienced coworkers in person, digging
+            through mailing list and newsgroup archives, and IRC discussions with the great sports in
+            <span class="code-literal">#xorg-devel</span>. So, there's a good possibility that I'll get something wrong,
+            guy-who-worked-at-DEC-in-the-80s-waiting-to-correct-me! I'm genuinely sorry if I misrepresent something.
+            If you want to discuss this at all, shoot me an email at
+            <a href="mailto:jstpierre@mecheye.net">jstpierre@mecheye.net</a>, and let's try to work something out!
+        </p>
+        <p>
+            I also really don't want to inject my bias into this too much. While I do personally believe Wayland is
+            going to become The Linux Display Server Of The Future®, and that is a good thing, I'm not trying to rip X
+            apart! My intention here is twofold: I want to explain a lot of the more undocumented or harder-to-grasp
+            features built into X11 (the permutations of input grabs, for instance), and I also want to provide an
+            accurate, historical context on why a certain feature was added
+            (<a href="http://www.x.org/releases/current/doc/compositeproto/compositeproto.txt">COMPOSITE</a>,
+            for instance), and all the clever hacks we've invented along the way
+            (<span class="code-literal">WM_TAKE_FOCUS</span>, for instance). I really want this to be a resource for
+            somebody looking to learn. If I've inspired anybody out there to write any code, I've accomplished my goal.
+        </p>
         </section>
 
         <section id="self-test">
@@ -98,7 +119,7 @@
         <p>
             Since this article contains a lot of interactive demos relying on fairly modern browser technology, let's
             make sure that everything is OK before continuing. I've been testing this on modern versions of Firefox
-            Nightly and Chrome Canary.
+            Nightly and Chrome Canary. Again
         </p>
         <div class="demo-server" data-demo="test"></div>
         <p>
