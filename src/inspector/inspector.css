@@ -144,15 +144,15 @@
 }
 
 .inspector .window-tree .window .cursor-window-emblem {
-    display: none;
+    display: inline-block;
+    vertical-align: middle;
+    height: 14px;
+    width: 0px;
 }
 
 .inspector .window-tree .window.cursor-window > .title .cursor-window-emblem {
-    display: inline-block;
-    background: url(cursor-window-emblem.png) no-repeat 50% 50%;
     width: 24px;
-    height: 14px;
-    vertical-align: middle;
+    background: url(cursor-window-emblem.png) no-repeat 50% 50%;
 }
 
 .inspector .details-header {
