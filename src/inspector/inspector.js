@@ -65,6 +65,16 @@
                     this._ctx.beginPath();
                 }
 
+                var visibleRegion = this._display.getVisibleRegion({ windowId: this._highlightedWindowId,
+                                                                     includeChildren: true });
+                this._ctx.save();
+                this._ctx.globalCompositeOperation = 'source-atop';
+                CanvasUtil.pathFromRegion(this._ctx, visibleRegion);
+                this._ctx.fillStyle = 'lightgreen';
+                this._ctx.fill();
+                this._ctx.restore();
+                this._ctx.beginPath();
+
                 var query = this._display.queryTree({ windowId: this._highlightedWindowId });
                 if (query.parent) {
                     var parentCoords = this._display.translateCoordinates({ srcWindowId: query.parent,

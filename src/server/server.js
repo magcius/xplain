@@ -158,7 +158,7 @@
             if (!serverWindow.viewable && !force)
                 return;
 
-            var region = this.calculateEffectiveRegionForWindow(serverWindow, includeChildren);
+            var region = this.calculateVisibleRegionForWindow(serverWindow, includeChildren);
             this.exposeRegion(region);
             region.finalize();
         },
@@ -220,7 +220,7 @@
         //
         // If includeChildren is false, the returned region also excludes
         // parts of serverWindow that children are occluding.
-        calculateEffectiveRegionForWindow: function(serverWindow, includeChildren) {
+        calculateVisibleRegionForWindow: function(serverWindow, includeChildren) {
             var region = serverWindow.calculateTransformedBoundingRegion();
 
             var subtractWindow = function(aboveWindow) {
@@ -349,7 +349,7 @@
             }.bind(this));
         },
         drawTo: function(func) {
-            var region = this.drawTree.calculateEffectiveRegionForWindow(this, false);
+            var region = this.drawTree.calculateVisibleRegionForWindow(this, false);
             this._drawClippedToRegion(region, function(ctx) {
                 var pos = this._getDrawOffset();
                 ctx.translate(pos.x, pos.y);
@@ -617,7 +617,7 @@
             }
 
             // Get the old state.
-            var oldRegion = this.drawTree.calculateEffectiveRegionForWindow(this, true);
+            var oldRegion = this.drawTree.calculateVisibleRegionForWindow(this, true);
             var oldPos = this._getDrawOffset();
             var oldW = this.width, oldH = this.height;
 
@@ -625,7 +625,7 @@
             func();
 
             // Determine the new state.
-            var newRegion = this.drawTree.calculateEffectiveRegionForWindow(this, true);
+            var newRegion = this.drawTree.calculateVisibleRegionForWindow(this, true);
             var newPos = this._getDrawOffset();
 
             var tmp = new Region();
@@ -875,6 +875,10 @@
         // by letting someone use an existing expose handler.
         // This is the model used by GDK internally.
         'invalidateWindow',
+
+        // My extension -- lets users see the visible region
+        // for a window. Used by the inspector.
+        'getVisibleRegion',
 
         // My extension -- allows manipulating pixmaps when
         // drawing them, like transforms or similar.
@@ -1891,6 +1895,11 @@
             var serverWindow = this.getServerWindow(client, props.windowId);
             var includeChildren = !!props.includeChildren;
             serverWindow.drawTree.exposeWindow(serverWindow, false, includeChildren);
+        },
+        _handle_getVisibleRegion: function(client, props) {
+            var serverWindow = this.getServerWindow(client, props.windowId);
+            var includeChildren = !!props.includeChildren;
+            return serverWindow.drawTree.calculateVisibleRegionForWindow(serverWindow, includeChildren);
         },
         _handle_getPixmapImage: function(client, props) {
             var pixmap = this.getServerPixmap(client, props.pixmapId);
