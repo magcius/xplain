@@ -20,3 +20,11 @@
 .demo-server .demo-shape {
 	height: 250px;
 }
+
+.demo-server .demo-input {
+	height: 200px;
+}
+
+.demo-server .demo-input-nested {
+	height: 200px;
+}

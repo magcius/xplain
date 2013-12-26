@@ -1,0 +1,233 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf8">
+    <link rel="stylesheet" href="article.css">
+    <link rel="stylesheet" href="../src/article-demos/demos.css">
+    <link rel="stylesheet" href="../src/inspector/inspector.css">
+    <link rel="stylesheet" href="../src/server/server.css">
+    <link rel="shortcut icon" href="favicon.png">
+    <title>Xplain</title>
+</head>
+<body id="window-tree"><div class="main">
+    <header>
+        <a href="index.html">
+            <h1><span>Xplain</span></h1>
+            <span class="subtitle">Explaining X11 for the rest of us</span>
+        </a>
+    </header>
+
+    <article>
+        <h2></h2>
+
+        <noscript>
+        <p class="warning">
+            This article relies a lot of interactive demos that use JavaScript to show how the X Window System works.
+            The article unfortunately won't work properly without these interactive demos, so if you feel like you're
+            missing out, try enabling JavaScript?
+        </p>
+        </noscript>
+
+        <section id="prologue">
+        <h3>Recap</h3>
+        <p>
+            Last time, we got familiar with <span class="definition">windows</span>, the core building block of the X
+            Window System, and learned about <span class="defintiion">server-side pixmaps</span>, which is how images
+            can efficiently be stored and displayed on the user's screen.
+        </p>
+        <p>
+            We also learned about the <span class="definition">expose</span> model of drawing, where windows are
+            ethereal: the fact that they look like real, tangbile boxes one moving over the other is just an illusion.
+            Another way to put it is that windows are "lossy" ways of drawing, wheras pixmaps are "lossless". This isn't
+            to say that they get JPEG artifacts, just that the X server will literally lose the pixel contents of
+            certain parts of a window, and will ask the window for them again occasionally.
+        </p>
+        <p>
+            Finally, we topped it off by showing <span class="definition">shaped</span> windows, along with a new data
+            structure, a <span class="definition">region</span>, which is an alternate representation for a
+            black-and-white bitmap that's more efficient in common use cases.
+        </p>
+        <p>
+            Today, we're going to learn about the basics about how input is delivered, and how that mixes with the
+            core data structure in the X server, the <span class="definition">window tree</span>. We'll start to learn
+            the basics of window managers and window decorations, and how they exploit this data structure.
+        </p>
+        </section>
+
+        <section id="toolbox">
+        <h3>Another tool in the toolbox</h3>
+        <p>
+            As I introduced last article, there's multiple ways to get your window to have some contents. You
+            can use <span class="code-literal">background-pixmap</span> like the kitten circle did in the last demo, or
+            you can select for <span class="code-literal">Expose</span> events and repaint with
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:CopyArea" class="code-literal">XCopyArea</a>,
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:FillPoly" class="code-literal">XFillPoly</a>
+            or a number of other <span class="definition">core drawing</span> calls.
+        </p>
+        <p>
+            Both of these are completely valid approaches to the same problem, and they are both used in different
+            circumstances. Using <span class="code-literal">background-pixmap</span> will take up server memory, but
+            means that there's less network traffic and flicker for your window. Instead, if your scene is more like
+            a standard GUI: just some lines here, some text there, you'd be better drawing on-demand. You don't want
+            to re-render and transfer the entire contents of your window to the server every time the user types a
+            letter in your textbox widget, now do you?
+        </p>
+        <p>
+            For a more concrete example, most GTK+ applications draw by listening to the
+            <span class="code-literal">Expose</span> event, but if you drag a file from the file picker or file manager,
+            then you're dragging around a small window with the <span class="code-literal">background-pixmap</span>
+            property set. I'd imagine this is because the tiny preview item you're dragging around is mostly static.
+            It's not going to resize, and its contents aren't going to change once, so it makes sense to draw it once
+            and then set <span class="code-literal">background-pixmap</span> on the window.
+        </p>
+        <p>
+            So, a lot of the design of X11 is giving clients and apps a large set of tools to design and implement their
+            app, without any real opinionated design about how an app should be made. An X client can use this tool or
+            that tool to battle this tradeoff or that tradeoffs, and neither is fundamentally a wrong choice.
+        </p>
+        <p>
+            With this in mind, we're going to look at windows in more depth today. My goal for today is to convince
+            you that X11 windows are simply another tool you can use to construct a rich UI: they're simply rectangles
+            that own pixels on the X server's front buffer. (OK, shaped regions. Let me pretend they're rectangles
+            again, so I don't have to type this parenthetical every time...)
+        </p>
+        </section>
+
+        <section id="input">
+        <h3>But first, an aside about input</h3>
+        <p>
+            Before we fully get into the depths of the window tree, I want to talk very briefly about how input is done
+            under X11. It's nothing surprising. There is, of course, a large amount of depth and other features in the
+            input model, but for now, let's just go over the basics.
+        </p>
+        <div class="demo-server" data-demo="input"></div>
+        <p>
+            Put your cursor over the gray box above. The window shows where your mouse cursor is with a cross-hair.
+            As explained in the last article, clients can use the
+            <a href="http://www.x.org/releases/current/doc/libX11/libX11/libX11.html#XSelectInput" class="code-literal">XSelectInput</a>
+            Xlib call to listen to specific events on windows. We mentioned one event last time,
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#events:Expose" class="code-literal">Expose</a>,
+            which was used to let the window know it has to draw a specific region, but X11 defines a large number of
+            other events, including
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#events:input">input events</a>.
+            The above demo uses <span class="code-literal">Motion</span> events to know when the mouse pointer was moved
+            over the window, and then redraws a new set of cross-hairs.
+        </p>
+        <p>
+            Additionally, when the window gets a <span class="code-literal">Enter</span> event, that means that the
+            cursor entered the window, and when the window gets a <span class="code-literal">Leave</span> event, that
+            means the cursor left the window. I track these events as well, and change the background color and show or
+            hide the background when that happens.
+        </p>
+        </section>
+
+        <section id="window-tree">
+        <h3>The window tree</h3>
+        <div class="demo-server" data-demo="input-nested"></div>
+        <p>
+            The above demo shows another little cross-hairs app inside the first one. If you look in the inspector,
+            you can see that the small inner window is a child of the first one.
+        </p>
+        <p>
+            After creating a new window, clients can <span class="definition">reparent</span> one window to another
+            using the
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:ReparentWindow" class="code-literal">ReparentWindow</a>
+            request. By default, all windows are parented to the root window.
+        </p>
+        <p>
+            I intentionally modelled the inspector after the Chrome or Firefox dev tools panes for a reason, and
+            hopefully it's becoming more apparent now. For those of you who've done a bit of web development, X11
+            windows should start to seem familiar: they're a lot more like DOM nodes than the normal windows that you
+            think of. They're, again, a series of low-level building blocks that you can use to construct a rich
+            application. You can give set attributes like their background pixmap or background color, as we discussed
+            last time. You can shape them in interesting ways.
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:ChangeProperty">You can add arbitrary data to them</a>.
+            <a href="http://www.x.org/releases/current/doc/libX11/libX11/libX11.html#XSelectInput">You can add event handlers to them</a>.
+        </p>
+        <p>
+            What makes DOM nodes different, however, and what I feel makes windows not as useful is that they're
+            <em>too</em> low-level of a building block. DOM nodes have layout and flow baked into them, complex and
+            flexible styling rules, accessibility support, built-in intrinsics like roles and behaviors: you can simply
+            ask the browser for a <span class="code-literal">&lt;button&gt;</span>, attach an
+            <span class="code-literal">onclick</span> handler, and be done with it.
+        </p>
+        <p>
+            In contrast, X11 windows are a place to paint pixels, and get raw input events. There's no way to mark
+            an X11 window as a menu or a button. It doesn't give you out-of-the-box accessibiltiy. It doesn't allow you
+            to construct a bunch of X11 windows as if they were widgets and get a nice, reflowing form form field.
+            As such, there's really no benefit to using nested windows, one per widget, as if they were DOM nodes. In
+            fact, what you get is a slow, flickering experience. The client has to recalculate the new rectangle for
+            every DOM node in its own code, and then make a network request over to the X server for every single
+            widget.
+        </p>
+        <p>
+            Unfortunately, some UI toolkits have been built on these mistakes. The Xt toolkit-kit used by the Athena
+            widget set and Motif desktop environment used a server-side window per widget. Other toolkits derived from
+            or inspired by Xt, including old versions of Qt and GTK+, followed suit. GTK+, even today, still has its
+            design inspired by this legacy behavior. In order to make a reactive widget, you need to create a
+            <span class="code-literal">GdkWindow</span> &mdash; which corresponds to a X11 window. Most interactive
+            widgets do this automatically for you, but if you're using a non-interactive widget like a
+            <span class="code-literal">GtkBox</span>, it won't have a respective window, and thus can't receive events
+            properly. This is what the seemingly magic <span class="code-literal">GtkEventBox</span> container does:
+            it's a simple thing that wraps its children and creates an X11 window for it, allowing you to receive
+            events.
+        </p>
+        <p>
+            The inherent lag, by the way, is not a theoretical concern. In 2008 GTK+ landed a long-time-wanted feature,
+            "client-side windows", to remove <a href="https://people.gnome.org/~alexl/flicker.ogg">inherent flicker</a>
+            in the classic server-side approach.  The feature works by emulating server-side windows inside GTK+:
+            interpreting all of the attributes like background color, doing proper clipping and painting, and finding
+            the proper window for all events we dispatch. It was a tremendous undertaking, and it means that a large
+            part of the toolkit has to emulate or copy an X server in places to match its semantics in order to not
+            break ABI.
+        </p>
+        </section>
+
+        <section id="next-time">
+        <h3>Coming up...</h3>
+        <p>
+            So, the window tree seems to complicate the design of the system, and doesn't seem to provide any major
+            advantages... does it have any? There is actually one big advantage: allow multiple, <i>independent</i>
+            processes to compose a single application from multiple windows.
+        </p>
+        <p>
+            We'll look at this in more detail in "Expert Window Techniques"!
+        </p>
+        </section>
+    </article>
+
+    <script src="article.js"></script>
+
+    <script src="../src/pixman-region.js"></script>
+    <script src="../src/pixman-region-wrapper.js"></script>
+    <script src="../src/class.js"></script>
+    <script src="../src/canvas-util.js"></script>
+    <script src="../src/client-util.js"></script>
+    <script src="../src/server/server.js"></script>
+    <script src="../src/inspector/inspector.js"></script>
+    <script src="../src/article-demos/demos.js"></script>
+    <script src="../src/article-demos/demo-common.js"></script>
+    <script src="../src/article-demos/window-tree.js"></script>
+
+    <script>
+        (function() {
+            "use strict";
+
+            window.addEventListener("load", function() {
+                Article.generateNavButtons();
+                Article.generateSectionLinks();
+                ArticleDemos.runAllDemos();
+            });
+        })();
+    </script>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-35480078-2', 'magcius.github.io');
+      ga('send', 'pageview');
+    </script>
+</div></body>
+</html>

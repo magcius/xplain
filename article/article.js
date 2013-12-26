@@ -10,7 +10,8 @@
     // The master table of contents.
     var TOC = [
         { id: "index", title: "Introduction & Table of Contents" },
-        { id: "x-basics", title: "X Window System Basics" }
+        { id: "x-basics", title: "X Window System Basics" },
+        { id: "window-tree", title: "Advanced Window Techniques "},
     ];
 
     function findTOCEntryIndex(id) {
