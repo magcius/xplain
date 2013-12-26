@@ -488,7 +488,7 @@
 
                 var nameNode = document.createElement('span');
                 nameNode.classList.add('name');
-                nameNode.textContent = 'background-color';
+                nameNode.textContent = 'background-pixel';
                 node.appendChild(nameNode);
                 node.appendChild(this._createColorDisplay(attribs.backgroundColor));
                 this._attributes.content.appendChild(node);
