@@ -64,6 +64,27 @@
         </p>
         </noscript>
 
+        <section id="requests-and-events">
+        <h3>Requests and events</h3>
+        <p>
+            As said in the Introduction, <span class="definition">X clients</span> connect to an
+            <span class="definition">X server</span>, and they speak an <span class="definition">X11 protocol</span>.
+            In more detail, clients can send <span class="definition">requests</span> to ask the X server to do
+            something. A simple example of a request is
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:CreateWindow" class="code-literal">CreateWindow</a>,
+            which tells the X server to "create a window". We'll learn more about windows in a bit.
+        </p>
+        <p>
+            If something interesting happens inside the X server (for instance, a window was created), the X server
+            can send X clients an <span class="definition">events</span>. To prevent network traffic from getting
+            overloaded, X clients need to tell the X server which events it's interested in. The network side of it
+            is a bit complicated (it's ugly, let's not get into it), but programs using Xlib can tell the X server that
+            it wants to listen to specific events using the
+            <a href="http://www.x.org/releases/current/doc/libX11/libX11/libX11.html#XSelectInput" class="code-literal">XSelectInput</a>.
+            function call.
+        </p>
+        </section>
+
         <section id="lets-go">
         <h3>Let's go</h3>
         <div class="demo-server" data-demo="two-kittens"></div>
@@ -86,18 +107,24 @@
         <p>
             A <span class="definition">window</span>, in the X11 protocol, is a structure that allows an
             <span class="definition">X client</span> connecting to the X server to display something on the screen,
-            and take input as well. Windows have a stacking order, and the top window in the stacking order
+            and take input as well. Windows are fairly simple: they have an X, a Y, a width, and a height. This forms
+            a rectangle which is known as the window's <span class="definition">bounding rectangle</span>. The window
+            occupies this space. Windows also have a defined <span class="definition">stacking order</span>, which
+            means that some windows can be above other windows. If a window is higher in the stacking order, it
             <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#glossary:Occlude" class="definition">occludes</a>
-            other windows below it.
+            the windows below it.
         </p>
         <p>
             For historical reasons related to some initial implementations, showing a window in the X11 protocol
             is called <span class="definition">mapping</span> a window, and hiding a window is called
             <span class="definition">unmapping</span>. Windows, when initially created, are unmapped (or hidden).
-            Clients have to map windows they create by sending a
+            Clients have to map windows by sending a
             <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:MapWindow">MapWindow</a>
-            request to the X server. Keep in mind, unmapping a window isn't the same as destroying a window, since
-            the window can be mapped again later. It's more like minimizing a window.
+            request to the X server, and clients can later unmap windows using
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:UnmapWindow">UnmapWindow</a>.
+            Note that unmapping a window doesn't destroy the window a window &mdash; it simply hides it. The window can
+            then be mapped again later. It's more like minimizing a window (in fact, that's how minimization is
+            implemented on most window managers).
         </p>
         <p>
             So, we know what windows are. But how are those kittens getting on the screen?
@@ -125,7 +152,7 @@
         </p>
         <div class="demo-server" data-demo="expose"></div>
         <p>
-            The demo above shows two windows, with one window obscuring the other. The window underneath moves from
+            The demo above shows two windows, with one window occluding the other. The window underneath moves from
             side to side, and you can see that when it moves, the window blanks out for a moment before redrawing
             itself.
         </p>
@@ -158,30 +185,39 @@
         <div class="demo-server" data-demo="shape"></div>
         <p>
             I said above that windows are rectangles. In the above demo, you see a circular window, so it's quite
-            obvious that I lied. You can still drag the top window around, but it might slow your browser down to a
-            crawl. Sorry, the math here is a lot more computationally expensive, especially in JavaScript.
+            obvious that I lied. You can still drag the top window around, but it might slow your browser down.
+            Sorry, the math here is a lot more computationally expensive, especially in JavaScript.
         </p>
         <p>
-            Internally, the X server keeps a 1-bit bitmap (think white/black pixel mask) for every window, containing
-            the part of the overall rectangle that is currently showing on the screen. This data structure is called the
-            <span class="definition">clip list</span> in Xorg. It's not actually a 1-bit bitmap, though, it's actually
-            a data structure known as a <span class="definition">region</span>. You might recognize this if you've
-            ever used the <a href="http://cairographics.org">cairo graphics library</a>, as it has an implementation
-            of it in
+            Internally, the X server keeps a record of all the pixels that are currently visible for every window,
+            containing the part of the window's bounding rectangle that is currently showing on the screen. It's
+            calculated by taking the window's overall bounding rectangle and then subtracting out the bounding
+            rectangles of all the windows above it. It's somewhat like a simple 1-bit alpha mask.
+        </p>
+        <p>
+            This data structure is called the <span class="definition">clip list</span> in the Xorg codebase.
+            As the word "list" in the name might tell you, it's not actually a 1-bit alpha mask. That would waste too
+            much memory. Again, for a full-screen 800x600 window, you don't want a giant alpha mask in the server's
+            memory telling it that it's mostly visible, or mostly obscured. Instead, the X server stores a more compact
+            version of the same thing, as a list of rectangles containing the areas where the window is visible. For
+            a 800x600 window that's not occluded, we now went from a 60kb bitmap mask to a rectangle containing four
+            32-bit numbers, for a total of 16 bytes. Quite a savings!
+        </p>
+        <p>
+            This data structure is seen throughout X11 programming, and it's known as a
+            <span class="definition">region</span>. If you've ever used the
+            <a href="http://cairographics.org">cairo graphics library</a>, it has an implementation of it, called
             <a href="http://cairographics.org/manual/cairo-Regions.html" class="code-literal">cairo_region_t</a>.
+            (Actually, both the implementation in the Xorg codebase and the one in cairo are the same code, they're
+            both using the <a href="http://www.pixman.org/">pixman</a> library, underneath. And in fact, the pixman
+            region code is the one here that is used in our interactive demos. It's the only code here that's been
+            compiled with emscripten!)
         </p>
         <p>
-            A region is a equivalent representation for a 1-bit bitmap: a list of rectangles. In almost of the cases
-            that the X server will use a region, this representation is both more computationally-efficient and
-            memory-efficient than a 1-bit bitmap. A simple exception is a checkerboard pattern (like the stipple
-            background on the server above!), since there will be a lot of small, 1-pixel rectangles.
-        </p>
-        <p>
-            If you're an old Linux user, you might remember old versions of the
-            <a href="http://enlightenment.org/">Enlightenment</a> desktop environemnt having a strange way to do
-            transparency by masking windows with a similar checkerboard pattern. If you turned this effect on all
-            your windows, your system would start to chug a little, since the checkerboard pattern is very stressful
-            on the region data structure and X server implementation.
+            However, like any data structure, it isn't efficient in all use cases. A simple example here is a
+            checkerboard pattern: instead of one bit per pixel, now we have 16 bytes per pixel! This is much more
+            computationally expensive to work with, and takes a lot more memory. Thankfully, not a lot of software
+            will use a checkerboard region.
         </p>
         <p>
             Ahem, sorry. Enough reminiscing. Anyway, the story goes that when people working on the X server source
@@ -200,53 +236,59 @@
             region to use elsewhere. So, they said to themselves, <q class="historical-quote">Hey, why don't we let the
             user set any arbitrary region that will be used instead of the bounding region?</q> And thus, the
             <a href="http://www.x.org/releases/current/doc/xextproto/shape.html">X SHAPE Extension</a> was born.
+            The X SHAPE Extension allows the user to instead tell the X server to use a
+            <span class="definition">bounding region</span> instead of a bounding rectangle.
         </p>
         <p>
             This is how we get a circular window, as above: we construct a region of a circle, and then set
-            the window's bounding region to be that circle. This is how the classic
-            <a href="http://en.wikipedia.org/wiki/Xeyes">xeyes</a> and oclock get their shapes.
+            the window's bounding region to be that circle. This is also how the classic
+            <a href="http://en.wikipedia.org/wiki/Xeyes">xeyes</a> and oclock get their classic cutout shapes.
         </p>
         <p>
             The inspector will show the bounding shape region of a window in yellow.
         </p>
         <p>
             There's two more notes I want to make here. Although this might seem like it would allow for some windows
-            to be transparent by poking holes in them, it's an all-or-nothing proposition. That is, if you take your
-            finger and point to any pixel on the above display, I can do some math and tell you the exact window that
-            will paint to that pixel at any point in time. The X SHAPE Extension doesn't change this, it just makes the
-            logic for figuring out which window "owns" a specific pixel more complicated than simply comparing
-            rectangles. In order to allow truly transparent windows, we'll have to somehow figure out a way to blend
-            between what windows draw.
+            to be semitransparent by poking holes in them, it's still all-or-nothing: either the window is fully
+            transparent, or it's not. That is, if you take your finger and point to any pixel on the above display,
+            I can do some math and tell you the exact window that will paint to that pixel at any point in time.
+            The X SHAPE Extension doesn't change this, it just makes the logic for figuring out which window "owns" a
+            specific pixel more complicated than testing against simple rectangles. In order to allow for true
+            semitransparent windows, we'll have to somehow figure out a way to blend between the pixels that what
+            windows draw. We'll explore that another time.
         </p>
         <p>
-            Also, setting a window shape larger than the window's width/height can't actually make the window own some
-            pixels that it wouldn't own otherwise. Setting a window shape only allows a window to carve away from where
-            it would normally paint and give that space to the windows underneath.
+            Additionaly, setting a bounding region that's larger than the window's width/height can't actually make
+            the window own some pixels that it wouldn't own otherwise. The X SHAPE Extension only allows a window
+            to carve away from where it would normally paint and give that space to the windows underneath.
         </p>
         </section>
 
         <section id="pixmaps">
         <h3>Pixmaps</h3>
         <p>
-            The nosy of you playing around with that last demo might have noticed something special on
-            <span class="code-literal">kittencircle.png</span> in the last demo. In the
+            The more attentive of you playing around with that last demo might have noticed something special when
+            poking around in <span class="code-literal">kittencircle.png</span> with the inspector. In the
             <span class="inspector-section-header">Attributes</span> section of the inspector,
             you might have noticed a <span class="code-literal">background-pixmap</span> attribute, and hovering over
-            it shows the circle kitten image! That raises up the question: what is a Pixmap,and why did the other
-            windows have a <span class="code-literal">background-color</span> instead?
+            it shows the circle kitten image! That raises a few questions: first of all, what is a Pixmap? Why didn't
+            the other windows have a <span class="code-literal">background-pixmap</span> attribute? They seemed to have
+            a <span class="code-literal">background-color</span> attribute instead. What's with that?
         </p>
         <p>
             You might have been wondering how it could have been efficient to keep transfering missing pixels for the
-            for the kitten images at 60 frames per second. The answer is that we're not. Instead, we create a
+            for the kitten images at 60 frames per second, over a network connection in the 80s. The answer is that
+            we're not. Instead, when we create the window and load the image in, the code creates a
             <span class="definition">Pixmap</span>, which allows us to have memory-backed pixel storage on the server.
-            We then draw the kitten image to the Pixmap once, using
-            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:PutImage" class="code-literal">PutImage</a>.
+            We then upload the pixels for the kitten image to the Pixmap once, using a
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:PutImage" class="code-literal">PutImage</a>
+            request.
         </p>
         <p>
             Whenever we want to draw to the window from an <span class="code-literal">Expose</span> event, we simply
-            tell the X server to
+            tell the X server to copy from the kitten pixels it already has in its memory space. To do that, we make a
             <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:CopyArea" class="code-literal">CopyArea</a>
-            from the Pixmap to the Window.
+            from the Pixmap to the Window. No more copying done.
         </p>
         <p>
             You might have noticed the word <span class="definition">Drawable</span> in the protocol documentation.
@@ -278,8 +320,9 @@
                 <span class="code-literal">background-color</span> or
                 <span class="code-literal">background-pixmap</span> attributes.
 
-                This is how Windows works, and why you see the the repeated "IE6 crashed" window when
-                explorer.exe crashes.
+                This is how Windows works, and why you see the the repeated "IE6 crashed" window when explorer.exe
+                hangs: it can't respond to the <span class="code-literal">WM_PAINT</span> events, so the old pixel
+                contents stay on the screen!
             </li>
         </ol>
         </section>
