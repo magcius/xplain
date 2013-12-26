@@ -4,42 +4,6 @@
 (function(exports) {
     "use strict";
 
-    // Is this event something that's included in SubstructureRedirect?
-    function isEventSubstructureRedirect(event) {
-        switch (event.type) {
-        case "MapRequest":
-        case "ConfigureRequest":
-            return true;
-        }
-        return false;
-    }
-
-    // Is this event something that's included in SubstructureNotify?
-    function isEventSubstructureNotify(event) {
-        switch (event.type) {
-        case "MapNotify":
-        case "UnmapNotify":
-        case "DestroyNotify":
-        case "ConfigureNotify":
-            return true;
-        }
-        return false;
-    }
-
-    // Is this event a pointer input event? Used for the purposes of
-    // routing events when somebody has a pointer grab.
-    function isEventPointerInputEvent(event) {
-        switch (event.type) {
-        case "Enter":
-        case "Leave":
-        case "ButtonPress":
-        case "ButtonRelease":
-        case "Motion":
-            return true;
-        }
-        return false;
-    }
-
     // Several APIs take a bag of properties. If a property is missing
     // from the bag, it's assumed to mean "keep the same value as before".
     // Thus, a value is updated if it's not undefined and not the same
@@ -247,6 +211,42 @@
             return region;
         }
     });
+
+    // Is this event something that's included in SubstructureRedirect?
+    function isEventSubstructureRedirect(event) {
+        switch (event.type) {
+        case "MapRequest":
+        case "ConfigureRequest":
+            return true;
+        }
+        return false;
+    }
+
+    // Is this event something that's included in SubstructureNotify?
+    function isEventSubstructureNotify(event) {
+        switch (event.type) {
+        case "MapNotify":
+        case "UnmapNotify":
+        case "DestroyNotify":
+        case "ConfigureNotify":
+            return true;
+        }
+        return false;
+    }
+
+    // Is this event a pointer input event? Used for the purposes of
+    // routing events when somebody has a pointer grab.
+    function isEventPointerInputEvent(event) {
+        switch (event.type) {
+        case "Enter":
+        case "Leave":
+        case "ButtonPress":
+        case "ButtonRelease":
+        case "Motion":
+            return true;
+        }
+        return false;
+    }
 
     // The server-side form of a Window. There's no split like Pixmap, since
     // the X server doesn't maintain any windows that aren't also exposed on the
