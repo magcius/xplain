@@ -76,7 +76,7 @@
         </p>
         <p>
             If something interesting happens inside the X server (for instance, a window was created), the X server
-            can send X clients an <span class="definition">events</span>. To prevent network traffic from getting
+            can send X clients an <span class="definition">event</span>. To prevent network traffic from getting
             overloaded, X clients need to tell the X server which events it's interested in. The network side of it
             is a bit complicated (it's ugly, let's not get into it), but programs using Xlib can tell the X server that
             it wants to listen to specific events using the
@@ -122,7 +122,7 @@
             <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:MapWindow">MapWindow</a>
             request to the X server, and clients can later unmap windows using
             <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:UnmapWindow">UnmapWindow</a>.
-            Note that unmapping a window doesn't destroy the window a window &mdash; it simply hides it. The window can
+            Note that unmapping a window doesn't destroy a window &mdash; it simply hides it. The window can
             then be mapped again later. It's more like minimizing a window (in fact, that's how minimization is
             implemented on most window managers).
         </p>
