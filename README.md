@@ -57,6 +57,6 @@ bugs, gotten my name in the
 and lots more.
 
 As I say in the article, I didn't do this alone. There's a lot of people who
-helped me tremendously with this work. A big thanks goes to Keith Peters,
+helped me tremendously with this work. A big thanks goes to Keith Packard,
 Alan Coopersmith, Adam Jackson, Peter Hutterer, and Owen Taylor who all helped
 me figure a lot of the hairier parts of X11.
