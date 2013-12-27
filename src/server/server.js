@@ -13,7 +13,7 @@
     }
 
     // A canvas to save data on during resizes.
-    var tmpCanvas = document.createElement("canvas");
+    var tmpCanvas = document.createElement('canvas');
     var tmpCtx = tmpCanvas.getContext('2d');
 
     // A Pixmap is essentially a wrapper around a <canvas>, as
@@ -21,7 +21,7 @@
     // HTML5.
     var Pixmap = new Class({
         initialize: function() {
-            this.canvas = document.createElement("canvas");
+            this.canvas = document.createElement('canvas');
             this._ctx = this.canvas.getContext('2d');
         },
         destroy: function() {
