@@ -47,8 +47,7 @@
 
             this._windowId = windowId;
 
-            this._display.selectInput({ windowId: this._windowId,
-                                        events: ['ButtonPress'] });
+            this._display.selectInput({ windowId: this._windowId, events: ['ButtonPress'] });
 
             this._rootMouseX = -1;
             this._rootMouseY = -1;
