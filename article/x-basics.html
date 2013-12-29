@@ -90,7 +90,7 @@
         <div class="demo-server" data-demo="two-kittens"></div>
         <p>
             Let's start super simple. Here's a simple X server with two windows in it. They don't have any title bars,
-            and you can't drag them around because I haven't launched any
+            and you can't drag them around because I haven't launched a
             <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#glossary:Window_manager" class="definition">window manager</a>
             yet. There's just two windows, each showing each kitten.
         </p>
@@ -122,7 +122,7 @@
             <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:MapWindow">MapWindow</a>
             request to the X server, and clients can later unmap windows using
             <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:UnmapWindow">UnmapWindow</a>.
-            Note that unmapping a window doesn't destroy a window &mdash; it simply hides it. The window can
+            Note that unmapping a window doesn't destroy a window &mdash; doing so simply hides it. The window can
             then be mapped again later. It's more like minimizing a window (in fact, that's how minimization is
             implemented on most window managers).
         </p>
@@ -206,7 +206,7 @@
         <p>
             This data structure is seen throughout X11 programming, and it's known as a
             <span class="definition">region</span>. If you've ever used the
-            <a href="http://cairographics.org">cairo graphics library</a>, it has an implementation of it, called
+            <a href="http://cairographics.org">cairo graphics library</a>, it has an implementation of regions, called
             <a href="http://cairographics.org/manual/cairo-Regions.html" class="code-literal">cairo_region_t</a>.
             (Actually, both the implementation in the Xorg codebase and the one in cairo are the same code, they're
             both using the <a href="http://www.pixman.org/">pixman</a> library, underneath. And in fact, the pixman
@@ -248,14 +248,14 @@
             The inspector will show the bounding shape region of a window in yellow.
         </p>
         <p>
-            There's two more notes I want to make here. Although this might seem like it would allow for some windows
+            There are two more notes I want to make here. Although this might seem like it would allow for some windows
             to be semitransparent by poking holes in them, it's still all-or-nothing: either the window is fully
             transparent, or it's not. That is, if you take your finger and point to any pixel on the above display,
             I can do some math and tell you the exact window that will paint to that pixel at any point in time.
             The X SHAPE Extension doesn't change this, it just makes the logic for figuring out which window "owns" a
             specific pixel more complicated than testing against simple rectangles. In order to allow for true
-            semitransparent windows, we'll have to somehow figure out a way to blend between the pixels that what
-            windows draw. We'll explore that another time.
+            semitransparent windows, we'll have to somehow figure out a way to blend between the pixels that windows
+            draw. We'll explore that another time.
         </p>
         <p>
             Additionaly, setting a bounding region that's larger than the window's width/height can't actually make
@@ -277,8 +277,8 @@
         </p>
         <p>
             You might have been wondering how it could have been efficient to keep transfering missing pixels for the
-            for the kitten images at 60 frames per second, over a network connection in the 80s. The answer is that
-            we're not. Instead, when we create the window and load the image in, the code creates a
+            kitten images at 60 frames per second, over a network connection in the 80s. The answer is that we're not.
+            Instead, when we create the window and load the image in, the code creates a
             <span class="definition">Pixmap</span>, which allows us to have memory-backed pixel storage on the server.
             We then upload the pixels for the kitten image to the Pixmap once, using a
             <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:PutImage" class="code-literal">PutImage</a>
