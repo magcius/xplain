@@ -77,7 +77,7 @@
         <p>
             If something interesting happens inside the X server (for instance, a window was created), the X server
             can send X clients an <span class="definition">event</span>. To prevent network traffic from getting
-            overloaded, X clients need to tell the X server which events they;'res interested in. The network side of it
+            overloaded, X clients need to tell the X server which events they're interested in. The network side of it
             is a bit complicated (it's ugly, let's not get into it), but programs using Xlib can tell the X server that
             they wants to listen to specific events using the
             <a href="http://www.x.org/releases/current/doc/libX11/libX11/libX11.html#XSelectInput" class="code-literal">XSelectInput</a>.
@@ -258,7 +258,7 @@
             draw. We'll explore that another time.
         </p>
         <p>
-            Additionaly, setting a bounding region that's larger than the window's width/height can't actually make
+            Additionally, setting a bounding region that's larger than the window's width/height can't actually make
             the window own some pixels that it wouldn't own otherwise. The X SHAPE Extension only allows a window
             to carve away from where it would normally paint and give that space to the windows underneath.
         </p>
