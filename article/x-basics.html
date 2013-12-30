@@ -119,9 +119,9 @@
             is called <span class="definition">mapping</span> a window, and hiding a window is called
             <span class="definition">unmapping</span>. Windows, when initially created, are unmapped (or hidden).
             Clients have to map windows by sending a
-            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:MapWindow">MapWindow</a>
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:MapWindow" class="code-literal">MapWindow</a>
             request to the X server, and clients can later unmap windows using
-            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:UnmapWindow">UnmapWindow</a>.
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:UnmapWindow" class="code-literal">UnmapWindow</a>.
             Note that unmapping a window doesn't destroy a window &mdash; doing so simply hides it. The window can
             then be mapped again later. It's more like minimizing a window (in fact, that's how minimization is
             implemented on most window managers).
