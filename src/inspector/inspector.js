@@ -313,7 +313,7 @@
 
                 // Recurse
                 var query = this._display.queryTree({ windowId: xid });
-                query.children.forEach(function(childXid) {
+                query.children.reverse().forEach(function(childXid) {
                     childList.appendChild(makeNodeForWindow(childXid));
                 });
 
