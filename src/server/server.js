@@ -704,7 +704,7 @@
             }
         },
 
-        _configureWindow: function(client, props) {
+        _configureWindow: function(props) {
             if (props.x !== undefined)
                 this.x = props.x | 0;
             if (props.y !== undefined)
@@ -717,7 +717,7 @@
             this._unshapedBoundingRegion.init_rect(0, 0, this.width, this.height);
 
             if (props.stackMode) {
-                var sibling = props.sibling ? this._server.getServerWindow(client, props.sibling) : null;
+                var sibling = props.sibling ? this._server.getServerWindow(null, props.sibling) : null;
                 this._insertIntoStack(sibling, props.stackMode);
             }
         },
@@ -744,7 +744,7 @@
                 this._server.sendEvent(event);
 
                 this._wrapBoundingRegionChange(function() {
-                    this._configureWindow(client, props);
+                    this._configureWindow(props);
                 }.bind(this));
 
                 if (this.drawTree && !this.drawTreeParent)
