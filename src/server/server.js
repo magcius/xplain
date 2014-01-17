@@ -1115,8 +1115,6 @@
         return null;
     }
 
-    // When the server has some internal processing, we throw a clientError,
-    // and then report it back to the client through an "Error" event.
     function clientError(error) {
         var error = new Error(error);
         error.isClientError = true;
@@ -1231,12 +1229,6 @@
                 clients.push(serverClient);
             }
             return clients;
-        },
-        _sendError: function(client, error) {
-            client.sendEvent({
-                type: "Error",
-                name: error,
-            });
         },
         sendEvent: function(event, except) {
             if (isEventPointerInputEvent(event) && this._grabClient) {
@@ -1923,27 +1915,12 @@
             return serverWindow.getWindowShapeRegion(props.shapeType);
         },
 
-        // A wrapper which will catch any client errors thrown in the method
-        // implementation and send them back to the client as an "Error" event.
-        _errorWrapper: function(client, func) {
-            try {
-                return func();
-            } catch (e) {
-                if (e.isClientError)
-                    this._sendError(client, e.error);
-                else
-                    throw e;
-            }
-        },
-
         // This is called by ClientConnection above for each of its generated
         // requests, which marshalls and wraps each of the request handlers
         // above.
         handleRequest: function(client, requestName, props) {
             var handler = this['_handle_' + requestName];
-            return this._errorWrapper(client, function() {
-                return handler.call(this, client, props);
-            }.bind(this));
+            return handler.call(this, client, props);
         },
 
         // Called by the client to get a socket connection.
@@ -1961,13 +1938,11 @@
 
         // See the note about this above in ClientConnection.prototype.drawTo.
         drawTo: function(client, drawableId, func) {
-            return this._errorWrapper(client, function() {
-                var drawable = this.getDrawable(client, drawableId);
-                if (!drawable.canDraw())
-                    throw clientError("BadDrawable");
+            var drawable = this.getDrawable(client, drawableId);
+            if (!drawable.canDraw())
+                throw clientError("BadDrawable");
 
-                drawable.drawTo(func);
-            }.bind(this));
+            drawable.drawTo(func);
         },
     });
 
