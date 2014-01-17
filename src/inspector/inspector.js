@@ -177,6 +177,13 @@
             this._setVisible(false);
         },
 
+        destroy: function() {
+            // Assume target will be destroyed.
+
+            tooltipsContainer.removeChild(this.elem);
+            this.elem = null;
+        },
+
         _setVisible: function(shown) {
             this.elem.style.display = shown ? "block" : "none";
         },
@@ -397,6 +404,8 @@
             this._display.disconnect();
             this._display = null;
             empty(this.elem);
+
+            this._tooltip.destroy();
         },
 
         update: function() {
@@ -490,6 +499,7 @@
             var attribs = this._display.getAttributes({ windowId: this._selectedWindowId });
 
             if (this._pixmapDisplay) {
+                this._pixmapDisplay.elem.parentNode.removeChild(this._pixmapDisplay.elem);
                 this._pixmapDisplay.destroy();
                 this._pixmapDisplay = null;
             }
