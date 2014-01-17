@@ -967,6 +967,9 @@
             if (structureNotify && this.isInterestedInWindowEvent(windowId, "StructureNotify"))
                 return true;
 
+            if (structureNotify && this.isInterestedInWindowEvent(this._server.rootWindowId, "X-WindowTreeChanged"))
+                return true;
+
             var parent = serverWindow.windowTreeParent;
             if (parent) {
                 var substructureRedirect = isEventSubstructureRedirect(event);

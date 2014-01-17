@@ -217,7 +217,7 @@
             this._toplevel.classList.add('window-tree');
 
             this._display.selectInput({ windowId: this._display.rootWindowId,
-                                        events: ['SubstructureNotify', 'X-CursorWindowChanged'] });
+                                        events: ['X-WindowTreeChanged', 'X-CursorWindowChanged'] });
 
             this.elem = this._toplevel;
         },
