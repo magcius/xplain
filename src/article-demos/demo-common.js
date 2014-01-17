@@ -58,9 +58,12 @@
 
         // Make it move.
         _sync: function() {
-            var newX = this._rootMouseX - this._winMouseX;
-            var newY = this._rootMouseY - this._winMouseY;
-            this._display.configureWindow({ windowId: this._windowId, x: newX, y: newY });
+            var query = this._display.queryTree({ windowId: this._windowId });
+            var newCoords = this._display.translateCoordinates({ srcWindowId: this._display.rootWindowId, 
+                                                                 destWindowId: query.parent,
+                                                                 x: this._rootMouseX - this._winMouseX,
+                                                                 y: this._rootMouseY - this._winMouseY });
+            this._display.configureWindow({ windowId: this._windowId, x: newCoords.x, y: newCoords.y });
         },
 
         _updateWindowFromEvent: function(event) {
