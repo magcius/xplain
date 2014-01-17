@@ -82,12 +82,14 @@
                                                                             x: 0, y: 0 });
 
                     // Horizontal alignment anchor
-                    this._ctx.moveTo(parentCoords.x, coords.y + 0.5);
-                    this._ctx.lineTo(coords.x, coords.y + 0.5);
+                    var anchorY = Math.max(parentCoords.y, coords.y) + 0.5;
+                    this._ctx.moveTo(parentCoords.x, anchorY);
+                    this._ctx.lineTo(coords.x, anchorY);
 
                     // Vertical alignment anchor
-                    this._ctx.moveTo(coords.x + 0.5, parentCoords.y);
-                    this._ctx.lineTo(coords.x + 0.5, coords.y);
+                    var anchorX = Math.max(parentCoords.x, coords.x) + 0.5;
+                    this._ctx.moveTo(anchorX, parentCoords.y);
+                    this._ctx.lineTo(anchorX, coords.y);
 
                     this._ctx.strokeStyle = 'rgba(20, 20, 75, 0.5)';
                     this._ctx.stroke();
