@@ -222,8 +222,8 @@
         return false;
     }
 
-    // Is this event something that's included in SubstructureNotify?
-    function isEventSubstructureNotify(event) {
+    // Is this event something that's included in StructureNotify / SubstructureNotify?
+    function isEventStructureNotify(event) {
         switch (event.type) {
         case "MapNotify":
         case "UnmapNotify":
@@ -962,13 +962,18 @@
                 return true;
 
             var serverWindow = this._server.getServerWindow(null, windowId);
-            var substructureRedirect = isEventSubstructureRedirect(event);
-            var substructureNotify = isEventSubstructureNotify(event);
+            var structureNotify = isEventStructureNotify(event);
+
+            if (structureNotify && this.isInterestedInWindowEvent(windowId, "StructureNotify"))
+                return true;
+
             var parent = serverWindow.windowTreeParent;
             if (parent) {
+                var substructureRedirect = isEventSubstructureRedirect(event);
                 if (substructureRedirect && this.isInterestedInWindowEvent(parent.xid, "SubstructureRedirect"))
                     return true;
-                if (substructureNotify && this.isInterestedInWindowEvent(parent.xid, "SubstructureNotify"))
+
+                if (structureNotify && this.isInterestedInWindowEvent(parent.xid, "SubstructureNotify"))
                     return true;
             }
 
