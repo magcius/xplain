@@ -704,7 +704,7 @@
             }
         },
 
-        _configureWindow: function(props) {
+        _configureWindow: function(client, props) {
             if (props.x !== undefined)
                 this.x = props.x | 0;
             if (props.y !== undefined)
@@ -744,7 +744,7 @@
                 this._server.sendEvent(event);
 
                 this._wrapBoundingRegionChange(function() {
-                    this._configureWindow(props);
+                    this._configureWindow(client, props);
                 }.bind(this));
 
                 if (this.drawTree && !this.drawTreeParent)
