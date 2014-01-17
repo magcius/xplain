@@ -587,7 +587,6 @@
             switch (event.type) {
                 case 'ConfigureNotify':
                     this._syncGeometry();
-                    this._syncAttributes();
                 break;
                 case 'PropertyNotify':
                     this._syncProperties();
