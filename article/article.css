@@ -129,12 +129,11 @@ p {
 }
 
 p.warning {
-	background: #ffaaaa;
-	text-align: center;
 	text-indent: 0;
-	padding-top: 1em;
-	padding-bottom: 1em;
-	margin: 0;
+	padding: 1em;
+	margin-left: 0;
+	margin-right: 0;
+	background: #ffaaaa;
 }
 
 .inspector-icon,
