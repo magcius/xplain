@@ -37,7 +37,7 @@
     // Allows the user to drag and drop a window with the standard
     // "press left-click", "move mouse", "release left-click" motions.
     DemoCommon.WindowDragger = new Class({
-        initialize: function(server, windowId) {
+        initialize: function(server, windowId, bounded) {
             var connection = server.connect();
             this._display = connection.display;
             var port = connection.clientPort;
@@ -54,6 +54,8 @@
 
             this._winMouseX = -1;
             this._winMouseY = -1;
+
+            this._bounded = bounded;
         },
 
         // Make it move.
@@ -63,7 +65,26 @@
                                                                  destWindowId: query.parent,
                                                                  x: this._rootMouseX - this._winMouseX,
                                                                  y: this._rootMouseY - this._winMouseY });
-            this._display.configureWindow({ windowId: this._windowId, x: newCoords.x, y: newCoords.y });
+            var newX = newCoords.x;
+            var newY = newCoords.y;
+
+            if (this._bounded) {
+                if (newX > 0)
+                    newX = 0;
+                if (newY > 0)
+                    newY = 0;
+
+                var geom = this._display.getGeometry({ drawableId: this._windowId });
+                var parentGeom = this._display.getGeometry({ drawableId: query.parent });
+                var minX = (parentGeom.width - geom.width);
+                if (newX < minX)
+                    newX = minX;
+                var minY = (parentGeom.height - geom.height);
+                if (newY < minY)
+                    newY = minY;
+            }
+
+            this._display.configureWindow({ windowId: this._windowId, x: newX, y: newY });
         },
 
         _updateWindowFromEvent: function(event) {
