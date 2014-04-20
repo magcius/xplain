@@ -1883,7 +1883,7 @@
             var checkEvent = (function checkEvent(eventType) {
                 if (events.indexOf(eventType) >= 0)
                     if (this._checkOtherClientsForEvent(windowId, eventType, client))
-                        throw clientError(error);
+                        throw clientError(eventType);
             }).bind(this);
             checkEvent("SubstructureRedirect");
             checkEvent("ButtonPress");
