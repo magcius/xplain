@@ -1,7 +1,7 @@
 /* Contains some generic server rules. Mostly about cursor styling. */
 
 .xserver.js {
-    cursor: url(arrow.png) 10 5, auto;
+    cursor: url(arrow.png) 8 5, auto;
     outline: none;
     position: relative;
 }
