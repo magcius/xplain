@@ -69,19 +69,22 @@
             var newY = newCoords.y;
 
             if (this._bounded) {
-                if (newX > 0)
-                    newX = 0;
-                if (newY > 0)
-                    newY = 0;
-
                 var geom = this._display.getGeometry({ drawableId: this._windowId });
                 var parentGeom = this._display.getGeometry({ drawableId: query.parent });
-                var minX = (parentGeom.width - geom.width);
+
+                var minX = Math.min(parentGeom.width - geom.width, 0);
+                var maxX = Math.max(parentGeom.width - geom.width, 0);
                 if (newX < minX)
                     newX = minX;
-                var minY = (parentGeom.height - geom.height);
+                if (newX > maxX)
+                    newX = maxX;
+
+                var minY = Math.min(parentGeom.height - geom.height, 0);
+                var maxY = Math.max(parentGeom.height - geom.height, 0);
                 if (newY < minY)
                     newY = minY;
+                if (newY > maxY)
+                    newY = maxY;
             }
 
             this._display.configureWindow({ windowId: this._windowId, x: newX, y: newY });
