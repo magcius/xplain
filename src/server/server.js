@@ -427,23 +427,21 @@
                 this._server.syncCursor();
             }
         },
-        recalculateViewability: function() {
-            var viewable;
-            // At the point that this is called, we always assume
-            // that our parent's viewability is valid.
-            if (!this.mapped && this.viewable) {
-                // If a parent is becoming unviewable, it means
-                // that we always are becoming unviewable.
-                viewable = false;
-            } else if (this.mapped && !this.viewable) {
-                // Else, the viewabiliy of us is the viewability
-                // of our parent, and if we don't have any, then
-                // we're directly viewable.
-                if (this.windowTreeParent)
-                    viewable = this.windowTreeParent.viewable;
-                else
-                    viewable = true;
+        _shouldBeViewable: function() {
+            // Unmapped windows are unviewable.
+            if (!this.mapped)
+                return false;
+
+            if (this.windowTreeParent) {
+                // Windows with a parent are tied to their parent's viewability.
+                return this.windowTreeParent.viewable;
+            } else {
+                // Windows without a parent are directly viewable.
+                return true;
             }
+        },
+        recalculateViewability: function() {
+            var viewable = this._shouldBeViewable();
 
             if (!valueUpdated(viewable, this.viewable))
                 return;
