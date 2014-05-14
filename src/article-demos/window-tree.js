@@ -89,6 +89,9 @@
         },
 
         _handleCrossing: function(event) {
+            if (event.detail != "Inferior" && event.detail != "Ancestor")
+                return;
+
             this._crosshairsVisible = (event.type == "Enter");
             this._redraw();
         },
