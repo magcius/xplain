@@ -5,62 +5,7 @@
         return a !== undefined && a !== b;
     }
 
-    function isFloating(a) {
-        return a !== (a | 0);
-    }
-
-    function checkGeometry(a) {
-        if (isFloating(a))
-            throw new Error("sub-pixel geometry");
-        return a;
-    }
-
-    // Creates a "rounded" region, given a rectangle and
-    // corner radiuses.
-    function roundedRectRegion(geom, corners) {
-        var shapeRegion = new Region();
-        shapeRegion.init_rect(0, 0, geom.width, geom.height);
-
-        var cornerRegion = new Region();
-
-        function widthForRadiusSegment(radius, i) {
-            var r = radius-i-0.5;
-            return (0.5 + radius - Math.sqrt(radius*radius - r*r)) | 0;
-        }
-
-        if (corners.topRight) {
-            for (var i = 0; i < corners.topLeft; i++) {
-                var width = widthForRadiusSegment(corners.topLeft, i);
-                cornerRegion.union_rect(cornerRegion, 0, i, width, 1);
-            }
-        }
-
-        if (corners.topRight) {
-            for (var i = 0; i < corners.topRight; i++) {
-                var width = widthForRadiusSegment(corners.topRight, i);
-                cornerRegion.union_rect(cornerRegion, geom.width - width, i, width, 1);
-            }
-        }
-
-        if (corners.bottomLeft) {
-            for (var i = 0; i < corners.bottomLeft; i++) {
-                var width = widthForRadiusSegment(corners.bottomLeft, i);
-                cornerRegion.union_rect(cornerRegion, 0, geom.height - i - 1, width, 1);
-            }
-        }
-
-        if (corners.bottomRight) {
-            for (var i = 0; i < corners.bottomRight; i++) {
-                var width = widthForRadiusSegment(corners.bottomRight, i);
-                cornerRegion.union_rect(cornerRegion, geom.width - width, geom.height - i - 1, width, 1);
-            }
-        }
-
-        shapeRegion.subtract(shapeRegion, cornerRegion);
-        cornerRegion.finalize();
-
-        return shapeRegion;
-    };
+    var FRAME_BORDER = { top: 30, left: 4, right: 4, bottom: 4 };
 
     // Don't extend Window as this needs to be in the
     // WM client, not its own client.
@@ -76,32 +21,50 @@
             // Frame geometry relative to the root
             this._frameGeometry = {};
 
-            this._exposeHandler = new DemoCommon.ExposeHandler(this._draw.bind(this));
+            this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
+        },
+
+        _constrainNewSize: function(clientGeometry) {
+            var defaultMinSize = 50; // Reasonable size
+
+            var minWidth = this._display.getProperty({ windowId: this._clientWindowId, name: 'MIN_WIDTH' });
+            if (!minWidth)
+                minWidth = defaultMinSize;
+            if (clientGeometry.width < minWidth)
+                clientGeometry.width = minWidth;
+
+            var minHeight = this._display.getProperty({ windowId: this._clientWindowId, name: 'MIN_HEIGHT' });
+            if (!minHeight)
+                minHeight = defaultMinSize;
+            if (clientGeometry.height < minHeight)
+                clientGeometry.height = minHeight;
         },
 
         _updateGeometry: function(clientGeometry) {
-            var border = { top: 30, left: 1, right: 1, bottom: 1 };
+            var border = FRAME_BORDER;
             var positionUpdated = false;
             var sizeUpdated = false;
 
             if (valueUpdated(clientGeometry.x, this._frameGeometry.x)) {
-                this._frameGeometry.x = checkGeometry(clientGeometry.x);
+                this._frameGeometry.x = clientGeometry.x;
                 positionUpdated = true;
             }
 
             if (valueUpdated(clientGeometry.y, this._frameGeometry.y)) {
-                this._frameGeometry.y = checkGeometry(clientGeometry.y);
+                this._frameGeometry.y = clientGeometry.y;
                 positionUpdated = true;
             }
 
+            this._constrainNewSize(clientGeometry);
+
             if (valueUpdated(clientGeometry.width, this._clientGeometry.width)) {
-                this._clientGeometry.width = checkGeometry(clientGeometry.width);
+                this._clientGeometry.width = clientGeometry.width;
                 this._frameGeometry.width = clientGeometry.width + border.left + border.right;
                 sizeUpdated = true;
             }
 
             if (valueUpdated(clientGeometry.height, this._clientGeometry.height)) {
-                this._clientGeometry.height = checkGeometry(clientGeometry.height);
+                this._clientGeometry.height = clientGeometry.height;
                 this._frameGeometry.height = clientGeometry.height + border.top + border.bottom;
                 sizeUpdated = true;
             }
@@ -127,29 +90,16 @@
 
                 // Invalidate the frame that's already been partially painted.
                 this._display.invalidateWindow({ windowId: this._frameWindowId });
-
-                var shapeRegion = Util.roundedRectRegion(this._frameGeometry, { topLeft: 10, topRight: 10 });
-                this._display.setWindowShapeRegion({ windowId: this._frameWindowId,
-                                                     shapeType: "Bounding",
-                                                     region: shapeRegion });
-                shapeRegion.finalize();
             }
         },
 
         _makeButton: function() {
-            var size = 15;
+            var size = 16;
             var geom = { x: 0, y: 0, width: size, height: size };
             var buttonWindowId = this._display.createWindow(geom);
             this._wm.register(buttonWindowId, this);
             this._display.selectInput({ windowId: buttonWindowId, events: ["ButtonPress", "ButtonRelease"] });
             this._display.changeAttributes({ windowId: buttonWindowId, cursor: "pointer" });
-            var radius = size / 2;
-            var corners = { topLeft: radius, topRight: radius, bottomLeft: radius, bottomRight: radius };
-            var shapeRegion = Util.roundedRectRegion(geom, corners);
-            this._display.setWindowShapeRegion({ windowId: buttonWindowId,
-                                                 shapeType: "Bounding",
-                                                 region: shapeRegion });
-            shapeRegion.finalize();
             this._display.reparentWindow({ windowId: buttonWindowId,
                                            newParentId: this._frameWindowId });
             this._display.mapWindow({ windowId: buttonWindowId });
@@ -158,6 +108,8 @@
 
         construct: function() {
             var geom = this._display.getGeometry({ drawableId: this._clientWindowId });
+            geom.x -= FRAME_BORDER.left;
+            geom.y -= FRAME_BORDER.top;
 
             this._wm.register(this._clientWindowId, this);
             this._display.grabButton({ windowId: this._clientWindowId,
@@ -170,11 +122,17 @@
             this._frameWindowId = this._display.createWindow(geom);
             this._wm.register(this._frameWindowId, this);
             this._display.selectInput({ windowId: this._frameWindowId,
-                                        events: ["SubstructureRedirect", "SubstructureNotify", "Expose", "ButtonPress", "FocusIn", "FocusOut"] });
-            this._display.changeAttributes({ windowId: this._frameWindowId, hasInput: true, backgroundColor: 'orange' });
+                                        events: ["SubstructureRedirect", "SubstructureNotify", "Expose", "ButtonPress", "FocusIn", "FocusOut", "Motion"] });
+
+            var title = this._display.getProperty({ windowId: this._clientWindowId, name: "WM_NAME" });
+            this._display.changeProperty({ windowId: this._frameWindowId, name: 'WM_NAME', value: 'Frame for "' + title + '"' });
 
             this._closeWindowId = this._makeButton();
-            this._display.changeAttributes({ windowId: this._closeWindowId, backgroundColor: 'red' });
+            ClientUtil.loadImageAsPixmap(this._display, 'frame-close-button.png', function(pixmapId) {
+                this._display.changeAttributes({ windowId: this._closeWindowId, backgroundPixmap: pixmapId });
+                this._display.invalidateWindow({ windowId: this._closeWindowId });
+            }.bind(this));
+            this._display.changeProperty({ windowId: this._closeWindowId, name: 'WM_NAME', value: 'Close Button' });
 
             this._display.reparentWindow({ windowId: this._clientWindowId,
                                            newParentId: this._frameWindowId });
@@ -182,14 +140,15 @@
 
             this._updateGeometry(geom);
         },
-        destroy: function() {
-            this._display.destroyWindow({ windowId: this._frameWindowId });
-            this._wm.focusDefaultWindow();
-        },
-        unregister: function() {
+        _unregister: function() {
             this._wm.unregister(this._frameWindowId);
             this._wm.unregister(this._clientWindowId);
             this._wm.unregister(this._closeWindowId);
+        },
+        destroy: function() {
+            this._display.destroyWindow({ windowId: this._frameWindowId });
+            this._wm.focusDefaultWindow();
+            this._unregister();
         },
         frameWasReceiver: function(event) {
             // The frame has several internal helper windows for buttons, etc.
@@ -232,6 +191,45 @@
                 return this._frameExpose(event);
             }
         },
+        _getControl: function(x, y) {
+            var topBorder = 4;
+            var xDirection, yDirection;
+
+            if (x < this._clientGeometry.x)
+                xDirection = "left";
+            else if (x < this._clientGeometry.x + this._clientGeometry.width)
+                xDirection = "";
+            else
+                xDirection = "right";
+
+            if (y < topBorder)
+                yDirection = "top";
+            else if (y < this._clientGeometry.y)
+                yDirection = "titlebar";
+            else if (y < this._clientGeometry.y + this._clientGeometry.height)
+                yDirection = "";
+            else
+                yDirection = "bottom";
+
+            // Special-case: treat titlebar-left as the same as left
+            if (yDirection == "titlebar" && xDirection)
+                return xDirection;
+
+            // top-left, top-right, bottom-left, bottom-right
+            if (xDirection && yDirection)
+                return yDirection + "-" + xDirection;
+
+            // left, right
+            if (xDirection)
+                return xDirection;
+
+            // top, bottom
+            if (yDirection)
+                return yDirection;
+
+            // client area, shouldn't ever happen
+            return "";
+        },
         _frameButtonPress: function(event) {
             if (event.button != 1)
                 return;
@@ -242,55 +240,138 @@
             if (event.childWindowId != this._frameWindowId)
                 return;
 
+            this._grabControl = this._getControl(event.winX, event.winY);
+
             this._origMousePos = { x: event.rootX, y: event.rootY };
-            var frameCoords = this._display.getGeometry({ drawableId: this._frameWindowId });
-            this._origWindowPos = { x: frameCoords.x, y: frameCoords.y };
+
+            var frameGeom = this._display.getGeometry({ drawableId: this._frameWindowId });
+            var clientGeom = this._display.getGeometry({ drawableId: this._clientWindowId });
+            this._origWindowGeom = { x: frameGeom.x, y: frameGeom.y, width: clientGeom.width, height: clientGeom.height };
+
+            var cursor;
+            if (this._grabControl == "titlebar")
+                cursor = "grabbing";
+            else
+                cursor = this._grabControl;
+
             this._display.grabPointer({ windowId: this._frameWindowId,
-                                        ownerEvents: true,
+                                        ownerEvents: false,
                                         events: ["ButtonRelease", "Motion"],
                                         pointerMode: "Async",
-                                        cursor: "grabbing" });
+                                        cursor: cursor });
         },
         _frameButtonRelease: function(event) {
             if (event.button != 1)
                 return;
 
-            // See above.
-            if (event.childWindowId != this._frameWindowId)
-                return;
-
             this._display.ungrabPointer({ windowId: this._frameWindowId });
 
+            this._grabControl = null;
             this._origMousePos = null;
-            this._origWindowPos = null;
+            this._origWindowGeom = null;
+        },
+        _grabbedMotion: function(event) {
+            if (!this._grabControl) {
+                var cursor;
+                var control = this._getControl(event.winX, event.winY);
+            }
+
+            var x, y, w, h;
+
+            var dx = event.rootX - this._origMousePos.x;
+            var dy = event.rootY - this._origMousePos.y;
+
+            switch (this._grabControl) {
+                case "titlebar":
+                case "left":
+                case "top-left":
+                case "bottom-left":
+                    x = this._origWindowGeom.x + dx;
+                    break;
+            }
+
+            switch (this._grabControl) {
+                case "titlebar":
+                case "top":
+                case "top-left":
+                case "top-right":
+                    y = this._origWindowGeom.y + dy;
+                    break;
+            }
+
+            switch (this._grabControl) {
+                case "left":
+                case "top-left":
+                case "bottom-left":
+                    w = this._origWindowGeom.width - dx;
+                    break;
+                case "right":
+                case "top-right":
+                case "bottom-right":
+                    w = this._origWindowGeom.width + dx;
+                    break;
+            }
+
+            switch (this._grabControl) {
+                case "top":
+                case "top-left":
+                case "top-right":
+                    h = this._origWindowGeom.height - dy;
+                    break;
+                case "bottom":
+                case "bottom-left":
+                case "bottom-right":
+                    h = this._origWindowGeom.height + dy;
+                    break;
+            }
+
+            this._updateGeometry({ x: x, y: y, width: w, height: h });
+        },
+        _notGrabbedMotion: function(event) {
+            var cursor;
+            var control = this._getControl(event.winX, event.winY);
+            if (control == "titlebar")
+                cursor = "";
+            else
+                cursor = control;
+
+            this._display.changeAttributes({ windowId: this._frameWindowId, cursor: cursor });
         },
         _frameMotion: function(event) {
-            if (!this._origMousePos)
-                return;
-
-            var newX = this._origWindowPos.x + event.rootX - this._origMousePos.x;
-            var newY = this._origWindowPos.y + event.rootY - this._origMousePos.y;
-            this._updateGeometry({ x: newX, y: newY });
+            if (this._grabControl)
+                return this._grabbedMotion(event);
+            else
+                return this._notGrabbedMotion(event);
         },
         _frameFocusIn: function(event) {
-            this._display.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'yellow' });
+            this._frameHasFocus = true;
             this._display.invalidateWindow({ windowId: this._frameWindowId });
         },
         _frameFocusOut: function(event) {
+            // Don't lose focus when it's simply going to a child window.
             if (event.detail == "Inferior")
                 return;
 
-            this._display.changeAttributes({ windowId: this._frameWindowId, backgroundColor: 'orange' });
+            this._frameHasFocus = false;
             this._display.invalidateWindow({ windowId: this._frameWindowId });
         },
         _draw: function() {
             this._display.drawTo(this._frameWindowId, function(ctx) {
                 this._exposeHandler.clip(ctx);
 
-                var title = this._display.getProperty({ windowId: this._clientWindowId,
-                                                        name: "WM_NAME" });
+                // Background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, this._frameGeometry.width, this._frameGeometry.height);
+
+                // Border
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'black';
+                ctx.strokeRect(0, 0, this._frameGeometry.width, this._frameGeometry.height);
+
+                // Title text
+                var title = this._display.getProperty({ windowId: this._clientWindowId, name: "WM_NAME" });
                 if (title) {
-                    ctx.fillStyle = '#000';
+                    ctx.fillStyle = this._frameHasFocus ? '#000' : '#aaa';
                     ctx.textAlign = 'center';
                     ctx.font = '12pt sans-serif';
                     ctx.fillText(title, this._frameGeometry.width / 2, 21);
@@ -302,7 +383,7 @@
         },
         _handleButtonEvent: function(event) {
             if (event.windowId == this._closeWindowId && event.type == "ButtonRelease")
-                this._display.destroyWindow({ windowId: this._clientWindowId });
+                this.destroy();
         },
         handleEvent: function(event) {
             if (event.windowId == this._closeWindowId)
@@ -319,12 +400,11 @@
     });
 
     var WindowManager = new Class({
-        connect: function(server) {
-            this._privateServer = server;
-            var connection = this._privateServer.connect();
+        initialize: function(server) {
+            var connection = server.connect();
             this._port = connection.clientPort;
             this._port.addEventListener("message", function(messageEvent) {
-                this.handleEvent(messageEvent.data);
+                this._handleEvent(messageEvent.data);
             }.bind(this));
             this._display = connection.display;
             this._display.selectInput({ windowId: this._display.rootWindowId,
@@ -334,22 +414,18 @@
             this._windowFrames = {};
         },
 
-        handleEvent: function(event) {
+        _handleEvent: function(event) {
             var frame = this._windowFrames[event.windowId];
             var frameWasReceiver = frame && frame.frameWasReceiver(event);
 
             switch (event.type) {
             case "MapRequest":
-                return this.mapRequest(event);
+                return this._mapRequest(event);
             case "ConfigureRequest":
-                return this.configureRequest(event, frame);
+                return this._configureRequest(event, frame);
             case "UnmapNotify":
                 if (frame && !frameWasReceiver)
                     return frame.destroy();
-                break;
-            case "DestroyNotify":
-                if (frame && !frameWasReceiver)
-                    return frame.unregister();
                 break;
             case "ButtonPress":
                 // Raise on click.
@@ -367,10 +443,11 @@
             case "Expose":
             case "FocusIn":
             case "FocusOut":
-                return frame.handleEvent(event);
+                if (frame)
+                    return frame.handleEvent(event);
             }
         },
-        configureRequest: function(event, frame) {
+        _configureRequest: function(event, frame) {
             // If we don't have a frame for a window, it was never
             // mapped, simply re-configure the window with whatever
             // it requested.
@@ -399,7 +476,7 @@
                 return true;
             }
         },
-        mapRequest: function(event) {
+        _mapRequest: function(event) {
             if (this._wantsFrame(event.windowId)) {
                 var frame = new WindowFrame(this, this._display, event.windowId);
 
