@@ -154,7 +154,7 @@
         <p>
             In contrast, X11 windows are a place to paint pixels, and get raw input events. There's no way to mark
             an X11 window as a menu or a button. It doesn't give you out-of-the-box accessibiltiy. It doesn't allow you
-            to construct a bunch of X11 windows as if they were widgets and get a nice, reflowing form form field.
+            to construct a bunch of X11 windows as if they were widgets and get a nice, reflowing form field.
             As such, there's really no benefit to using nested windows, one per widget, as if they were DOM nodes. In
             fact, what you get is a slow, flickering experience. The client has to recalculate the new rectangle for
             every DOM node in its own code, and then make a network request over to the X server for every single
