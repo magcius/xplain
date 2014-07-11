@@ -528,12 +528,6 @@
                 this._pixmapDisplay = new PixmapDisplay(this._server, attribs.backgroundPixmap);
                 node.appendChild(this._pixmapDisplay.elem);
 
-                var xidLabel = document.createElement('span');
-                xidLabel.classList.add('value');
-                xidLabel.classList.add('xid');
-                xidLabel.textContent = attribs.backgroundPixmap;
-                this._toplevel.appendChild(xidLabel);
-
                 if (attribs.backgroundColor)
                     node.classList.add('overridden');
 
