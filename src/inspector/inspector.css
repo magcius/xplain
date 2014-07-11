@@ -94,11 +94,14 @@
 }
 
 .inspector .pane-container {
+    display: -webkit-flex;
     display: flex;
+	max-height: 100%;
 }
 
 .inspector .pane-container > div {
     overflow: auto;
+    -webkit-flex: 1;
     flex: 1;
     border-right: 1px dotted #aaa;
 }
@@ -164,7 +167,9 @@
 .inspector .window-details .no-window-selected {
     display: none;
 
+    -webkit-align-items: center;
     align-items: center;
+    -webkit-justify-content: center;
     justify-content: center;
     height: 224px;
     background: #eee;
@@ -173,6 +178,7 @@
 }
 
 .inspector .window-details .no-window-selected.visible {
+    display: -webkit-flex;
     display: flex;
 }
 
