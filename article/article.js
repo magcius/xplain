@@ -70,9 +70,10 @@
         textSlot.textContent = entry.title;
         h2.appendChild(textSlot);
 
-        var dummySlot = document.createElement('span');
-        dummySlot.classList.add('text-slot');
-        navBottom.appendChild(dummySlot);
+        var bottomSlot = document.createElement('span');
+        bottomSlot.innerHTML = 'Written by <a href="index.html#credits">Jasper St. Pierre, among others</a>';
+        bottomSlot.classList.add('text-slot');
+        navBottom.appendChild(bottomSlot);
 
         // Next page button
         createNavButton(h2, TOC[entryIndex + 1], '&rang;');

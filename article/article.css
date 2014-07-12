@@ -13,7 +13,7 @@ html, body {
 	margin: 0 auto;
 }
 
-h1, .subtitle, h2, h3 {
+h1, .subtitle, h2, h3, .nav-bottom {
 	display: block;
 	font-family: "EB Garamond", serif;
 	text-align: center;
@@ -68,8 +68,12 @@ h2, .nav-bottom {
 .text-slot {
 	flex: 1;
 	background-color: white;
-	height: 2em;
-	line-height: 2em;
+	height: 48pt;
+	line-height: 48pt;
+}
+
+.nav-bottom .text-slot {
+	font-size: 16pt;
 }
 
 .nav-button {
