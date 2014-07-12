@@ -861,6 +861,7 @@
         'setInputFocus',
         'createPixmap',
         'freePixmap',
+        'sendEvent',
 
         // This is technically not a request -- the event-mask
         // is actually part of the window attributes, but this
@@ -1873,6 +1874,26 @@
         _handle_freePixmap: function(client, props) {
             var serverPixmap = this.getServerPixmap(client, props.drawableId);
             serverPixmap.destroy();
+        },
+        _handle_sendEvent: function(client, props) {
+            var destinationId = props.destinationId;
+            var destination;
+
+            if (destinationId === 'PointerFocus')
+                destination = this._cursorServerWindow;
+            else if (destinationId === 'InputFocus')
+                destination = this._focusServerWindow;
+            else
+                destination = this.getServerWindow(client, destinationId);
+
+            // TODO: Support "propagate". Does anything use this garbage?
+            var event = props.event;
+
+            // XXX: We send events based on the windowId field inside the event.
+            // Does anything validly use a separate windowId than what's passed
+            // to SendEvent?
+            event.windowId = destination.windowId;
+            this.sendEvent(event);
         },
 
         _handle_selectInput: function(client, props) {
