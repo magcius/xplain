@@ -43,13 +43,14 @@
     // to the next/previous articles.
     Article.generateNavButtons = function() {
         var h2 = document.querySelector('h2');
+        var navBottom = document.querySelector('.nav-bottom');
         var entryIndex = findTOCEntryIndex(document.body.id);
         var entry = TOC[entryIndex];
 
-        function createNavButton(entry, content) {
+        function createNavButton(container, entry, content) {
             var slot = document.createElement('span');
             slot.classList.add('nav-button');
-            h2.appendChild(slot);
+            container.appendChild(slot);
 
             if (entry) {
                 var link = document.createElement('a');
@@ -61,15 +62,21 @@
         }
 
         // Prev page button
-        createNavButton(TOC[entryIndex - 1], '&lang;');
+        createNavButton(h2, TOC[entryIndex - 1], '&lang;');
+        createNavButton(navBottom, TOC[entryIndex - 1], '&lang;');
 
         var textSlot = document.createElement('span');
         textSlot.classList.add('text-slot');
         textSlot.textContent = entry.title;
         h2.appendChild(textSlot);
 
+        var dummySlot = document.createElement('span');
+        dummySlot.classList.add('text-slot');
+        navBottom.appendChild(dummySlot);
+
         // Next page button
-        createNavButton(TOC[entryIndex + 1], '&rang;');
+        createNavButton(h2, TOC[entryIndex + 1], '&rang;');
+        createNavButton(navBottom, TOC[entryIndex + 1], '&rang;');
     };
 
     // Generate the permalinks to each section in the article for easy linking.

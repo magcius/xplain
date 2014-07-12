@@ -52,7 +52,7 @@ section {
 	padding: 1em 0;
 }
 
-h2 {
+h2, .nav-bottom {
 	text-align: center;
 	font-size: 24pt;
 	margin-top: .5em;
@@ -61,21 +61,25 @@ h2 {
 	align-items: center;
 }
 
-h2 .text-slot {
+.nav-bottom {
+	margin-bottom: .5em;
+}
+
+.text-slot {
 	flex: 1;
 	background-color: white;
 	height: 2em;
 	line-height: 2em;
 }
 
-h2 .nav-button {
+.nav-button {
 	background-color: white;
 	width: 64px;
 	height: 2em;
 	z-index: 9999;
 }
 
-h2 .nav-button a {
+.nav-button a {
 	background-color: white;
 	color: black;
 	text-decoration: none;
@@ -85,16 +89,16 @@ h2 .nav-button a {
 	line-height: 2em;
 }
 
-h2 .nav-button a:hover {
+.nav-button a:hover {
 	background-color: #fafafa;
 }
 
-h2 .nav-button:last-child a {
+.nav-button:last-child a {
 	border-left: 0.5em solid #eee;
 	margin-left: -0.5em;
 }
 
-h2 .nav-button:first-child a {
+.nav-button:first-child a {
 	border-right: 0.5em solid #eee;
 }
 
