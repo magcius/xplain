@@ -183,7 +183,7 @@
 
         // The shaking window that's behind.
         var kitten2 = new DelayedExposeImage(server, "kitten2.png");
-        DemoCommon.centerWindow(display, kitten2.windowId, { x: -20, y: -40 });
+        DemoCommon.centerWindow(display, kitten2.windowId, { x: -20, y: 40 });
         display.mapWindow({ windowId: kitten2.windowId });
 
         // The window on top that's obscuring the window behind it.
@@ -273,7 +273,7 @@
 
         // The shaking window that's behind.
         var kitten2 = new DelayedExposeImage(server, "kitten2.png");
-        DemoCommon.centerWindow(display, kitten2.windowId, { x: -20, y: -40 });
+        DemoCommon.centerWindow(display, kitten2.windowId, { x: -20, y: 40 });
         display.mapWindow({ windowId: kitten2.windowId });
 
         // The circle window that's on top.
