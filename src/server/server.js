@@ -1892,7 +1892,7 @@
             // XXX: We send events based on the windowId field inside the event.
             // Does anything validly use a separate windowId than what's passed
             // to SendEvent?
-            event.windowId = destination.windowId;
+            event.windowId = destination.xid;
             this.sendEvent(event);
         },
 
