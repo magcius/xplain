@@ -324,6 +324,7 @@
                 // We are an unparented window or the root window;
                 // we have no draw tree.
                 this.drawTree = null;
+                this.drawTreeParent = null;
             }
         },
 
