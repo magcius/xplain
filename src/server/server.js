@@ -1516,100 +1516,38 @@
                 server.sendEvent(event);
             }
 
-            function FocusInEvents(ancestor, child, detail, doAncestor, skipChild) {
-                if (child == null)
-                    return ancestor == null;
+            function FocusInEvents(ancestor, child, detail) {
+                var parent = child.windowTreeParent;
+                if (ancestor == parent)
+                    return;
 
-                if (ancestor == child) {
-                    if (doAncestor)
-                        FocusEvent("FocusIn", detail, child);
-                    return true;
-                } else if (FocusInEvents(ancestor, child.windowTreeParent, detail, doAncestor, skipChild)) {
-                    if (child != skipChild)
-                        FocusEvent("FocusIn", detail, child);
-                    return true;
-                }
-                return false;
+                FocusInEvents(ancestor, parent, detail);
+                FocusEvent("FocusIn", detail, child);
             }
 
-            function FocusOutEvents(child, ancestor, detail, doAncestor) {
-                while (child != ancestor) {
-                    FocusEvent("FocusOut", detail, child);
-                    child = child.windowTreeParent;
-                }
-                if (doAncestor)
-                    FocusEvent("FocusOut", detail, ancestor);
+            function FocusOutEvents(child, ancestor, detail) {
+                var parent = child.windowTreeParent;
+                if (ancestor == parent)
+                    return;
+
+                FocusEvent("FocusOut", detail, child);
+                FocusOutEvents(parent, ancestor, detail);
             }
 
-            var detailOut = (fromWin === null) ? "DetailNone" : "PointerRoot";
-            var detailIn = (toWin === null) ? "DetailNone" : "PointerRoot";
-
-            // ugh, this is sort of a bad API. We should have a constant
-            // window ID for PointerRoot, probably.
-            if (toWin === "PointerRoot" || toWin === null) {
-                if (fromWin === "PointerRoot" || fromWin === null) {
-                    if (fromWin === "PointerRoot")
-                        FocusOutEvents(this._cursorServerWindow, this._rootWindow, "Pointer", true);
-
-                    // Notify the root
-                    FocusEvent("FocusOut", detailOut, this._rootWindow);
-                } else {
-                    if (isWindowDescendentOf(fromWin, this._cursorServerWindow))
-                        FocusOutEvents(this._cursorServerWindow, fromWin, "Pointer", false);
-                    FocusEvent("FocusOut", "Nonlinear", fromWin);
-                    FocusOutEvents(fromWin.windowTreeParent, null, "NonlinearVirtual", false);
-                }
-
-                // Notify the root
-                FocusEvent("FocusIn", detailIn, this._rootWindow);
-                if (toWin == "PointerRoot")
-                    FocusInEvents(this._rootWindow, this._cursorServerWindow, "Pointer", true, null);
-            } else if (fromWin === "PointerRoot" || fromWin === null) {
-                {
-                    if (fromWin == "PointerRoot")
-                        FocusOutEvents(this._cursorServerWindow, this._rootWindow, "Pointer", true);
-
-                    // Notify the root
-                    FocusEvent("FocusOut", detailOut, this._rootWindow);
-
-                    if (toWin.windowTreeParent != null)
-                        FocusInEvents(this._rootWindow, toWin, "NonlinearVirtual", true, toWin);
-                    FocusEvent("FocusIn", "NonlinearVirtual", toWin);
-                    if (isWindowDescendentOf(toWin, this._cursorServerWindow))
-                        FocusInEvents(toWin, this._cursorServerWindow, "Pointer", false, null);
-                }
-            } else if (isWindowDescendentOf(fromWin, toWin)) {
-                if (isWindowDescendentOf(fromWin, this._cursorServerWindow) &&
-                    this._cursorServerWindow != fromWin &&
-                    (!isWindowDescendentOf(toWin, this._cursorServerWindow)) &&
-                    (!isWindowDescendentOf(this._cursorServerWindow, toWin)))
-                    FocusOutEvents(this._cursorServerWindow, fromWin, "Pointer", false);
-
+            if (isWindowDescendentOf(fromWin, toWin)) {
                 FocusEvent("FocusOut", "Interior", fromWin, null);
-                FocusInEvents(fromWin, toWin, "Virtual", false, toWin);
+                FocusInEvents(fromWin, toWin, "Virtual");
                 FocusEvent("FocusIn", "Ancestor", toWin, null);
             } else if (isWindowDescendentOf(toWin, fromWin)) {
                 FocusEvent("FocusOut", "Ancestor", fromWin, null);
                 FocusOutEvents(fromWin, toWin, "Virtual", false);
                 FocusEvent("FocusIn", "Inferior", toWin, null);
-
-                if (isWindowDescendentOf(toWin, this._cursorServerWindow) &&
-                    this._cursorServerWindow != fromWin &&
-                    (!isWindowDescendentOf(fromWin, this._cursorServerWindow)) &&
-                    (!isWindowDescendentOf(this._cursorServerWindow, fromWin)))
-                    FocusInEvents(this._cursorServerWindow, toWin, "Pointer", false, null);
             } else {
                 var common = commonAncestor(toWin, fromWin);
-                if (isWindowDescendentOf(fromWin, this._cursorServerWindow))
-                    FocusOutEvents(this._cursorServerWindow, fromWin, "Pointer", false);
                 FocusEvent("FocusOut", "Nonlinear", fromWin);
-                if (fromWin.windowTreeParent != null)
-                    FocusOutEvents(fromWin.windowTreeParent, common, "NonlinearVirtual", false);
-                if (toWin.windowTreeParent != null)
-                    FocusInEvents(common, toWin, "NonlinearVirtual", true, toWin);
+                FocusOutEvents(fromWin, common, "NonlinearVirtual");
+                FocusInEvents(common, toWin, "NonlinearVirtual");
                 FocusEvent("FocusIn", "Nonlinear", toWin);
-                if (isWindowDescendentOf(toWin, this._cursorServerWindow))
-                    FocusInEvents(toWin, this._cursorServerWindow, "Pointer", false, null);
             }
         },
         _setInputFocus: function(client, focusWindowId, revert) {
