@@ -151,4 +151,33 @@
         DemoCommon.addInspector(res);
     });
 
+    ArticleDemos.registerDemo("input-nested-composited", function(res) {
+        var server = res.server;
+        var connection = server.connect();
+        var display = connection.display;
+
+        // Rather than use a normal background on the root window,
+        // use a large background window that gets redirected so the CM
+        // won't fight to paint on the root window.
+        var bgWindow = display.createWindow({ x: 0, y: 0, width: 1000, height: 1000 });
+        display.changeAttributes({ windowId: bgWindow, backgroundColor: '#354763' });
+        display.changeProperty({ windowId: bgWindow, name: 'BACKGROUND', value: true });
+        display.mapWindow({ windowId: bgWindow });
+
+        var ch1 = new Crosshairs(server);
+        display.configureWindow({ windowId: ch1.windowId, width: 150, height: 150 });
+        DemoCommon.centerWindow(display, ch1.windowId);
+        display.mapWindow({ windowId: ch1.windowId });
+
+        var ch2 = new Crosshairs(server);
+        display.reparentWindow({ windowId: ch2.windowId, newParentId: ch1.windowId });
+        display.configureWindow({ windowId: ch2.windowId, x: 60, y: 15, width: 75, height: 75 });
+        display.mapWindow({ windowId: ch2.windowId });
+
+        var ch1Dragger = new DemoCommon.WindowDragger(server, ch1.windowId, true);
+        var ch2Dragger = new DemoCommon.WindowDragger(server, ch2.windowId, false);
+
+        var cm = new CompositingManager(server);
+    });
+
 })(window);
