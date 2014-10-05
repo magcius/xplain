@@ -395,7 +395,7 @@
             this._display.configureWindow({ windowId: this._frameWindowId, stackMode: "Above" });
         },
         focus: function() {
-            this._display.setInputFocus({ windowId: this._clientWindowId, revert: "PointerRoot" });
+            this._display.setInputFocus({ windowId: this._clientWindowId });
         },
     });
 

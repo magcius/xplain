@@ -1147,7 +1147,6 @@
             this._cursorServerWindow = null;
             this._buttonsDown = [];
 
-            this._focusRevertTo = null;
             this._focusServerWindow = null;
             this._grabClient = null;
 
@@ -1550,9 +1549,9 @@
                 FocusEvent("FocusIn", "Nonlinear", toWin);
             }
         },
-        _setInputFocus: function(client, focusWindowId, revert) {
+        _setInputFocus: function(client, focusWindowId) {
             var focusWindow;
-            if (focusWindowId === null || focusWindowId === "PointerRoot") {
+            if (focusWindowId === null) {
                 focusWindow = focusWindowId;
             } else {
                 focusWindow = this.getServerWindow(client, focusWindowId);
@@ -1564,20 +1563,14 @@
                           rootX: this._cursorX,
                           rootY: this._cursorY };
 
-            if (focusWindow != this._focusServerWindow || focusWindowId === "PointerRoot") {
+            if (focusWindow != this._focusServerWindow) {
                 this._sendFocusEvents(event, this._focusServerWindow, focusWindow);
                 this._focusServerWindow = focusWindow;
             }
-
-            this._focusRevertTo = revert;
         },
         _revertInputFocus: function() {
-            if (this._focusRevertTo === null)
-                this._setInputFocus(null, null, null);
-            else if (this._focusRevertTo === "Parent")
-                this._setInputFocus(null, this._focusServerWindow.windowTreeParent.xid, null);
-            else if (this._focusRevertTo === "PointerRoot")
-                this._setInputFocus(null, "PointerRoot", "PointerRoot");
+            // Always revert to the parent window, like RevertToParent does.
+            this._setInputFocus(null, this._focusServerWindow.windowTreeParent.xid);
         },
 
         _grabPointer: function(grabInfo, isPassive) {
@@ -1803,7 +1796,7 @@
             return this._translateCoordinates(srcServerWindow, destServerWindow, props.x, props.y);
         },
         _handle_setInputFocus: function(client, props) {
-            this._setInputFocus(client, props.windowId, props.revert);
+            this._setInputFocus(client, props.windowId);
         },
 
         _handle_createPixmap: function(client, props) {
