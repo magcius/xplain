@@ -1147,11 +1147,11 @@
             this._cursorServerWindow = null;
             this._buttonsDown = [];
 
-            this._focusServerWindow = null;
             this._grabClient = null;
 
             this._createRootDrawTree();
 
+            this._focusServerWindow = this._rootWindow;
             this.syncCursorWindow();
         },
 
