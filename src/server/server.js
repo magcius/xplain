@@ -1549,16 +1549,7 @@
                 FocusEvent("FocusIn", "Nonlinear", toWin);
             }
         },
-        _setInputFocus: function(client, focusWindowId) {
-            var focusWindow;
-            if (focusWindowId === null) {
-                focusWindow = focusWindowId;
-            } else {
-                focusWindow = this.getServerWindow(client, focusWindowId);
-                if (!focusWindow)
-                    return;
-            }
-
+        _setInputFocus: function(focusWindow) {
             var event = { rootWindowId: this.rootWindowId,
                           rootX: this._cursorX,
                           rootY: this._cursorY };
@@ -1570,7 +1561,7 @@
         },
         _revertInputFocus: function() {
             // Always revert to the parent window, like RevertToParent does.
-            this._setInputFocus(null, this._focusServerWindow.windowTreeParent.xid);
+            this._setInputFocus(this._focusServerWindow.windowTreeParent.xid);
         },
 
         _grabPointer: function(grabInfo, isPassive) {
@@ -1796,7 +1787,8 @@
             return this._translateCoordinates(srcServerWindow, destServerWindow, props.x, props.y);
         },
         _handle_setInputFocus: function(client, props) {
-            this._setInputFocus(client, props.windowId);
+            var serverWindow = this.getServerWindow(client, props.windowId);
+            this._setInputFocus(serverWindow);
         },
 
         _handle_createPixmap: function(client, props) {
