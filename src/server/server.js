@@ -64,11 +64,10 @@
     // that it keeps track of XIDs, and also exposes helper methods that
     // implement the "Drawable" interface.
     var ServerPixmap = new Class({
-        initialize: function(server, props) {
+        initialize: function(server, pixmap) {
             this._server = server;
             this.xid = this._server.registerXidObject(this);
-            this._pixmap = new Pixmap();
-            this._pixmap.resize(props.width, props.height);
+            this._pixmap = pixmap;
             this._server.pixmapCreated(this);
         },
         destroy: function() {
@@ -1594,7 +1593,10 @@
             return new ServerWindow(this, props);
         },
         _createPixmapInternal: function(props) {
-            return new ServerPixmap(this, props);
+            var pixmap = new Pixmap();
+            pixmap.resize(props.width, props.height);
+
+            return new ServerPixmap(this, pixmap);
         },
         _getXidObjectInternal: function(client, xid, error, types) {
             var obj = this._xidToObject[xid];
