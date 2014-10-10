@@ -328,7 +328,7 @@
             return region;
         },
 
-        _syncDrawTree: function() {
+        syncDrawTree: function() {
             var newDrawTree;
 
             if (this.windowTreeParent) {
@@ -348,6 +348,10 @@
                 this.drawTreeParent = this.windowTreeParent;
             else
                 this.drawTreeParent = null;
+
+            this.children.forEach(function(child) {
+                child.syncDrawTree();
+            });
         },
 
         canDraw: function() {
@@ -515,7 +519,7 @@
             var children = this.windowTreeParent.children;
             children.splice(children.indexOf(this), 1);
             this.windowTreeParent = null;
-            this._syncDrawTree();
+            this.syncDrawTree();
         },
         destroy: function() {
             this.unmap();
@@ -539,7 +543,7 @@
 
             this.windowTreeParent = parent;
             this.windowTreeParent.children.unshift(this);
-            this._syncDrawTree();
+            this.syncDrawTree();
 
             if (wasMapped)
                 this.map();
