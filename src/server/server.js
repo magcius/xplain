@@ -388,6 +388,13 @@
                 func(ctx);
             }.bind(this));
         },
+        _sendDamageEvents: function() {
+            var serverWindow = this;
+            while (serverWindow != null) {
+                this._server.sendEvent({ type: "Damage", windowId: serverWindow.xid });
+                serverWindow = serverWindow.drawTreeParent;
+            }
+        },
         drawTo: function(func) {
             var region = this.drawTree.calculateVisibleRegionForWindow(this, false);
             this._drawClippedToRegion(region, function(ctx) {
@@ -396,6 +403,8 @@
                 func(ctx);
             }.bind(this));
             region.finalize();
+
+            this._sendDamageEvents();
         },
         _drawBackground: function(region) {
             if (!this._backgroundPattern)
