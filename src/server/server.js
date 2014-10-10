@@ -340,7 +340,9 @@
         syncDrawTree: function() {
             var newDrawTree;
 
-            if (this.windowTreeParent) {
+            if (this._redirectedDrawTree) {
+                newDrawTree = this._redirectedDrawTree;
+            } else if (this.windowTreeParent) {
                 newDrawTree = this.windowTreeParent.drawTree;
             } else {
                 // We are an unparented window or the root window;
@@ -848,6 +850,25 @@
             }
         },
 
+        redirect: function() {
+            if (this._redirectedDrawTree)
+                return;
+
+            this._redirectedDrawTree = new ServerWindowDrawTree(this._server, this);
+            this.syncDrawTree();
+
+            // Immediately expose the window on the new draw tree.
+            this.drawTree.exposeWindow(this, false, false);
+        },
+        unredirect: function() {
+            if (!this._redirectedDrawTree)
+                return;
+
+            this._redirectedDrawTree.destroy();
+            this._redirectedDrawTree = null;
+            this.syncDrawTree();
+        },
+
         grabButton: function(button, grabInfo) {
             this._passiveGrabs[button] = grabInfo;
         },
@@ -928,6 +949,10 @@
         // SHAPE / XFixes
         'setWindowShapeRegion',
         'getWindowShapeRegion',
+
+        // COMPOSITE
+        'redirectWindow',
+        'nameWindowPixmap',
     ];
 
     // Install the API method for every request.
@@ -1904,6 +1929,30 @@
         _handle_getWindowShapeRegion: function(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             return serverWindow.getWindowShapeRegion(props.shapeType);
+        },
+
+        _handle_redirectWindow: function(client, props) {
+            var serverWindow = this.getServerWindow(client, props.windowId);
+            if (props.mode == 'none') {
+                serverWindow.unredirect();
+            } else if (props.mode == 'manual') {
+                serverWindow.redirect();
+            } else {
+                // There's really no point to supporting 'automatic'.
+                throw clientError("BadMatch");
+            }
+        },
+        _handle_nameWindowPixmap: function(client, props) {
+            var serverWindow = this.getServerWindow(client, props.windowId);
+
+            // NameWindowPixmap is only allowed on redirected windows,
+            // and if the window has a draw tree parent, it's not redirected.
+            if (serverWindow.drawTreeParent != null)
+                throw clientError("BadMatch");
+
+            var pixmap = serverWindow.drawTree.pixmap;
+            var serverPixmap = new ServerPixmap(this, pixmap);
+            return serverPixmap.xid;
         },
 
         // This is called by ClientConnection above for each of its generated
