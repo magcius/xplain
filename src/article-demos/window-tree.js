@@ -89,7 +89,7 @@
         },
 
         _handleCrossing: function(event) {
-            if (event.detail != "Inferior" && event.detail != "Ancestor")
+            if (event.detail == "Virtual")
                 return;
 
             this._crosshairsVisible = (event.type == "Enter");
