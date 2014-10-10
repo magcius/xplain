@@ -23,10 +23,19 @@
         initialize: function() {
             this.canvas = document.createElement('canvas');
             this._ctx = this.canvas.getContext('2d');
+            this._refCount = 0;
         },
-        destroy: function() {
+        _destroy: function() {
             this.canvas.width = 0;
             this.canvas.height = 0;
+        },
+        ref: function() {
+            this._refCount++;
+            return this;
+        },
+        unref: function() {
+            if (--this._refCount == 0)
+                this._destroy();
         },
         drawTo: function(func) {
             this._ctx.beginPath();
@@ -67,11 +76,11 @@
         initialize: function(server, pixmap) {
             this._server = server;
             this.xid = this._server.registerXidObject(this);
-            this._pixmap = pixmap;
+            this._pixmap = pixmap.ref();
             this._server.pixmapCreated(this);
         },
         destroy: function() {
-            this._pixmap.destroy();
+            this._pixmap.unref();
             this._server.pixmapDestroyed(this);
             this._server.xidDestroyed(this.xid);
         },
@@ -108,11 +117,11 @@
             this._server = server;
             this._rootWindow = rootWindow;
 
-            this.pixmap = new Pixmap();
+            this.pixmap = (new Pixmap()).ref();
             this.rootReconfigured();
         },
         destroy: function() {
-            this.pixmap.destroy();
+            this.pixmap.unref();
             this.pixmap = null;
         },
 
