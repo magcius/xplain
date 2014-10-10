@@ -111,6 +111,10 @@
             this.pixmap = new Pixmap();
             this.rootReconfigured();
         },
+        destroy: function() {
+            this.pixmap.destroy();
+            this.pixmap = null;
+        },
 
         rootReconfigured: function() {
             this.pixmap.resize(this._rootWindow.width, this._rootWindow.height);
