@@ -387,6 +387,8 @@
                 ctx.beginPath();
                 func(ctx);
             }.bind(this));
+
+            this._sendDamageEvents();
         },
         _sendDamageEvents: function() {
             var serverWindow = this;
@@ -403,8 +405,6 @@
                 func(ctx);
             }.bind(this));
             region.finalize();
-
-            this._sendDamageEvents();
         },
         _drawBackground: function(region) {
             if (!this._backgroundPattern)
