@@ -119,7 +119,7 @@
     });
 
     var CompositingManager = new Class({
-        initialize: function(server) {
+        initialize: function(server, toplevelWindowId) {
             this._server = server;
 
             var connection = server.connect();
@@ -131,14 +131,15 @@
 
             this._stage = new Stage(this._onRedraw.bind(this));
 
-            this._display.selectInput({ windowId: this._display.rootWindowId,
+            this._toplevelWindowId = toplevelWindowId;
+            this._display.selectInput({ windowId: toplevelWindowId,
                                         events: ["SubstructureNotify", "Expose"] });
-            var query = this._display.queryTree({ windowId: this._display.rootWindowId });
+            var query = this._display.queryTree({ windowId: toplevelWindowId });
             query.children.forEach(this._addWindow.bind(this));
         },
 
         _onRedraw: function() {
-            this._display.invalidateWindow({ windowId: this._display.rootWindowId,
+            this._display.invalidateWindow({ windowId: this._toplevelWindowId,
                                              includeChildren: true });
         },
 
@@ -157,7 +158,7 @@
         },
 
         _draw: function() {
-            this._display.drawTo(this._display.rootWindowId, function(ctx) {
+            this._display.drawTo(this._toplevelWindowId, function(ctx) {
                 this._stage.draw(ctx);
             }.bind(this));
         },
