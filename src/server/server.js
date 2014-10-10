@@ -202,7 +202,7 @@
             var subtractWindow = function(aboveWindow) {
                 if (!aboveWindow.viewable)
                     return;
-                if (serverWindow.drawTree != this)
+                if (aboveWindow.drawTree != this)
                     return;
 
                 var transformedBoundingRegion = aboveWindow.calculateTransformedBoundingRegion();
