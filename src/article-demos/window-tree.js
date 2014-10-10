@@ -177,7 +177,8 @@
         var ch1Dragger = new DemoCommon.WindowDragger(server, ch1.windowId, true);
         var ch2Dragger = new DemoCommon.WindowDragger(server, ch2.windowId, false);
 
-        var cm = new CompositingManager(server);
+        var cm1 = new CompositingManager(server, display.rootWindowId);
+        var cm2 = new CompositingManager(server, ch1.windowId);
     });
 
 })(window);
