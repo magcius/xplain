@@ -329,15 +329,25 @@
         },
 
         _syncDrawTree: function() {
+            var newDrawTree;
+
             if (this.windowTreeParent) {
-                this.drawTree = this.windowTreeParent.drawTree;
-                this.drawTreeParent = this.windowTreeParent;
+                newDrawTree = this.windowTreeParent.drawTree;
             } else {
                 // We are an unparented window or the root window;
                 // we have no draw tree.
-                this.drawTree = null;
-                this.drawTreeParent = null;
+                newDrawTree = null;
             }
+
+            if (newDrawTree == this.drawTree)
+                return;
+
+            this.drawTree = newDrawTree;
+
+            if (this.windowTreeParent && newDrawTree == this.windowTreeParent.drawTree)
+                this.drawTreeParent = this.windowTreeParent;
+            else
+                this.drawTreeParent = null;
         },
 
         canDraw: function() {
