@@ -436,11 +436,14 @@
             this._backgroundPattern = pattern;
         },
         getAttributes: function(client) {
+            var mapState = (this.viewable ? "Viewable" :
+                            this.mapped ? "Unviewable" : "Unmapped");
             return {
                 backgroundColor: this._backgroundColor,
                 backgroundPixmap: this._backgroundPixmap,
                 overrideRedirect: this._overrideRedirect,
                 cursor: this.cursor,
+                mapState: mapState,
             };
         },
         changeAttributes: function(client, attributes) {
