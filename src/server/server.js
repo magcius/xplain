@@ -64,9 +64,9 @@
     // that it keeps track of XIDs, and also exposes helper methods that
     // implement the "Drawable" interface.
     var ServerPixmap = new Class({
-        initialize: function(xid, server, props) {
-            this.xid = xid;
+        initialize: function(server, props) {
             this._server = server;
+            this.xid = this._server.registerXidObject(this);
             this._pixmap = new Pixmap();
             this._pixmap.resize(props.width, props.height);
             this._server.pixmapCreated(this);
@@ -252,9 +252,9 @@
     // the X server doesn't maintain any windows that aren't also exposed on the
     // wire in some form.
     var ServerWindow = new Class({
-        initialize: function(xid, server, props) {
-            this.xid = xid;
+        initialize: function(server, props) {
             this._server = server;
+            this.xid = this._server.registerXidObject(this);
 
             this._backgroundColor = null;
             this._backgroundPixmap = null;
@@ -1585,17 +1585,16 @@
                     this._revertInputFocus();
             }
         },
-        _createXidObjectInternal: function(constructor, props) {
+        registerXidObject: function(obj) {
             var xid = ++this._nextXid;
-            var obj = new constructor(xid, this, props);
             this._xidToObject[xid] = obj;
-            return obj;
+            return xid;
         },
         _createWindowInternal: function(props) {
-            return this._createXidObjectInternal(ServerWindow, props);
+            return new ServerWindow(this, props);
         },
         _createPixmapInternal: function(props) {
-            return this._createXidObjectInternal(ServerPixmap, props);
+            return new ServerPixmap(this, props);
         },
         _getXidObjectInternal: function(client, xid, error, types) {
             var obj = this._xidToObject[xid];
