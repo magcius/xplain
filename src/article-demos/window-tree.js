@@ -160,9 +160,13 @@
         // use a large background window that gets redirected so the CM
         // won't fight to paint on the root window.
         var bgWindow = display.createWindow({ x: 0, y: 0, width: 1000, height: 1000 });
-        display.changeAttributes({ windowId: bgWindow, backgroundColor: '#354763' });
         display.changeProperty({ windowId: bgWindow, name: 'BACKGROUND', value: true });
         display.mapWindow({ windowId: bgWindow });
+
+        ClientUtil.loadImageAsPixmap(display, "marshmallows3.jpg", function(pixmapId) {
+            display.changeAttributes({ windowId: bgWindow, backgroundPixmap: pixmapId });
+            display.invalidateWindow({ windowId: bgWindow });
+        });
 
         var ch1 = new Crosshairs(server);
         display.configureWindow({ windowId: ch1.windowId, width: 150, height: 150 });
