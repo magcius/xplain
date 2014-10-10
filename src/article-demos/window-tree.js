@@ -89,7 +89,7 @@
         },
 
         _handleCrossing: function(event) {
-            if (event.detail == "Virtual")
+            if (event.detail == "Virtual" || event.detail == "NonlinearVirtual")
                 return;
 
             this._crosshairsVisible = (event.type == "Enter");
