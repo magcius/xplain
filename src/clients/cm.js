@@ -28,9 +28,11 @@
         },
 
         draw: function(ctx) {
-            CanvasUtil.pathFromRegion(ctx, this._needsRedraw);
-            ctx.clip();
-            ctx.beginPath();
+            if (this._triggeredRedraw) {
+                CanvasUtil.pathFromRegion(ctx, this._needsRedraw);
+                ctx.clip();
+                ctx.beginPath();
+            }
 
             this._actors.forEach(function(actor) {
                 actor.draw(ctx);
