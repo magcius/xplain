@@ -158,7 +158,7 @@
                 var obscuringRegion = new Region();
 
                 // Translate into serverWindow's space.
-                inRegion.translate(-serverWindow.x, -serverWindow.y);
+                inRegion.translate(-serverWindow.drawTreeX, -serverWindow.drawTreeY);
 
                 // Clip inRegion to the bounding region of our region to get
                 // the part of the exposed region that our window tree "owns".
@@ -181,7 +181,7 @@
                 obscuringRegion.finalize();
 
                 // And translate back.
-                inRegion.translate(serverWindow.x, serverWindow.y);
+                inRegion.translate(serverWindow.drawTreeX, serverWindow.drawTreeY);
             }.bind(this);
 
             recursivelyExpose(this._rootWindow, exposedRegion);
@@ -321,13 +321,22 @@
             while (serverWindow != null) {
                 var bounding = serverWindow.getBoundingRegion();
                 region.intersect(region, bounding);
-                region.translate(serverWindow.x, serverWindow.y);
+                region.translate(serverWindow.drawTreeX, serverWindow.drawTreeY);
                 bounding.finalize();
                 serverWindow = serverWindow.drawTreeParent;
             }
             return region;
         },
 
+        _syncDrawTreePosition: function() {
+            if (this.drawTreeParent == null) {
+                this.drawTreeX = 0;
+                this.drawTreeY = 0;
+            } else {
+                this.drawTreeX = this.x;
+                this.drawTreeY = this.y;
+            }
+        },
         syncDrawTree: function() {
             var newDrawTree;
 
@@ -349,6 +358,8 @@
             else
                 this.drawTreeParent = null;
 
+            this._syncDrawTreePosition();
+
             this.children.forEach(function(child) {
                 child.syncDrawTree();
             });
@@ -361,8 +372,8 @@
             var x = 0, y = 0;
             var serverWindow = this;
             while (serverWindow != null) {
-                x += serverWindow.x;
-                y += serverWindow.y;
+                x += serverWindow.drawTreeX;
+                y += serverWindow.drawTreeY;
                 serverWindow = serverWindow.drawTreeParent;
             }
             return { x: x, y: y };
@@ -739,6 +750,7 @@
             if (props.height !== undefined)
                 this.height = props.height | 0;
 
+            this._syncDrawTreePosition();
             this._unshapedBoundingRegion.init_rect(0, 0, this.width, this.height);
 
             if (props.stackMode) {
