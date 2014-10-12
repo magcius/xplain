@@ -32,3 +32,19 @@
 .demo-server .demo-input-nested-composited {
 	height: 200px;
 }
+
+.demo-server .demo-window-pixel-map {
+	height: 250px;
+}
+
+.demo-server .demo-window-pixel-map-shaped {
+	height: 250px;
+}
+
+.demo-server .demo-naive-redirect {
+	height: 250px;
+}
+
+.demo-server .demo-composited-kitten {
+	height: 250px;
+}

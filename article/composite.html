@@ -1,0 +1,259 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf8">
+    <link rel="stylesheet" href="article.css">
+    <link rel="stylesheet" href="../src/article-demos/demos.css">
+    <link rel="stylesheet" href="../src/inspector/inspector.css">
+    <link rel="stylesheet" href="../src/server/server.css">
+    <link rel="shortcut icon" href="favicon.png">
+    <title>Xplain</title>
+</head>
+<body id="composite"><div class="main">
+    <header>
+        <a href="index.html">
+            <h1><span>Xplain</span></h1>
+            <span class="subtitle">Explaining X11 for the rest of us</span>
+        </a>
+    </header>
+
+    <article>
+        <h2></h2>
+
+        <noscript>
+        <p class="warning">
+            This article relies a lot of interactive demos that use JavaScript to show how the X Window System works.
+            The article unfortunately won't work properly without these interactive demos, so if you feel like you're
+            missing out, try enabling JavaScript?
+        </p>
+        </noscript>
+
+        <section id="prologue">
+        <h3>Recap</h3>
+        <p>
+            Last time, we got more intimately familiar with the technical details of the
+            <span class="definition">window</span>, one of X11's basic building blocks for building interactive user
+            interfaces. We learned that windows can be composed and nested, which allows for complex event delivery
+            and simplified code on the part of the toolkit, at the expense of added latency and graphical glitches.
+        </p>
+        <p>
+            It might seem like the vision of the desktop the X11 protocol had in mind not match up to how users
+            actually used it and how user interfaces, as a whole, evolved. One could even say that the window tree
+            expected composition from user interfaces in a way that doesn't really match reality.
+        </p>
+        <p>
+            I, in perhaps an ill-fated attempt to remain impartial, won't give my opinion on this, specifically,
+            but today I want to talk about another feature commonly seen in modern user interface design, and how
+            it offers challenges with the drawing model X11 specified and expects clients to use. I am, specifically,
+            talking about alpha blending and transparency, or more specifically, "compositing". We'll take a look at
+            what the
+            <a href="http://cgit.freedesktop.org/xorg/proto/compositeproto/tree/compositeproto.txt">X <span class="code-literal">COMPOSITE</span> extension</a>
+            does, how it works, and how it can be used together with other technologies to build a modern looking
+            graphics system, all while remaining complete backwards compatibility with older systems. It's quite clever!
+        </p>
+        <p>
+            I don't want to remain too harsh on the X Window System. I can't really fault it for the lack of alpha
+            blending. The system was first designed at MIT in 1984, the same exact year that Thomas Porter and
+            Tom Duff released <a href="http://dl.acm.org/citation.cfm?id=808606">Compositing Digital Images</a>,
+            the seminal paper from which the mathematical underpinnings of alpha blending and alpha compositing
+            are taken. Computer graphics was a rapidly-innovating field in that time, so for its day, it did
+            quite well.
+        </p>
+        </section>
+
+        <section id="window-map">
+        <h3>A different direction</h3>
+        <p>
+            I've long said that windows, in the X11 sense, aren't a tangible thing. They simply make their mark on
+            the X server's front buffer, as a series of pixels which they own. The X server keeps track of which pixels
+            each window owns, and sends them <span class="code-literal">Expose</span> events to let them know when
+            to paint to these pixels.
+        </p>
+        <p>
+            Another way to think about this is that every pixel inside the server is owned by exactly one window.
+            At any given point in time, you can point to a pixel, and the server can tell you which window is
+            responsible for painting it. We can even visualize this. Given the simple moving kittens from the first
+            article, we can just give every window a color, and with that, visualize who is responsible for each
+            pixel.
+        </p>
+        <div class="demo-server" data-demo="window-pixel-map"></div>
+        <p>
+            Here, the blue color represents the root window, the yellow as the top kitten, and the red the bottom
+            kitten.
+        </p>
+        <div class="demo-server" data-demo="window-pixel-map-shaped"></div>
+        <p>
+            Even when we're shaping the window, we still have the restriction that a pixel is owned by one window.
+            The issue with this approach is that there's no way to blend multiple windows together, or letting one
+            window be transparent atop one another. This isn't because it's expensive:
+            <a href="http://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending">blending is a simple enough operation</a>.
+            The issue is that when the bottommost kitten is being clipped away, we don't have access to its pixels
+            at all; they simply don't exist anymore. The topmost kitten window owns that pixel.
+        </p>
+        <p>
+            In the early 90s, transparent terminals dominated Linux desktops with cool Linux graphics. But their
+            mechanism was a simple optical illusion: when they drew, they picked up the system's wallpaper, and
+            blended their terminal contents against that, leading to
+            <a href="http://askubuntu.com/a/266539">punch-through effects</a>. Some more clever programmers found
+            other interesting tricks to allow them to gain actual transparency. I won't detail these hacks in depth,
+            because it is <span id="current-year">2014</span>, not 1996.
+        </p>
+        <p>
+            So, the first step to getting working compositing would be to have <em>some</em> way of keeping the
+            pixels that a window has drawn. This is where the X <span class="code-literal">COMPOSITE</span>
+            extension first comes into play.
+        </p>
+        </section>
+
+        <section id="redirection">
+        <h3>Redirection</h3>
+        <p>
+            It turns out the solution here is astonishingly simple. If we'd prefer that all drawing a window does
+            instead goes to some place in memory, we simply create some place in memory and <em>redirect</em> all
+            drawing the window to point there instead. And indeed, with the
+            <span class="code-literal">RedirectWindow</span> request, we can do exactly that: mark a window so that all
+            its drawing operations are indeed <em>redirected</em> so they instead go to some place in memory.
+        </p>
+        <p>
+            But it gets more interesting. As I mentioned way back in the first article, we already have a standard to
+            create and represent "images" inside the X server: Pixmaps. I also mentioned that there was this concept
+            called <span class="code-literal">Drawable</span> attached to all the drawing operations, which represented
+            either a Window, or a Pixmap. So this makes our redirection operation quite simple: if the window is
+            redirected, then simply swap out the Drawable the user is drawing to with a secret Pixmap that we created
+            which contains the window's contents. For clarity purposes, this secret Pixmap we created is called the
+            window's <span class="definition">backing pixmap</span>, since it backs the pixels of the window.
+        </p>
+        <p>
+            At this point, you might have another epiphany to bring it all together. I've been using the term "front
+            buffer" when talking about where windows draw to. "Yes, yes, it's the place where windows borrow their
+            pixels from, and where nothing lasts for ever. We get it already" I hear you cry. But the front buffer also
+            has to exist somewhere in the server's memory. So when we're drawing to the front buffer, we're also
+            drawing to some image somewhere in the server as well. It turns out that the front buffer has another name:
+            the "root pixmap". I'll let that sink in.
+        </p>
+        <p>
+            In a sense, we can also say that any window with a backing pixmap is redirected, and that the root window
+            is redirected by default to draw to its backing store, the "root pixmap", which is also the front buffer.
+            Relatedly, the child windows of a redirected window actually "borrow pixels" from their backing pixmap in
+            the same way windows normally "borrow pixels" from the front buffer. So, instead of saying that
+            unredirected windows draw to the root pixmap, we <em>should</em> be saying that unredirected windows draw
+            to the same pixmap as their parents. That is, to the pixmap of one of their ancestors which is redirected.
+        </p>
+        <p>
+            Phew. OK, enough talk. Let's take the kitten demo from the first article and redirect the window on the top
+            to see what redirecting does.
+        </p>
+        <div class="demo-server" data-demo="naive-redirect"></div>
+        <p>
+            ... where did the kitten go? It was redirected to a Pixmap, of course, but we can't actually see it.  You
+            see, while the root pixmap is just like any other pixmap, it turns out that it also has a special feature:
+            it's also the front buffer. That is, it's also the buffer that we show to you on your monitor.  All other
+            pixmaps are off-screen storage. You can't see them unless you draw them to the front buffer.
+        </p>
+        <p>
+            By the way, I didn't cheat or anything and never create the window for the kitten or never map it or
+            something like that. This is just how redirection behaves. If you click in the vicinity of where the kitten
+            was in the original demo, you can even drag the kitten around. Redirection doesn't affect input... but
+            we'll talk more about that later.
+        </p>
+        </section>
+
+        <section id="all-together">
+        <h3>Drawing it all together</h3>
+        <p>
+            So, now that we have the window redirected and rendering to its own pixmap, now what? How do we turn that
+            into transparency? Well, the answer is as simple as it sounds: something else is what takes all those
+            windows and paints them together. You see, the way the X Window System was designed has been based on a
+            principle of "mechanism, not policy". The X Window System gives application and desktop authors a giant
+            toolbox with lots of cool tools to build fun systems, but never tries to dictate how that system could
+            work. As such, rendering of all the composited windows is left up to a third-party client called a
+            "compositing manager".
+        </p>
+        <p>
+            The compositing manager has one job to do: draw the backing pixmaps of the windows together to form a
+            pretty picture as your output. Technically, the compositing manager could not draw any windows, or draw
+            some windows more than once, or wobble them around or spin them on a cube, but unfortunately, there's no
+            way for the compositing manager to influence how input is sent to individual windows, meaning that the
+            compositing manager has no choice but to draw the windows so that they appear in the same place X thinks
+            they are, otherwise you mind find that you can drag invisible windows around, or clicking on a button is
+            offset by a few pixels. Some of the more popular compositing managers might implement effects like wobbly
+            windows, but input isn't actually morphed in that case. The effect simply snaps back fast enough before you
+            have the chance to click on anything else.
+        </p>
+        <p>
+            But before we go any further, let's talk about the steps a compositing manager would take to put the
+            windows on the screen. Now that we've redirected the windows, we can use the
+            <span class="code-literal">NameWindowPixmap</span> request to fetch the window's backing pixmap. This
+            Pixmap acts just like any other Pixmap on the system, so we can continue to use the standard drawing
+            requests we learned about in the first article, like
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:CopyArea" class="code-literal">CopyArea</a>.
+            Unfortunately, this won't do if we want to do true alpha blending,
+            since <span class="code-literal">CopyArea</span> and the rest of the core drawing requests were,
+            again, invented before the widespread availability and understanding of alpha compositing.
+        </p>
+        <p>
+            In order to get a graphics API that supports alpha blending, we could opt to use OpenGL or fall back to
+            software rendering, perhaps with some
+            <a href="http://git.enlightenment.org/apps/eterm.git/tree/src/mmx_cmod.S">state-of-the-art hand-written MMX
+            code</a>, both of which are valid options, but thankfully another X11 extension can come to our rescue.
+            The <a href="http://cgit.freedesktop.org/xorg/proto/renderproto/tree/renderproto.txt">X RENDER extension</a>,
+            which supports a variety of advanced vector graphics including matrix transforms and gradients, provides
+            to us a <span class="code-literal">Composite</span> operation that can do the job for us. And together
+            with that, we can finally draw our windows semi-transparent.
+        </p>
+        <p>
+            Since we've redirected all windows on the desktop away to be able to blend them, the root window, and
+            correspondingly, the root pixmap, are actually entirely blank. We can take this opportunity to just claim
+            the root window as our own. So, when we paint our beautiful final image, we can actually just paint it
+            directly to the root window and it will immediately visible on the display.
+        </p>
+        <div class="demo-server" data-demo="composited-kitten"></div>
+        <p>
+            And after all that work, we finally have transparency.
+        </p>
+        </section>
+        <section>
+        <h3>Intermission...</h3>
+        </section>
+
+        <div class="nav-bottom"></div>
+    </article>
+
+    <script src="article.js"></script>
+
+    <script src="../src/pixman-region.js"></script>
+    <script src="../src/pixman-region-wrapper.js"></script>
+    <script src="../src/class.js"></script>
+    <script src="../src/canvas-util.js"></script>
+    <script src="../src/client-util.js"></script>
+    <script src="../src/server/server.js"></script>
+    <script src="../src/inspector/inspector.js"></script>
+    <script src="../src/article-demos/demos.js"></script>
+    <script src="../src/article-demos/demo-common.js"></script>
+    <script src="../src/article-demos/composite.js"></script>
+    <script src="../src/clients/cm.js"></script>
+
+    <script>
+        (function() {
+            "use strict";
+
+            window.addEventListener("load", function() {
+                document.querySelector("#current-year").textContent = (new Date().getFullYear());
+
+                // Article.generateNavButtons();
+                Article.generateSectionLinks();
+                ArticleDemos.runAllDemos();
+            });
+        })();
+    </script>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-35480078-2', 'magcius.github.io');
+      ga('send', 'pageview');
+    </script>
+</div></body>
+</html>
