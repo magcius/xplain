@@ -96,82 +96,6 @@
         },
     });
 
-    // A simple helper to manage repeated timed events for WindowShaker below.
-    // Perhaps we should consider using requestAnimationFrame for this?
-    var Timer = new Class({
-        initialize: function(delay, func) {
-            this._delay = delay;
-            this._func = func;
-            this._timeoutId = 0;
-        },
-
-        _schedule: function() {
-            this._timeoutId = setTimeout(function() {
-                this._func();
-                this._schedule();
-            }.bind(this), this._delay);
-        },
-
-        stop: function() {
-            if (this._timeoutId) {
-                clearTimeout(this._timeoutId);
-                this._timeoutId = 0;
-            }
-        },
-
-        start: function() {
-            if (this._timeoutId)
-                this.stop();
-
-            this._schedule();
-        },
-    });
-
-    // The number of times to update, per second.
-    var TICKS_PER_SEC = 30;
-    var TICK_MSEC = (1000 / TICKS_PER_SEC);
-
-    // http://tauday.com/
-    var TAU = Math.PI * 2;
-
-    // The time, in seconds, to complete a full movement.
-    var PERIOD = 6;
-
-    // The number of pixels to sway to either side.
-    var SWAY_AMOUNT = 75;
-
-    // Shakes a window
-    var WindowShaker = new Class({
-        initialize: function(server, windowId) {
-            var connection = server.connect();
-            this._display = connection.display;
-
-            this._windowId = windowId;
-
-            this._timer = new Timer(TICK_MSEC, this._tick.bind(this));
-            this._tickCount = 0;
-            this._startX = 0;
-        },
-
-        start: function() {
-            var geometry = this._display.getGeometry({ drawableId: this._windowId });
-            this._startX = geometry.x;
-            this._timer.start();
-        },
-
-        // Make it move.
-        _sync: function() {
-            var theta = TAU * (this._tickCount / TICKS_PER_SEC / PERIOD);
-            var x = this._startX + SWAY_AMOUNT * Math.sin(theta);
-            this._display.configureWindow({ windowId: this._windowId, x: x });
-        },
-
-        _tick: function() {
-            this._tickCount++;
-            this._sync();
-        },
-    });
-
     ArticleDemos.registerDemo("expose", function(res) {
         DemoCommon.addInspector(res);
 
@@ -193,7 +117,7 @@
 
         var dragger = new DemoCommon.WindowDragger(server, kitten1.windowId);
 
-        var shaker = new WindowShaker(server, kitten2.windowId);
+        var shaker = new DemoCommon.WindowShaker(server, kitten2.windowId);
         shaker.start();
     });
 
@@ -283,7 +207,7 @@
 
         var dragger = new DemoCommon.WindowDragger(server, kittencircle.windowId);
 
-        var shaker = new WindowShaker(server, kitten2.windowId);
+        var shaker = new DemoCommon.WindowShaker(server, kitten2.windowId);
         shaker.start();
     });
 
