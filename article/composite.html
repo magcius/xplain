@@ -37,9 +37,9 @@
             and simplified code on the part of the toolkit, at the expense of added latency and graphical glitches.
         </p>
         <p>
-            It might seem like the vision of the desktop the X11 protocol had in mind not match up to how users
+            It might seem like the vision of the desktop the X11 protocol had in mind doesn't match how users
             actually used it and how user interfaces, as a whole, evolved. One could even say that the window tree
-            expected composition from user interfaces in a way that doesn't really match reality.
+            expected composing user interfaces in a way that doesn't really match reality.
         </p>
         <p>
             I, in perhaps an ill-fated attempt to remain impartial, won't give my opinion on this, specifically,
@@ -175,7 +175,7 @@
             some windows more than once, or wobble them around or spin them on a cube, but unfortunately, there's no
             way for the compositing manager to influence how input is sent to individual windows, meaning that the
             compositing manager has no choice but to draw the windows so that they appear in the same place X thinks
-            they are, otherwise you mind find that you can drag invisible windows around, or clicking on a button is
+            they are, otherwise you might find that you can drag invisible windows around, or clicking on a button is
             offset by a few pixels. Some of the more popular compositing managers might implement effects like wobbly
             windows, but input isn't actually morphed in that case. The effect simply snaps back fast enough before you
             have the chance to click on anything else.
@@ -205,7 +205,7 @@
             Since we've redirected all windows on the desktop away to be able to blend them, the root window, and
             correspondingly, the root pixmap, are actually entirely blank. We can take this opportunity to just claim
             the root window as our own. So, when we paint our beautiful final image, we can actually just paint it
-            directly to the root window and it will immediately visible on the display.
+            directly to the root window and it will immediately be visible on the display.
         </p>
         <div class="demo-server" data-demo="composited-kitten"></div>
         <p>
