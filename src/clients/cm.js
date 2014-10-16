@@ -2,9 +2,9 @@
     "use strict";
 
     var Stage = new Class({
-        initialize: function(redrawFunc) {
-            this._redrawFunc = redrawFunc;
-            this._needsRedraw = new Region();
+        initialize: function(needsRedrawFunc) {
+            this._needsRedrawFunc = needsRedrawFunc;
+            this._dirtyRegion = new Region();
             this._triggeredRedraw = false;
 
             this._actors = [];
@@ -20,16 +20,16 @@
         },
 
         queueRedraw: function(geometry) {
-            this._needsRedraw.union_rect(this._needsRedraw, geometry.x, geometry.y, geometry.width, geometry.height);
+            this._dirtyRegion.union_rect(this._dirtyRegion, geometry.x, geometry.y, geometry.width, geometry.height);
             if (!this._triggeredRedraw) {
-                this._redrawFunc();
+                this._needsRedrawFunc();
                 this._triggeredRedraw = true;
             }
         },
 
         draw: function(ctx) {
             if (this._triggeredRedraw) {
-                CanvasUtil.pathFromRegion(ctx, this._needsRedraw);
+                CanvasUtil.pathFromRegion(ctx, this._dirtyRegion);
                 ctx.clip();
                 ctx.beginPath();
             }
@@ -38,7 +38,7 @@
                 actor.draw(ctx);
             });
 
-            this._needsRedraw.clear();
+            this._dirtyRegion.clear();
             this._triggeredRedraw = false;
         },
     });
@@ -131,7 +131,7 @@
             }.bind(this));
             this._display = connection.display;
 
-            this._stage = new Stage(this._onRedraw.bind(this));
+            this._stage = new Stage(this._onNeedsRedraw.bind(this));
 
             this._toplevelWindowId = toplevelWindowId;
             this._display.selectInput({ windowId: toplevelWindowId,
@@ -140,7 +140,7 @@
             query.children.forEach(this._addWindow.bind(this));
         },
 
-        _onRedraw: function() {
+        _onNeedsRedraw: function() {
             this._display.invalidateWindow({ windowId: this._toplevelWindowId,
                                              includeChildren: true });
         },
