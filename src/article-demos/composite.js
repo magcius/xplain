@@ -120,8 +120,8 @@
         ClientUtil.loadImageAsPixmap(display, "kitten2.png", function(pixmapId) {
             display.changeAttributes({ windowId: kitten2, backgroundPixmap: pixmapId });
             display.invalidateWindow({ windowId: kitten2 });
-            display.mapWindow({ windowId: kitten2 });
         });
+        display.mapWindow({ windowId: kitten2 });
 
         // The window on top that's obscuring the window behind it.
         var kitten1 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
@@ -130,9 +130,9 @@
         ClientUtil.loadImageAsPixmap(display, "kitten1.png", function(pixmapId) {
             display.changeAttributes({ windowId: kitten1, backgroundPixmap: pixmapId });
             display.invalidateWindow({ windowId: kitten1 });
-            display.redirectWindow({ windowId: kitten1, mode: "manual" });
-            display.mapWindow({ windowId: kitten1 });
         });
+        display.redirectWindow({ windowId: kitten1, mode: "manual" });
+        display.mapWindow({ windowId: kitten1 });
 
         var dragger = new DemoCommon.WindowDragger(server, kitten1);
 
