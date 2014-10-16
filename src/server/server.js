@@ -756,13 +756,13 @@
 
         _configureWindow: function(props) {
             if (props.x !== undefined)
-                this.x = props.x | 0;
+                this.x = props.x;
             if (props.y !== undefined)
-                this.y = props.y | 0;
+                this.y = props.y;
             if (props.width !== undefined)
-                this.width = props.width | 0;
+                this.width = props.width;
             if (props.height !== undefined)
-                this.height = props.height | 0;
+                this.height = props.height;
 
             this._syncDrawTreePosition();
             this._unshapedBoundingRegion.init_rect(0, 0, this.width, this.height);
@@ -773,20 +773,20 @@
             }
         },
         configureWindow: function(client, props) {
-            if (!valueUpdated(props.x, this.x))
-                delete props.x;
-            if (!valueUpdated(props.y, this.y))
-                delete props.y;
-            if (!valueUpdated(props.width, this.width))
-                delete props.width;
-            if (!valueUpdated(props.height, this.height))
-                delete props.height;
+            function configureValue(newValue, existingValue) {
+                if (!valueUpdated(newValue, existingValue))
+                    return undefined;
 
-            var eventBase = { windowId: this.xid,
-                              x: props.x, y: props.y, width: props.width, height: props.height,
-                              sibling: props.sibling, detail: props.stackMode };
+                return (newValue | 0);
+            }
+
+            var eventBase = { windowId: this.xid, sibling: props.sibling, detail: props.stackMode };
+            eventBase.x = configureValue(props.x, this.x);
+            eventBase.y = configureValue(props.y, this.y);
+            eventBase.width = configureValue(props.width, this.width);
+            eventBase.height = configureValue(props.height, this.height);
+
             var event;
-
             event = Object.create(eventBase);
             event.type = "ConfigureRequest";
             if (!this._server.sendEvent(event, client)) {
@@ -795,7 +795,7 @@
                 this._server.sendEvent(event);
 
                 this._wrapBoundingRegionChange(function() {
-                    this._configureWindow(props);
+                    this._configureWindow(eventBase);
                 }.bind(this));
 
                 if (this.drawTree && !this.drawTreeParent)
