@@ -160,7 +160,6 @@
         // use a large background window that gets redirected so the CM
         // won't fight to paint on the root window.
         var bgWindow = display.createWindow({ x: 0, y: 0, width: 1000, height: 1000 });
-        display.changeProperty({ windowId: bgWindow, name: 'BACKGROUND', value: true });
         display.mapWindow({ windowId: bgWindow });
 
         ClientUtil.loadImageAsPixmap(display, "marshmallows3.jpg", function(pixmapId) {
@@ -169,11 +168,13 @@
         });
 
         var ch1 = new Crosshairs(server);
+        display.changeProperty({ windowId: ch1.windowId, name: 'OPACITY', value: 0.5 });
         display.configureWindow({ windowId: ch1.windowId, width: 150, height: 150 });
         DemoCommon.centerWindow(display, ch1.windowId);
         display.mapWindow({ windowId: ch1.windowId });
 
         var ch2 = new Crosshairs(server);
+        display.changeProperty({ windowId: ch2.windowId, name: 'OPACITY', value: 0.5 });
         display.reparentWindow({ windowId: ch2.windowId, newParentId: ch1.windowId });
         display.configureWindow({ windowId: ch2.windowId, x: 60, y: 15, width: 75, height: 75 });
         display.mapWindow({ windowId: ch2.windowId });

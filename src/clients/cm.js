@@ -108,9 +108,11 @@
             ctx.save();
             ctx.translate(this._geometry.x, this._geometry.y);
 
-            var bg = this._display.getProperty({ windowId: this._windowId, name: 'BACKGROUND' });
-            if (!bg)
-                ctx.globalAlpha = 0.5;
+            var opacity = this._display.getProperty({ windowId: this._windowId, name: 'OPACITY' });
+            if (opacity === undefined)
+                opacity = 1.0;
+
+            ctx.globalAlpha = opacity;
 
             ctx.drawImage(image, 0, 0);
             ctx.restore();
