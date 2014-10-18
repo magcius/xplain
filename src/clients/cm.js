@@ -75,13 +75,17 @@
             this._stage.queueRedraw(this._geometry);
         },
 
+        _damaged: function() {
+            this._stage.queueRedraw(this._geometry);
+        },
+
         _handleEvent: function(event) {
             if (event.windowId != this._windowId)
                 return;
 
             switch (event.type) {
             case "Damage":
-                return this._stage.queueRedraw(this._geometry);
+                return this._damaged();
             case "ConfigureNotify":
                 return this._setNewGeometry(event);
             case "UnmapNotify":
