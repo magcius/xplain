@@ -139,7 +139,7 @@
         var shaker = new DemoCommon.WindowShaker(server, kitten2);
         shaker.start();
 
-        var cm = new CompositingManager(server, display.rootWindowId);
+        var cm = new CompositingManager.Canvas2DCompositingManager(server, display.rootWindowId);
     });
 
 })(window);

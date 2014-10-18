@@ -1,7 +1,9 @@
 (function(exports) {
     "use strict";
 
-    var Stage = new Class({
+    var CompositingManager = {};
+
+    var StageBase = new Class({
         initialize: function(needsRedrawFunc) {
             this._needsRedrawFunc = needsRedrawFunc;
             this._dirtyRegion = new Region();
@@ -26,24 +28,9 @@
                 this._triggeredRedraw = true;
             }
         },
-
-        draw: function(ctx) {
-            if (this._triggeredRedraw) {
-                CanvasUtil.pathFromRegion(ctx, this._dirtyRegion);
-                ctx.clip();
-                ctx.beginPath();
-            }
-
-            this._actors.forEach(function(actor) {
-                actor.draw(ctx);
-            });
-
-            this._dirtyRegion.clear();
-            this._triggeredRedraw = false;
-        },
     });
 
-    var WindowActor = new Class({
+    var WindowActorBase = new Class({
         initialize: function(stage, server, windowId) {
             this._stage = stage;
             this._stage.$addActor(this);
@@ -101,6 +88,71 @@
                 return this._destroy();
             }
         },
+    });
+
+    var CompositingManagerBase = new Class({
+        initialize: function(server, toplevelWindowId) {
+            this._server = server;
+
+            var connection = server.connect();
+            this._port = connection.clientPort;
+            this._port.addEventListener("message", function(messageEvent) {
+                this._handleEvent(messageEvent.data);
+            }.bind(this));
+            this._display = connection.display;
+
+            this._stage = this._createStage();
+
+            this._toplevelWindowId = toplevelWindowId;
+            this._display.selectInput({ windowId: toplevelWindowId,
+                                        events: ["SubstructureNotify"] });
+            var query = this._display.queryTree({ windowId: toplevelWindowId });
+            query.children.forEach(this._addWindow.bind(this));
+        },
+
+        _addWindow: function(windowId) {
+            var attrs = this._display.getAttributes({ windowId: windowId });
+            if (attrs.mapState != "Viewable")
+                return;
+
+            this._display.redirectWindow({ windowId: windowId, mode: "manual" });
+            var actor = this._createWindowActor(windowId);
+        },
+
+        _mapNotify: function(event) {
+            var windowId = event.windowId;
+            this._addWindow(windowId);
+        },
+
+        _handleEvent: function(event) {
+            switch (event.type) {
+            case "MapNotify":
+                return this._mapNotify(event);
+            }
+        },
+    });
+
+    var Canvas2DStage = new Class({
+        Extends: StageBase,
+
+        draw: function(ctx) {
+            if (this._triggeredRedraw) {
+                CanvasUtil.pathFromRegion(ctx, this._dirtyRegion);
+                ctx.clip();
+                ctx.beginPath();
+            }
+
+            this._actors.forEach(function(actor) {
+                actor.draw(ctx);
+            });
+
+            this._dirtyRegion.clear();
+            this._triggeredRedraw = false;
+        },
+    });
+
+    var Canvas2DWindowActor = new Class({
+        Extends: WindowActorBase,
 
         draw: function(ctx) {
             var pixmapId = this._display.nameWindowPixmap({ windowId: this._windowId });
@@ -120,24 +172,15 @@
         },
     });
 
-    var CompositingManager = new Class({
+    var Canvas2DCompositingManager = new Class({
+        Extends: CompositingManagerBase,
+
         initialize: function(server, toplevelWindowId) {
-            this._server = server;
+            this.parent(server, toplevelWindowId);
 
-            var connection = server.connect();
-            this._port = connection.clientPort;
-            this._port.addEventListener("message", function(messageEvent) {
-                this._handleEvent(messageEvent.data);
-            }.bind(this));
-            this._display = connection.display;
-
-            this._stage = new Stage(this._onNeedsRedraw.bind(this));
-
-            this._toplevelWindowId = toplevelWindowId;
             this._display.selectInput({ windowId: toplevelWindowId,
-                                        events: ["SubstructureNotify", "Expose"] });
-            var query = this._display.queryTree({ windowId: toplevelWindowId });
-            query.children.forEach(this._addWindow.bind(this));
+                                        events: ["Expose"] });
+            this._draw();
         },
 
         _onNeedsRedraw: function() {
@@ -145,18 +188,12 @@
                                              includeChildren: true });
         },
 
-        _addWindow: function(windowId) {
-            var attrs = this._display.getAttributes({ windowId: windowId });
-            if (attrs.mapState != "Viewable")
-                return;
-
-            this._display.redirectWindow({ windowId: windowId, mode: "manual" });
-            var actor = new WindowActor(this._stage, this._server, windowId);
+        _createStage: function() {
+            return new Canvas2DStage(this._onNeedsRedraw.bind(this));
         },
 
-        _mapNotify: function(event) {
-            var windowId = event.windowId;
-            this._addWindow(windowId);
+        _createWindowActor: function(windowId) {
+            return new Canvas2DWindowActor(this._stage, this._server, windowId);
         },
 
         _draw: function() {
@@ -167,14 +204,15 @@
 
         _handleEvent: function(event) {
             switch (event.type) {
-            case "MapNotify":
-                return this._mapNotify(event);
             case "Expose":
                 if (event.count == 0)
                     return this._draw();
+            default:
+                return this.parent(event);
             }
         },
     });
+    CompositingManager.Canvas2DCompositingManager = Canvas2DCompositingManager;
 
     exports.CompositingManager = CompositingManager;
 
