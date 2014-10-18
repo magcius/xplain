@@ -32,7 +32,7 @@
         var demoName = elem.dataset.demo;
         var demoFunc = demos[demoName];
         if (!demoFunc)
-            console.error("Unknown demo: " + demo);
+            console.error("Unknown demo: " + demoName);
 
         var res = bootstrapDemo(demoName, elem);
         demoFunc(res);
