@@ -30,9 +30,10 @@
         if (meth._origin) meth = meth._origin;
 
         function wrapper() {
+            var oldCaller = this.__caller__;
             this.__caller__ = wrapper;
             var result = meth.apply(this, arguments);
-            this.__caller__ = null;
+            this.__caller__ = oldCaller;
             return result;
         }
 
