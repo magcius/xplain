@@ -2,7 +2,15 @@
  * of each demo in the article... */
 
 .demo-server {
+	position: relative;
 	margin: 1em;
+}
+
+.demo-server .overlay {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	pointer-events: none;
 }
 
 .demo-server .demo-test {
@@ -46,5 +54,9 @@
 }
 
 .demo-server .demo-composited-kitten {
+	height: 250px;
+}
+
+.demo-server .demo-gl-composite {
 	height: 250px;
 }

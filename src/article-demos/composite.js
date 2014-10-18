@@ -101,11 +101,7 @@
         shaker.start();
     });
 
-    ArticleDemos.registerDemo("composited-kitten", function(res) {
-        var server = res.server;
-        var connection = server.connect();
-        var display = connection.display;
-
+    function setupKittenDemo(server, display) {
         // Rather than use a normal background on the root window, use a large background
         // window that gets redirected so the CM won't fight to paint on the root window.
         //
@@ -138,8 +134,43 @@
 
         var shaker = new DemoCommon.WindowShaker(server, kitten2);
         shaker.start();
+    }
+
+    ArticleDemos.registerDemo("composited-kitten", function(res) {
+        var server = res.server;
+        var connection = server.connect();
+        var display = connection.display;
+
+        setupKittenDemo(server, display);
 
         var cm = new CompositingManager.Canvas2DCompositingManager(server, display.rootWindowId);
+    });
+
+    ArticleDemos.registerDemo("gl-composite", function(res) {
+        var elem = res.elem;
+        var serverSlot = elem.querySelector("div");
+
+        var width = serverSlot.clientWidth;
+        var height = serverSlot.clientHeight;
+
+        var glCanvas = document.createElement("canvas");
+        glCanvas.classList.add("overlay");
+        glCanvas.width = width;
+        glCanvas.height = height;
+        elem.appendChild(glCanvas);
+
+        var gl = glCanvas.getContext("webgl", { alpha: false });
+        gl.$viewportWidth = width;
+        gl.$viewportHeight = height;
+        gl.viewport(0, 0, width, height);
+
+        var server = res.server;
+        var connection = server.connect();
+        var display = connection.display;
+
+        setupKittenDemo(server, display);
+
+        var cm = new CompositingManager.GLCompositingManager(server, display.rootWindowId, gl);
     });
 
 })(window);
