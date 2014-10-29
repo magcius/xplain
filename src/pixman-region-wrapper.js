@@ -141,8 +141,10 @@
         var ptr = this._rectangles();
         var rects = this.n_rects();
         var end = ptr + rects * Box.size;
-        for (; ptr < end; ptr += Box.size)
-            callback(new Box(ptr), --rects);
+        for (; ptr < end; ptr += Box.size) {
+            var box = new Box(ptr);
+            callback(box.x, box.y, box.width, box.height);
+        }
     };
     Region.prototype.is_empty = function() {
         return !this.not_empty();

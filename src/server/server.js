@@ -422,10 +422,11 @@
             if (region.is_empty())
                 return;
 
-            region.iter_rectangles(function(rect, count) {
+            var nRects = region.n_rects();
+            region.iter_rectangles(function(x, y, width, height) {
                 this._server.sendEvent({ type: "Expose", windowId: this.xid,
-                                         x: rect.x, y: rect.y, width: rect.width, height: rect.height,
-                                         count: count });
+                                         x: x, y: y, width: width, height: height,
+                                         count: --nRects });
             }.bind(this));
 
             // Sending an Expose event for a region is a guarantee that we always

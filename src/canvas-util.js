@@ -6,8 +6,8 @@
 
     // Constructs a path on a <canvas>, given a pixman region.
     CanvasUtil.pathFromRegion = function(ctx, region) {
-        region.iter_rectangles(function(rect) {
-            ctx.rect(rect.x, rect.y, rect.width, rect.height);
+        region.iter_rectangles(function(x, y, width, height) {
+            ctx.rect(x, y, width, height);
         });
     };
 
