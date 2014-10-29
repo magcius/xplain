@@ -144,12 +144,6 @@
         for (; ptr < end; ptr += Box.size)
             callback(new Box(ptr), --rects);
     };
-    Region.prototype.get_rectangle = function(idx) {
-        return new Box(this._rectangles() + Box.size*idx);
-    };
-    Region.prototype.extents = function() {
-        return new Box(this._extents());
-    };
     Region.prototype.is_empty = function() {
         return !this.not_empty();
     };
