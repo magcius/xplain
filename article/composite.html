@@ -198,8 +198,10 @@
             code</a>, both of which are valid options, but thankfully another X11 extension can come to our rescue.
             The <a href="http://cgit.freedesktop.org/xorg/proto/renderproto/tree/renderproto.txt">X RENDER extension</a>,
             which supports a variety of advanced vector graphics including matrix transforms and gradients, provides
-            to us a <span class="code-literal">Composite</span> operation that can do the job for us. And together
-            with that, we can finally draw our windows semi-transparent.
+            to us an operation that can do alpha blending for us, which is also (confusingly) named
+            <span class="code-literal">Composite</span>. Using this request to the X server instead of
+            <span class="code-literal">CopyArea</span>, we can finally apply our hard-earned alpha channel and
+            draw our windows semi-transparent.
         </p>
         <p>
             Since we've redirected all windows on the desktop away to be able to blend them, the root window, and
