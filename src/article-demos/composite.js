@@ -101,7 +101,11 @@
         shaker.start();
     });
 
-    function setupKittenDemo(server, display) {
+    ArticleDemos.registerDemo("composited-kitten", function(res) {
+        var server = res.server;
+        var connection = server.connect();
+        var display = connection.display;
+
         // Rather than use a normal background on the root window, use a large background
         // window that gets redirected so the CM won't fight to paint on the root window.
         //
@@ -127,21 +131,12 @@
             display.changeAttributes({ windowId: kitten1, backgroundPixmap: pixmapId });
             display.invalidateWindow({ windowId: kitten1 });
         });
-        display.redirectWindow({ windowId: kitten1, mode: "manual" });
         display.mapWindow({ windowId: kitten1 });
 
         var dragger = new DemoCommon.WindowDragger(server, kitten1);
 
         var shaker = new DemoCommon.WindowShaker(server, kitten2);
         shaker.start();
-    }
-
-    ArticleDemos.registerDemo("composited-kitten", function(res) {
-        var server = res.server;
-        var connection = server.connect();
-        var display = connection.display;
-
-        setupKittenDemo(server, display);
 
         var cm = new CompositingManager.Canvas2DCompositingManager(server, display.rootWindowId);
     });
@@ -168,9 +163,45 @@
         var connection = server.connect();
         var display = connection.display;
 
-        setupKittenDemo(server, display);
+        // Rather than use a normal background on the root window, use a large background
+        // window that gets redirected so the CM won't fight to paint on the root window.
+        //
+        // ... I should add a COW at some point, shouldn't I... sigh.
+        var bgWindow = display.createWindow({ x: 0, y: 0, width: 1000, height: 1000 });
+        display.changeAttributes({ windowId: bgWindow, backgroundColor: '#266FB2' });
+        display.mapWindow({ windowId: bgWindow });
+
+        // The shaking window that's behind.
+        var kitten2 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
+        DemoCommon.centerWindow(display, kitten2, { x: -20, y: 40 });
+        ClientUtil.loadImageAsPixmap(display, "kitten2.png", function(pixmapId) {
+            display.changeAttributes({ windowId: kitten2, backgroundPixmap: pixmapId });
+            display.invalidateWindow({ windowId: kitten2 });
+        });
+
+        // The window on top that's obscuring the window behind it.
+        var kitten1 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
+        display.changeProperty({ windowId: kitten1, name: 'OPACITY', value: 0.5 });
+        DemoCommon.centerWindow(display, kitten1);
+        ClientUtil.loadImageAsPixmap(display, "kitten1.png", function(pixmapId) {
+            display.changeAttributes({ windowId: kitten1, backgroundPixmap: pixmapId });
+            display.invalidateWindow({ windowId: kitten1 });
+        });
+
+        var dragger = new DemoCommon.WindowDragger(server, kitten1);
+
+        var shaker = new DemoCommon.WindowShaker(server, kitten2);
+        shaker.start();
 
         var cm = new CompositingManager.GLCompositingManager(server, display.rootWindowId, gl);
+        display.mapWindow({ windowId: kitten2 });
+        display.mapWindow({ windowId: kitten1 });
+
+        // Disgusting hacks.
+        setTimeout(function() {
+            var tri = new CompositingManager.TriangleActor(cm._renderer, cm._gl);
+            cm._renderer._actorStacking.splice(2, 0, tri);
+        }, 1);
     });
 
 })(window);

@@ -212,9 +212,97 @@
             And after all that work, we finally have transparency.
         </p>
         </section>
-        <section>
-        <h3>Intermission...</h3>
+        <section id="video-player">
+        <h3>The intangible image</h3>
+        <p>
+            I want to make you sure that you realize here that the image painted with COMPOSITE is really just whatever
+            the user wants it to be. This image doesn't actually get input: it just reacts to whatever else happens on
+            screen. In order for input to make sense, however, the windows have to line up perfectly to whatever else
+            is on the screen: much like in the "naive redirection" example above where the kitten just turned invisible,
+            it's still a window that reacts to input, it just doesn't have any output on the screen itself.
+            The compositor itself has to take special care to line the windows up and draw them where they normally
+            belong.
+        </p>
         <div class="demo-server" data-demo="gl-composite"></div>
+        <p>
+            Here, I'm using OpenGL to render the scene using OpenGL, and added a few fancy features like wobbling
+            windows and a spinning 3D triangle in the middle. Go on, drag the top kitten around, and you'll notice it
+            wobbling in real-time.
+        </p>
+        <p>
+            To do that, I import the backing window pixmap as a GL texture. On real hardware, like your Linux system,
+            both backing window pixmaps from the X server and GL textures are just buffers of memory managed by your
+            GPU, so we can sample from them directly. The OpenGL extension known as
+            <a class="code-literal" href="https://www.opengl.org/registry/specs/EXT/texture_from_pixmap.txt">texture_from_pixmap</a>,
+            sometimes referred to as "TFP", lets you take an X11 Pixmap and convert it to an OpenGL texture. If we hook
+            all the pieces up, that means that we redirect a window to its own backing pixmap, then retrieve the pixmap
+            with <span class="code-literal">NameWindowPixmap</span>, then take that Pixmap and plug it into the TFP
+            extension to retrieve a GL texture object that we can texture from just like it was a normal 2D texture.
+        </p>
+        <p>
+            Note that none of this works when the X server is on a different machine than your compositor or your GPU.
+            Compositors, to be fast, require that you be on the same machine, so we can use the GPU directly.
+        </p>
+        <p>
+            This demo, however, is using a combination of HTML5 &lt;canvas&gt; and WebGL. Specifically, every Pixmap,
+            including the root pixmap, is backed by a &lt;canvas&gt; stuffed somewhere in the DOM where it's not
+            visible. WebGL also has <a href="https://www.khronos.org/registry/webgl/specs/1.0/#TEXIMAGE2D_HTML">
+            the convenient ability to use HTML &lt;canvas&gt; elements when specifying a texture</a>. Whether this is
+            zero-copy or not depends on the platform, and I'm not sure myself, but regardless, the textures we're using
+            in this demo are small, and copies are fast.
+        </p>
+        </section>
+
+        <section id="full-circle">
+        <h3>Wait a minute...</h3>
+        <p>
+            At this point, you might be thinking something's amiss. We have a window tree, but we shouldn't use it.
+            Windows are clipped sections of the front buffer, but in order to have a modern looking with anti-aliasing
+            and transparency, we need to redirect windows away from the front buffer into their own pixmaps. Another
+            external process, the compositor, takes these Pixmaps and draws its own scene with it. So, what exactly
+            is the X server doing? Um, well, I can't really tell you. It's fielding rendering requests from clients,
+            and it also has the responsibility of delivering input to clients, but in a lot of cases, these are things
+            the compositor might be better off doing.
+        </p>
+        <p>
+            The fact that the compositor can't control pointer input is unfortunate. There are several practical cases
+            where compositors would like that ability: the biggest such case, right now, is for scaling up legacy
+            applications on high-DPI displays. We can scale the window to 2x, but since we don't control the input,
+            the application doesn't behave properly.
+        </p>
+        <p>
+            Also, I haven't shown it off yet, but when you throw resizing into the mix, it gets even worse.
+            When resizing a window, the X server will first fill the window with its background pattern, then fire
+            off an Expose event to the window. In a composited world, this means that we resize the backing Pixmap of
+            the window, fill it with a color, then wait for the application to draw into it.
+        </p>
+        <p>
+            All of this is separated from when the compositor actually uses the Pixmap to draw into it, meaning that
+            the user might see quite ugly window contents, simply because the X server is thinking in terms of a
+            window tree, which is then redirected to a backing Pixmap, without regard for what the Pixmap ever contains
+            or who will use it to paint.
+        </p>
+        <p>
+            This, more than anything, just setting up the story for newer display servers like Wayland and Mir. These
+            projects started after X11 engineers asked themselves the very same questions, and built something better.
+            We'll look at those in due time, but for now, we have to work our way through X11.
+        </p>
+        </section>
+
+        <section id="next-time">
+        <h3>Coming up...</h3>
+        <p>
+            I know that last time, I wrote that we'd see "Expert Window Techniques". I'm usually writing two or three
+            articles at a time, and it's simply down to how much fun I'm having writing the code and the article to
+            determine which one I release next. I wasn't happy with "Expert Window Techniques", so I put that one off
+            while I worked on this one instead.
+        </p>
+        <p>
+            I'm still not happy with "Expert Window Techniques", so next time we'll instead do something a little
+            different. Next time, we're going to take a deep dive into one of the data structures and algorithms in
+            the X server, the <span class="definition">region</span>. I'll see you next time, in
+            "Regional Geometry".
+        </p>
         </section>
 
         <div class="nav-bottom"></div>
@@ -240,7 +328,7 @@
             window.addEventListener("load", function() {
                 document.querySelector("#current-year").textContent = (new Date().getFullYear());
 
-                // Article.generateNavButtons();
+                Article.generateNavButtons();
                 Article.generateSectionLinks();
                 ArticleDemos.runAllDemos();
             });
