@@ -197,11 +197,11 @@
         display.mapWindow({ windowId: kitten2 });
         display.mapWindow({ windowId: kitten1 });
 
-        // Disgusting hacks.
+        // Disgusting hack to insert the triangle in the right spot.
         setTimeout(function() {
             var tri = new CompositingManager.TriangleActor(cm._renderer, cm._gl);
             cm._renderer._actorStacking.splice(2, 0, tri);
-        }, 1);
+        }, 500);
     });
 
 })(window);
