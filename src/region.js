@@ -71,7 +71,7 @@
 
     // Create a new band given the top/bottom Y postiions and a list of walls.
     function newBand(top, bottom, walls) {
-        return Object.freeze({ top: top, bottom: bottom, walls: Object.freeze(walls) });
+        return { top: top, bottom: bottom, walls: Object.freeze(walls) };
     }
 
     // Returns a region containing a single rectangle.
