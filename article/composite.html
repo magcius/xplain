@@ -276,7 +276,10 @@
             Also, I haven't shown it off yet, but when you throw resizing into the mix, it gets even worse.
             When resizing a window, the X server will first fill the window with its background pattern, then fire
             off an Expose event to the window. In a composited world, this means that we resize the backing Pixmap of
-            the window, fill it with a color, then wait for the application to draw into it.
+            the window, fill it with a color, then wait for the application to draw into it, which leads to flickering
+            and unfortunate. Really, it would be great if the application could just draw into a Pixmap, and then hand
+            that to the X server and say "here's my new window, all fixed up for the new size", avoiding the mess of
+            invisible Pixmaps and resizing windows.
         </p>
         <p>
             All of this is separated from when the compositor actually uses the Pixmap to draw into it, meaning that
