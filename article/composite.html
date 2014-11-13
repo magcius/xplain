@@ -136,8 +136,8 @@
             is redirected by default to draw to its backing store, the "root pixmap", which is also the front buffer.
             Relatedly, the child windows of a redirected window actually "borrow pixels" from their backing pixmap in
             the same way windows normally "borrow pixels" from the front buffer. So, instead of saying that
-            unredirected windows draw to the root pixmap, we <em>should</em> be saying that unredirected windows draw
-            to the same pixmap as their parents. That is, to the pixmap of one of their ancestors which is redirected.
+            windows normally draw to the root pixmap, we <em>should</em> be saying that windows normally draw
+            to the same pixmap as what their parents draw to.
         </p>
         <p>
             Phew. OK, enough talk. Let's take the kitten demo from the first article and redirect the window on the top
