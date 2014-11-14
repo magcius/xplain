@@ -127,17 +127,31 @@
             At this point, you might have another epiphany to bring it all together. I've been using the term "front
             buffer" when talking about where windows draw to. "Yes, yes, it's the place where windows borrow their
             pixels from, and where nothing lasts for ever. We get it already" I hear you cry. But the front buffer also
-            has to exist somewhere in the server's memory. So when we're drawing to the front buffer, we're also
-            drawing to some image somewhere in the server as well. It turns out that the front buffer has another name:
-            the "root pixmap". I'll let that sink in.
+            has to exist somewhere in the server's memory. So when we're drawing to the front buffer, we're actually
+            drawing to some set of pixels somewhere in the server's memory as well. It turns out that the front buffer
+            has another name: the "root pixmap". I'll let that sink in.
         </p>
         <p>
-            In a sense, we can also say that any window with a backing pixmap is redirected, and that the root window
-            is redirected by default to draw to its backing store, the "root pixmap", which is also the front buffer.
-            Relatedly, the child windows of a redirected window actually "borrow pixels" from their backing pixmap in
-            the same way windows normally "borrow pixels" from the front buffer. So, instead of saying that
-            windows normally draw to the root pixmap, we <em>should</em> be saying that windows normally draw
-            to the same pixmap as what their parents draw to.
+            Bear with me, because this next point is fairly confusing. Redirected windows send their drawing away
+            from the front buffer and into the window's backing pixmap. But the root window already has backing
+            pixmap: the front buffer! So, in a sense, we can say that the root window was redirected, even before
+            the COMPOSITE extension was invented!
+        </p>
+        <p>
+            We also know that, in the normal drawing case, children of normal windows "borrow pixels" from the
+            front buffer. With COMPOSITE, children of redirected windows actually borrow pixels from their redirected
+            parent's backing pixmap instead. It's as if every redirected window has its own front buffer that
+            children borrow pixels from.
+        </p>
+        <p>
+            Without this history and this context, the choice of word "redirect" feels fairly bizarre. Normally,
+            the word "redirect" means "things get sent elsewhere". But what you see if you look at this with a fresh
+            perspective is that windows that have been "redirected" draw to a thing they own, while windows that
+            aren't are instead sending their drawing to some other window's backing pixmap. It's backwards! This
+            very real confusion is one of the reasons that history and context are very important when trying to
+            understand X11: the legacy behaviors are embedded so deeply into the system and the engineers working
+            on it that we arrive at weird definitions like these. And if you've worked on X11 for a long time,
+            it all seems so natural.
         </p>
         <p>
             Phew. OK, enough talk. Let's take the kitten demo from the first article and redirect the window on the top
