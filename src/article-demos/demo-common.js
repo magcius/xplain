@@ -6,14 +6,16 @@
     var DemoCommon = {};
 
     DemoCommon.makeStipple = function(display, windowId) {
-        var stipple = display.createPixmap({ width: 2, height: 2 });
+        var stipple = display.createPixmap({ width: 4, height: 4 });
         display.drawTo(stipple, function(ctx) {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 2, 2);
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(0, 0, 4, 4);
 
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, 1, 1);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(3, 0, 1, 1);
             ctx.fillRect(1, 1, 1, 1);
+            ctx.fillRect(2, 2, 1, 1);
+            ctx.fillRect(0, 3, 1, 1);
         });
         return stipple;
     };
