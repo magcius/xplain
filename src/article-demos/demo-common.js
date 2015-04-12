@@ -8,7 +8,7 @@
     DemoCommon.makeStipple = function(display, windowId) {
         var stipple = display.createPixmap({ width: 4, height: 4 });
         display.drawTo(stipple, function(ctx) {
-            ctx.fillStyle = '#333333';
+            ctx.fillStyle = '#999999';
             ctx.fillRect(0, 0, 4, 4);
 
             ctx.fillStyle = '#ffffff';
