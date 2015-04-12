@@ -124,7 +124,7 @@
         IN_BOTH: 0x4,
     };
 
-    // Our main function, which combines two regions given 
+    // Our main function, which combines two regions given
 
     function combineRegion(op, src1, src2) {
 

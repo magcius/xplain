@@ -1,0 +1,324 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf8">
+    <link rel="stylesheet" href="article.css">
+    <link rel="stylesheet" href="../src/article-demos/demos.css">
+    <link rel="stylesheet" href="../src/inspector/inspector.css">
+    <link rel="stylesheet" href="../src/server/server.css">
+    <link rel="shortcut icon" href="favicon.png">
+    <title>Xplain</title>
+</head>
+<body id="regions"><div class="main">
+    <header>
+        <a href="index.html">
+            <h1><span>Xplain</span></h1>
+            <span class="subtitle">Explaining X11 for the rest of us</span>
+        </a>
+    </header>
+
+    <article>
+        <h2></h2>
+
+        <section id="prologue">
+        <h3>A brief aside</h3>
+        <p>
+            This article will be a bit different from all the others so far. While the others have mostly been
+            high-level descriptions of how the X server works, together with interactive demos, today we're going
+            in depth into one of the cool data structures of the X server.
+        </p>
+
+        <p>
+            In the first Xplain article, I mentioned a data structure known as the "region", which is a list of
+            rectangles. When I first built Xplain, I took the region code from
+            <a href="http://cgit.freedesktop.org/pixman">pixman</a> and compiled it with emscripten, simply because
+            I didn't understand the algorithms. Frankly, I'm terrible at algorithms. I must have looked at tens of
+            different explanations of sorting algorithms over the course of my career, and I still don't understand
+            how they actually work.
+        </p>
+
+        <p>
+            For my own fun, I recently decided to investigate the data structures and algorithms behind regions,
+            and I finally understood it. What I found I'm going to share with you.
+        </p>
+        </section>
+
+        <section id="what-are-regions">
+        <h3>What are regions?</h3>
+        <p>
+            As mentioned previously, regions are lists of rectangles. You can also think of them as a 1-bit bitmap,
+            where every pixel is either black or white. However, actually storing them as a 1-bit bitmap is expensive,
+            so we use a different representation, which optimizes for common cases, and is more convenient and faster
+            to operate on than large bitmaps.
+        </p>
+        <p>
+            The X server uses regions all over the place when computing the amount of coverage each window has. So,
+            given the desktop below:
+        </p>
+
+        <div class="demo-canvas" data-demo="region-desktop"></div>
+
+        <p>
+            Then the text editor window has as its "visible region" the following L shape.
+        </p>
+
+        <div class="demo-canvas" data-demo="region-desktop-L"></div>
+
+        <p>
+            The X server has to compute these regions efficiently whenever windows are created, destroyed or moved to
+            figure out which window should be painted at which location, and which input should receive mouse events.
+        </p>
+
+        <p>
+            The X server has four basic operations it can run on regions:
+        </p>
+
+        <div class="demo-canvas" data-demo="region-basic"></div>
+
+        <ul>
+            <li>
+                When we add two regions together, we produce a <strong>union</strong> of them. It's as if you
+                took two pieces of cardboard, laid them on top of each other, and then traced that as the
+                resulting region. Perhaps surprisingly, the X server doesn't use this operation very often.
+            </li>
+            <li>
+                The area that a window can paint to doesn't include its child windows, since the child windows
+                paint there instead. So, when calculating a window's region, we first intersect with the parent,
+                then <strong>subtract</strong> out the regions of any children the window has.
+            </li>
+            <li>
+                Windows are clipped to their parents. When we want to calculate the region, in absolute
+                space, that a window occupies, we <strong>intersect</strong> the window's region its parent's.
+            </li>
+            <li>
+                When a window changes its shape, we need to paint two areas: space the window occupies that it
+                didn't before, and space the window no longer occupies. Calculating the areas that are different
+                between two regions is known as <strong>xor</strong>,
+                <a href="http://en.wikipedia.org/wiki/Exclusive_or">after the bitwise operator</a>, which can
+                be thought of as calculating which bits differ between two integers.
+            </li>
+        </ul>
+
+        <p>
+            To get that "L" shaped region of the text editor above, we take the two rectangles of the two windows,
+            subtract the bottom one from the top one, and we have our "L".
+        </p>
+        </section>
+
+        <section id="the-guts">
+        <h3>What is a region made of?</h3>
+        <p>
+            Before we fully go into these algorithms, let's first go over what a region is. I've previously mentioned
+            it's a "list of rectangles", so let's start with that. For the example region below, there are of course
+            many different lists of rectangles we could make that result in that image.
+        </p>
+        <div class="demo-canvas" data-demo="region-incorrect-regions"></div>
+        <p>
+            Are all of these regions? Do our algorithms have to handle all of these cases? It turns out that the answer
+            is "no". A valid region is not just any list of rectangles, but an <em>ordered, minimal set of horizontal
+            bands</em>. What does that mean? Let's work through it. First, let me show you the correct construction of
+            our example region.
+        </p>
+        <div class="demo-canvas" data-demo="region-correct-regions"></div>
+        <p>
+            OK. The graphics programmers in the room are now smirking. I'll explain why later. But, let's start chewing
+            apart our definition. First up, let's talk about "horizontal bands". A "band" in this case looks like this:
+        </p>
+        <div class="demo-canvas" data-demo="region-bands"></div>
+        <p>
+            A <strong>band</strong> is simply a list of rectangles that all start and end at the same Y position. We only
+            have one other rule about the rectangles in a band: they must not touch or overlap. If two rectangles in a band
+            touch or overlap, they can be coalesced into one rectangle. Using these rules, we can "formally" define a band
+            as an "ordered, minimal set of rectangles with the same top and bottom".
+        </p>
+        <p>
+            A region, it might follow, is simply a bunch of these bands stacked on top of each other. We also make the same
+            rule here: it is not possible for bands to overlap or touch in their top and bottom positions. This can be
+            unintuitive for the case of what look like visibly separate bands. You might imagine that the region below has
+            two bands, but our "overlapping" rule means that it must have four.
+        </p>
+        <div class="demo-canvas" data-demo="region-misleading-region"></div>
+        <p>
+            Somewhat intuitively, these two rules mean that for one given "bitmap", there is actually only one way to
+            construct it as a region.
+        </p>
+        </section>
+
+        <section id="merging-bands">
+        <h3>Merging bands</h3>
+        <p>
+            With these definition, let's start constructing our algorithm. First, let's start with the simpler case:
+            two bands with the same tops and bottoms together. For our example, we'll start with union, but we can
+            start generalizing it afterwards.
+        </p>
+        <p>
+            Since all of the rectangles in a band have the same top and bottom, we only care about the starts and ends
+            of these rectangles on the X axis. I'm going to call these two values "walls". Given that rectangles in
+            our bands do not overlap or touch, it can be intuitive to see that we will always have an even number of
+            these walls, and that the first wall "enters" the region, while the second wall "exits" the region. The
+            third enters, the fourth exits &mdash; it's a toggle.
+        </p>
+        <div class="demo-canvas" data-demo="region-walls"></div>
+        <p>
+            Visually, it's very easy to see what the correct union for these two bands would be: 20 and 50. But
+            algorithmically, it can be difficult to figure out what to do.
+        </p>
+        <p>
+            For future reference, whenever you see a data structure construction like this, with a big focus on splitting
+            up simple geometry into horizontal bands like this, it's a pretty big hint that we're going to perform a
+            <a href="http://en.wikipedia.org/wiki/Sweep_line_algorithm">"sweep-line algorithm"</a>. These are also sometimes
+            called "scanline" algorithms in the graphics and game development space, and they are so common there, that most
+            game developers I know of first start imagining ways to reduce a problem to a scanline algorithm. I know of two
+            developers, who, independently, wrote 3D audio engines and physics engines by reducing them to scanlines.
+            That's why I said they'd be there, smirking in the background. They've known this trick for <em>decades</em>.
+        </p>
+        <p>
+            What we're going to do is walk over the walls of both bands at the same time, and then keep track of
+            whether we're inside our outside of corresponding the band. When we transition from being outside both bands
+            to being inside both bands, or vice versa, we output a wall.
+        </p>
+        <code style="white-space: pre;">
+        function unionBands(bandA, bandB) {
+            // The resulting band from the union.
+            var outWalls = [];
+
+            // The index into the walls of both.
+            var iA = 0, iB = 0;
+
+            // Whether we're inside either band.
+            var insideA = false, insideB = false;
+
+            while (iA &lt; bandA.numWalls || iB &lt; bandB.numWalls) {
+                var wallA = bandA.walls[iA];
+                var wallB = bandB.walls[iB];
+
+                // The next wall we want to process is the one on the left,
+                // that is, the minimum of the two.
+                var wall = Math.min(wallA, wallB);
+
+                // Whether we're outside or inside the bands.
+                var wasInside = (insideA || insideB);
+
+                // Update our state for both bands, and advance to the next wall.
+                if (wall == wallA) {
+                    iA++;
+                    insideA = !insideA;
+                }
+                if (wall == wallB) {
+                    iB++;
+                    insideB = !insideB;
+                }
+
+                // Are we now inside?
+                var isInside = (insideA || insideB);
+
+                // If we're transitioning from inside to outside or outside to
+                // inside, then output a wall.
+                if (isInside != wasInside)
+                    outWalls.push(wall);
+            }
+
+            return outWalls;
+        }
+        </code>
+        <p><sub>
+            Yes, I know this code is actually broken. In the case where we run out of one set of walls, then we'll
+            retrieve <code>undefined</code> from the array, and <code>Math.min</code> will return <code>NaN</code>.
+            This is a complexity that I'm choosing not to deal with in the pseudo-code above.
+        </sub></p>
+
+        <p>
+            Let's run through this, visually, in our heads.
+        </p>
+        <ol>
+            <li> Pick the leftmost wall we haven't encountered. That's the wall on the left, 20. Now we're inside band A.
+            Since we weren't inside either band beforehand, we output a new wall, 20. </li>
+            <li> Pick the next wall. That's 30. We're now inside B, but since we were inside A before, we don't emit a wall. </li>
+            <li> The next wall is 40. We exit A. Since we're still inside B, we don't emit a wall. </li>
+            <li> The next wall is 50. We finally exit B. Since we're no longer inside either, we emit a wall, at 50. </li>
+        </ol>
+        <p>
+            So it does work!
+        </p>
+        </section>
+
+        <section id="other-operations">
+        <h3>Implementing other operations</h3>
+        <p>
+            Now we've implemented the basic "union bands" algorithm. What about intersection, subtraction, and xor? Let's
+            look at intersection first. The core of the algorithm is <em>when we output a wall</em>. For union, we output
+            a wall when we transition from not being inside either band to being inside either band, or vice versa. For
+            intersection, we should do it when we change from not being inside <em>both</em> bands to being inside
+            both bands, and vice versa. So the only code that changes are the values of <code>wasInside</code> and
+            <code>isInside</code>, which become <code>insideA &amp;&amp; insideB</code>. In fact, for all four operations,
+            there's a boolean test for every one.
+        </p>
+        <dl>
+            <dt>Union</dt> <dd><code>insideA || insideB</code></dd>
+            <dt>Intersection</dt> <dd><code>insideA &amp;&amp; insideB</code></dd>
+            <dt>Subtraction</dt> <dd><code>insideA &amp;&amp; !insideB</code></dd>
+            <dt>XOR</dt> <dd><code>insideA != insideB</code></dd>
+        </dl>
+
+        <p>
+            In my actual implementation, not being content with ugly closures and, you know, <em>actual code</em>, I
+            implemented each operation as a <a href="https://github.com/magcius/xplain/blob/gh-pages/src/region.js#L87-L118">bitwise trick</a>.
+            But it doesn't have to be that way &mdash; all I'm doing is implementing the above four operations a bit
+            more concisely.
+        </p>
+        </section>
+
+        <section id="full-regions">
+        <h3>Putting it back together</h3>
+        <p>
+            Now we know how to merge bands together. How can we use this to our advantage to merge regions? While
+            you might just start iterating over the bands of each region, and merging them together blindly, we have
+            to be a tad more careful than that. Let's look at a fairly sophisticated case.
+        </p>
+        <div class="demo-canvas" data-demo="region-fork"></div>
+        <p>
+            This region looks a bit like a fork. We have a left part, which is one band with one rectangle. Then we
+            have the part on the right, which has three separate bands. How many bands do we have when we union it
+            together?
+        </p>
+        <div class="demo-canvas" data-demo="region-fork-decomposed"></div>
+        <p>
+            ... five. Hm, so, somehow, one and three make five.
+        </p>
+
+        </section>
+
+        <div class="nav-bottom"></div>
+    </article>
+
+    <script src="article.js"></script>
+
+    <script src="../src/region.js"></script>
+    <script src="../src/class.js"></script>
+    <script src="../src/canvas-util.js"></script>
+    <script src="../src/server/server.js"></script>
+    <script src="../src/article-demos/demos.js"></script>
+    <script src="../src/article-demos/regions.js"></script>
+
+    <script>
+        (function() {
+            "use strict";
+
+            window.addEventListener("load", function() {
+                // Article.generateNavButtons();
+                // Article.generateSectionLinks();
+                ArticleDemos.runAllDemos();
+            });
+        })();
+    </script>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-35480078-2', 'magcius.github.io');
+      ga('send', 'pageview');
+    </script>
+</div></body>
+</html>

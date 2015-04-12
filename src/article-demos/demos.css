@@ -60,3 +60,12 @@
 .demo-server .demo-gl-composite {
 	height: 250px;
 }
+
+
+.demo-canvas .demo-region-basic {
+	height: 250px;
+}
+
+.demo-canvas .demo-region-fork {
+	height: 250px;
+}

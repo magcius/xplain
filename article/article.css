@@ -120,7 +120,7 @@ h3 a {
 	float: right;
 }
 
-p, li {
+p, li, dl {
 	font-size: 14pt;
 	line-height: 1.5em;
 	text-align: justify;
