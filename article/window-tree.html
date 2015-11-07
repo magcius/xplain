@@ -37,8 +37,8 @@
         </p>
         <p>
             We also learned about the <span class="definition">expose</span> model of drawing, where windows are
-            ethereal: the fact that they look like real, tangbile boxes one moving over the other is just an illusion.
-            Another way to put it is that windows are "lossy" ways of drawing, wheras pixmaps are "lossless". This isn't
+            ethereal: the fact that they look like real, tangible boxes one moving over the other is just an illusion.
+            Another way to put it is that windows are "lossy" ways of drawing, whereas pixmaps are "lossless". This isn't
             to say that they get JPEG artifacts, just that the X server will literally lose the pixel contents of
             certain parts of a window, and will ask the window for them again occasionally.
         </p>
@@ -153,7 +153,7 @@
         </p>
         <p>
             In contrast, X11 windows are a place to paint pixels, and get raw input events. There's no way to mark
-            an X11 window as a menu or a button. It doesn't give you out-of-the-box accessibiltiy. It doesn't allow you
+            an X11 window as a menu or a button. It doesn't give you out-of-the-box accessibility. It doesn't allow you
             to construct a bunch of X11 windows as if they were widgets and get a nice, reflowing form field.
             As such, there's really no benefit to using nested windows, one per widget, as if they were DOM nodes. In
             fact, what you get is a slow, flickering experience. The client has to recalculate the new rectangle for
