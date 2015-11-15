@@ -124,10 +124,8 @@
         IN_BOTH: 0x4,
     };
 
-    // Our main function, which combines two regions given
-
+    // Our main function, which combines the two regions given
     function combineRegion(op, src1, src2) {
-
         // Are these two walls equal? Basically an "arrayEquals" method.
         function wallsEqual(w1, w2) {
             if (w1.length != w2.length)
@@ -349,6 +347,9 @@
     };
     Region.prototype.subtract = function(r1, r2) {
         this.copy(combineRegion(Operation.SUBTRACT, r1, r2));
+    };
+    Region.prototype.xor = function(r1, r2) {
+        this.copy(combineRegion(Operation.XOR, r1, r2));
     };
     Region.prototype.is_empty = function() {
         return this.extents.x2 <= this.extents.x1;
