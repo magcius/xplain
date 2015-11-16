@@ -69,3 +69,27 @@
 .demo-canvas .demo-region-fork {
 	height: 250px;
 }
+
+.demo-canvas .demo-region-desktop {
+	height: 250px;
+}
+
+.demo-canvas .demo-region-desktop-L {
+	height: 250px;
+}
+
+.demo-canvas .demo-region-incorrect-regions {
+	height: 280px;
+}
+
+.demo-canvas .demo-region-correct-regions {
+	height: 130px;
+}
+
+.demo-canvas .demo-region-bands {
+	height: 120px;
+}
+
+.demo-canvas .demo-region-misleading-region {
+	height: 130px;
+}

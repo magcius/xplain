@@ -348,6 +348,9 @@
     Region.prototype.subtract = function(r1, r2) {
         this.copy(combineRegion(Operation.SUBTRACT, r1, r2));
     };
+    Region.prototype.subtract_rect = function(r1, x, y, w, h) {
+        this.copy(combineRegion(Operation.SUBTRACT, r1, rectRegion(x, y, w, h)));
+    };
     Region.prototype.xor = function(r1, r2) {
         this.copy(combineRegion(Operation.XOR, r1, r2));
     };
