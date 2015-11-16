@@ -169,13 +169,14 @@
         update();
     });
 
-    function drawWindowFrame(ctx, wx, wy, ww, wh, title) {
+    function drawWindowFrame(ctx, wx, wy, ww, wh, title, alpha) {
         var hbh = 30;
+        var alpha = alpha || 1.0;
 
         ctx.fillStyle = 'black';
-        ctx.globalAlpha = 0.2;
+        ctx.globalAlpha = alpha * 0.2;
         ctx.fillRect(wx+6, wy+6, ww, wh);
-        ctx.globalAlpha = 1.0;
+        ctx.globalAlpha = alpha * 1.0;
 
         ctx.fillStyle = 'gray';
         ctx.fillRect(wx, wy, ww, wh);
@@ -243,7 +244,9 @@
         wx += 150;
         wy -= 45;
 
-        drawWindowFrame(ctx, wx, wy, ww, wh, "kitten.png");
+        ctx.fillStyle = '#00aa99';
+        ctx.fillRect(wx, wy, ww, wh);
+        drawWindowFrame(ctx, wx, wy, ww, wh, "kitten.png", .3);
     });
 
     function rsp(ctx, rs) {
