@@ -339,7 +339,7 @@
 
         demos.forEach(function(rs) {
             rectSetDraw(ctx, rs);
-            x += regionWidth + padding;
+            ctx.translate(regionWidth + padding, 0);
         });
     });
 
