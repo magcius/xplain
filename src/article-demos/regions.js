@@ -249,26 +249,30 @@
         drawWindowFrame(ctx, wx, wy, ww, wh, "kitten.png", .3);
     });
 
-    function rsp(ctx, rs) {
-        rs.forEach(function(r) {
+    // Given a "rectangle set" ( [ [0,0,20,20], [20,20,50,50] ] ), path it onto
+    // the canvas context.
+    function rectSetPath(ctx, rectSet) {
+        rectSet.forEach(function(r) {
             ctx.rect(r[0], r[1], r[2], r[3]);
         });
     }
-    function rsd(ctx, rs, x, y) {
+
+    // Draws a given rectSet in a fancy way
+    function rectSetDraw(ctx, rectSet, x, y) {
         ctx.save();
         ctx.translate(x, y);
 
         ctx.save();
         ctx.beginPath();
         ctx.translate(6, 6);
-        rsp(ctx, rs);
+        rectSetPath(ctx, rectSet);
         ctx.globalAlpha = 0.2;
         ctx.fillStyle = 'black';
         ctx.fill();
         ctx.restore();
 
         ctx.beginPath();
-        rsp(ctx, rs);
+        rectSetPath(ctx, rectSet);
         ctx.fillStyle = 'white';
         ctx.fill();
         ctx.lineWidth = 2;
@@ -281,10 +285,10 @@
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
-        var rw = 120;
-        var rh = 120;
+        var regionWidth = 120;
+        var regionHeight = 120;
         var padding = 20;
-        var x = (canvas.width - rw) / 2;
+        var x = (canvas.width - regionWidth) / 2;
         var y = 0;
 
         var demos = [
@@ -298,17 +302,17 @@
         ctx.beginPath();
         ctx.save();
         ctx.translate(x, y);
-        rsp(ctx, demos[0], x, y);
+        rectSetPath(ctx, demos[0], x, y);
         ctx.fill();
         ctx.restore();
 
-        y += rh + padding;
-        var dw = demos.length * (rw + padding) - padding;
-        x = (canvas.width - dw) / 2;
+        y += regionHeight + padding;
+        var demosWidth = demos.length * (regionWidth + padding) - padding;
+        x = (canvas.width - demosWidth) / 2;
 
         demos.forEach(function(rs) {
-            rsd(ctx, rs, x, y);
-            x += rw + padding;
+            rectSetDraw(ctx, rs, x, y);
+            x += regionWidth + padding;
         });
     });
 
@@ -316,13 +320,15 @@
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
-        var rw = 120;
-        var x = (canvas.width - rw) / 2;
+        var regionWidth = 120;
+        var x = (canvas.width - regionWidth) / 2;
 
-        rsd(ctx, [ [0, 0, 80, 40], [ 0, 40, 120, 40], [40, 80, 80, 40] ], x, 2);
+        rectSetDraw(ctx, [ [0, 0, 80, 40], [ 0, 40, 120, 40], [40, 80, 80, 40] ], x, 2);
     });
 
-    function brs(band) {
+    // Takes a "band" (part of the region internals) and converts it to a rect set
+    // for our fancy draw function.
+    function bandRectSet(band) {
         var rs = [];
         for (var i = 0; i < band.walls.length; i += 2)
             rs.push([band.walls[i], band.top, band.walls[i+1] - band.walls[i], band.bottom - band.top]);
@@ -339,28 +345,29 @@
         R1.union_rect(R1, 140, 0, 120, 120);
         R1.subtract_rect(R1, 180, 40, 40, 40);
 
-        var rw = R1.extents.x2 - R1.extents.x1;
+        var regionWidth = R1.extents.x2 - R1.extents.x1;
         var padding = 50;
-        var x = (canvas.width - rw*2 - padding) / 2;
+        var x = (canvas.width - regionWidth*2 - padding) / 2;
         ctx.translate(x, 0);
 
         ctx.beginPath();
         CanvasUtil.pathFromRegion(ctx, R1);
         ctx.fill();
 
-        ctx.translate(rw + padding, 0);
+        ctx.translate(regionWidth + padding, 0);
         CanvasUtil.pathFromRegion(ctx, R1);
         ctx.globalAlpha = .2;
         ctx.fill();
         ctx.globalAlpha = 1;
 
         var band = R1.bands[1];
-        rsd(ctx, brs(band), 0, 0);
+        rectSetDraw(ctx, bandRectSet(band), 0, 0);
     });
 
-    function rrs(r) {
+    // Constructs a rect set out of all the rects in the region.
+    function regionRectSet(region) {
         var rs = [];
-        r.bands.forEach(function(b) { rs = rs.concat(brs(b)); });
+        region.bands.forEach(function(b) { rs = rs.concat(bandRectSet(b)); });
         return rs;
     }
 
@@ -372,17 +379,17 @@
         R1.union_rect(R1, 0, 0, 40, 120);
         R1.union_rect(R1, 50, 30, 40, 20);
 
-        var rw = R1.extents.x2 - R1.extents.x1;
+        var regionWidth = R1.extents.x2 - R1.extents.x1;
         var padding = 70;
-        var x = (canvas.width - rw*2 - padding) / 2;
+        var x = (canvas.width - regionWidth*2 - padding) / 2;
         ctx.translate(x, 2);
 
         ctx.beginPath();
         CanvasUtil.pathFromRegion(ctx, R1);
         ctx.fill();
 
-        ctx.translate(rw + padding, 0);
-        rsd(ctx, rrs(R1), 0, 0);
+        ctx.translate(regionWidth + padding, 0);
+        rectSetDraw(ctx, regionRectSet(R1), 0, 0);
     });
 
 })(window);
