@@ -335,6 +335,33 @@
         return rs;
     }
 
+    function pathGuideLine(ctx, y) {
+        ctx.moveTo(-ctx.canvas.width, y);
+        ctx.lineTo(ctx.canvas.width*2, y);
+    }
+    function pathRegionGuideLines(ctx, region) {
+        pathGuideLine(ctx, region.bands[0].top);
+        region.bands.forEach(function(band) {
+            pathGuideLine(ctx, band.bottom);
+        });
+    }
+    function drawGuideLines(ctx, extents, padding, f) {
+        var regionWidth = extents.x2 - extents.x1;
+        var regionHeight = extents.y2 - extents.y1;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-padding/2, -2, regionWidth + padding, regionHeight+4);
+        ctx.clip();
+        ctx.beginPath();
+        f();
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.3;
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.restore();
+    }
+
     ArticleDemos.registerDemo("region-bands", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
@@ -361,6 +388,11 @@
         ctx.globalAlpha = 1;
 
         var band = R1.bands[1];
+        drawGuideLines(ctx, R1.extents, padding, function() {
+            pathGuideLine(ctx, band.top);
+            pathGuideLine(ctx, band.bottom);
+        });
+
         rectSetDraw(ctx, bandRectSet(band), 0, 0);
     });
 
@@ -389,6 +421,11 @@
         ctx.fill();
 
         ctx.translate(regionWidth + padding, 0);
+
+        drawGuideLines(ctx, R1.extents, padding, function() {
+            pathRegionGuideLines(ctx, R1);
+        });
+
         rectSetDraw(ctx, regionRectSet(R1), 0, 0);
     });
 
