@@ -86,33 +86,41 @@
 
         var R1 = new Region();
         var R2 = new Region();
-        R2.init_rect(20, 40, 80, 80);
+        R2.init_rect(0, 0, 80, 80);
 
         var R3 = new Region();
 
+        var binWidth = 160;
+        var binHeight = 140;
         var padding = 20;
-        var spacing = 10;
-        var binWidth = (canvas.width - padding * 2 - (operations.length - 1) * spacing) / operations.length;
-        var labelHeight = 10;
-        var binHeight = canvas.height - padding * 2 - labelHeight;
+        var spacing = (canvas.width - padding*2 - binWidth * operations.length) / (operations.length - 1);
 
         var x = padding;
-        operations.forEach(function(op) {
-            op.clipRect = { x: x, y: padding, width: binWidth, height: binHeight };
-
-            ctx.strokeStyle = op.color;
-            ctx.lineWidth = 4;
-            ctx.strokeRect(x, padding, binWidth, binHeight);
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = 'black';
-            ctx.strokeRect(x, padding, binWidth, binHeight);
+        operations.forEach(function(op, i, arr) {
+            op.clipRect = { x: x, y: 0, width: binWidth, height: binHeight };
 
             ctx.font = '14pt sans-serif';
             ctx.fillStyle = 'black';
             ctx.textAlign = 'center';
-            ctx.fillText(op.title, x + binWidth / 2, canvas.height);
+            ctx.fillText(op.title, x + binWidth / 2, canvas.height - 2);
 
-            x += binWidth + spacing;
+            if (i != arr.length - 1) {
+                x += binWidth;
+
+                /* I don't like the look of these dashes, actually... */
+                if (false) {
+                    ctx.save();
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.moveTo(x + spacing/2, 0);
+                    ctx.lineTo(x + spacing/2, canvas.height);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                x += spacing;
+            }
         });
 
         function drawOperation(op) {
@@ -121,7 +129,7 @@
             ctx.rect(op.clipRect.x, op.clipRect.y, op.clipRect.width, op.clipRect.height);
             ctx.clip();
 
-            ctx.translate(op.clipRect.x, op.clipRect.y);
+            ctx.translate(op.clipRect.x + 2, op.clipRect.y + 4);
             ctx.clearRect(0, 0, op.clipRect.width, op.clipRect.height);
 
             R3[op.op].call(R3, R1, R2);
@@ -150,6 +158,8 @@
             ctx.fill();
 
             ctx.beginPath();
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
             drawPerimeter(ctx, R3);
             ctx.stroke();
 
@@ -157,96 +167,117 @@
         }
 
         var t = 0;
-        function update() {
-            ++t;
+        function update(t_) {
+            t += (t_ - t);
 
-            var x = Math.sin(t * 0.01) * 30;
-            R1.init_rect(60 + x, 80, 80, 80);
+            var x = Math.sin(t * 0.001) * 30;
+            R1.init_rect(40 + x, 40, 80, 80);
 
             operations.forEach(drawOperation);
             window.requestAnimationFrame(update);
         }
-        update();
+        update(0);
     });
 
-    function drawWindowFrame(ctx, wx, wy, ww, wh, title, alpha) {
-        var hbh = 30;
-        var alpha = alpha || 1.0;
-
+    function drawWindowShadow(ctx, w, h) {
+        ctx.save();
+        ctx.translate(6, 6);
         ctx.fillStyle = 'black';
-        ctx.globalAlpha = alpha * 0.2;
-        ctx.fillRect(wx+6, wy+6, ww, wh);
-        ctx.globalAlpha = alpha * 1.0;
+        ctx.globalAlpha = 0.2;
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+    }
 
+    function drawWindowFrame(ctx, w, h, title) {
+        var titleBarHeight = 30;
+
+        // Window contents.
         ctx.fillStyle = 'gray';
-        ctx.fillRect(wx, wy, ww, wh);
+        ctx.fillRect(0, 0, w, h);
 
+        // Title bar.
         ctx.beginPath();
         ctx.fillStyle = 'white';
-        ctx.fillRect(wx, wy, ww, hbh);
-
-        ctx.beginPath();
-        ctx.moveTo(wx, wy + hbh - .5);
-        ctx.lineTo(wx + ww, wy + hbh - .5);
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.rect(wx, wy, ww, wh);
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        ctx.fillRect(0, 0, w, titleBarHeight);
 
         ctx.font = '16pt sans-serif';
         ctx.fillStyle = 'black';
         ctx.textBaseline = 'hanging';
-        ctx.fillText(title, wx + 6, wy + 5);
+        ctx.fillText(title, 6, 5);
+
+        // Title bar bottom line.
+        ctx.beginPath();
+        ctx.lineWidth = 1;
+        ctx.moveTo(0, titleBarHeight - .5);
+        ctx.lineTo(w, titleBarHeight - .5);
+        ctx.stroke();
+
+        // Stroke around frame.
+        ctx.beginPath();
+        ctx.rect(0, 0, w, h);
+        ctx.lineWidth = 2;
+        ctx.stroke();
     }
 
     ArticleDemos.registerDemo("region-desktop", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
-        ctx.fillStyle = '#00aa99';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
         var ww = 400;
-        var wx = (canvas.width - ww) / 2 - 50;
-        var wy = 70;
         var wh = 150;
 
-        drawWindowFrame(ctx, wx, wy, ww, wh, "Text Editor");
-        wx += 150;
-        wy -= 45;
+        var wx = (canvas.width - ww) / 2 - 50;
+        var wy = 70;
+        ctx.translate(wx, wy);
 
-        drawWindowFrame(ctx, wx, wy, ww, wh, "kitten.png");
+        drawWindowShadow(ctx, ww, wh);
+        drawWindowFrame(ctx, ww, wh, "Text Editor");
+
+        ctx.translate(150, -45);
+
+        drawWindowShadow(ctx, ww, wh);
+        drawWindowFrame(ctx, ww, wh, "kitten.png");
     });
 
     ArticleDemos.registerDemo("region-desktop-L", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
-        ctx.fillStyle = '#00aa99';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
         var ww = 400;
-        var wx = (canvas.width - ww) / 2 - 50;
-        var wy = 70;
         var wh = 150;
 
-        ctx.fillStyle = 'black';
-        ctx.globalAlpha = 0.2;
-        ctx.fillRect(wx+6, wy+6, ww, wh);
-        ctx.globalAlpha = 1.0;
+        var wx = (canvas.width - ww) / 2 - 50;
+        var wy = 70;
+        ctx.translate(wx, wy);
 
-        ctx.fillStyle = 'red';
-        ctx.fillRect(wx, wy, ww, wh);
+        var R1 = new Region();
+        R1.union_rect(R1, 0, 0, ww, wh);
+        R1.subtract_rect(R1, 150, -45, ww, wh);
 
-        wx += 150;
-        wy -= 45;
+        drawWindowShadow(ctx, ww, wh);
+        drawWindowFrame(ctx, ww, wh, "Text Editor");
 
-        ctx.fillStyle = '#00aa99';
-        ctx.fillRect(wx, wy, ww, wh);
-        drawWindowFrame(ctx, wx, wy, ww, wh, "kitten.png", .3);
+        ctx.save();
+        ctx.beginPath();
+        CanvasUtil.pathFromRegion(ctx, R1);
+        ctx.globalAlpha = .5;
+        ctx.fillStyle = '#dddd66';
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(150, -45);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, ww, wh);
+        ctx.globalAlpha = .3;
+        drawWindowFrame(ctx, ww, wh, "kitten.png");
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        drawPerimeter(ctx, R1);
+        ctx.stroke();
     });
 
     // Given a "rectangle set" ( [ [0,0,20,20], [20,20,50,50] ] ), path it onto
@@ -273,7 +304,7 @@
 
         ctx.beginPath();
         rectSetPath(ctx, rectSet);
-        ctx.fillStyle = 'white';
+        ctx.fillStyle = '#ddddff';
         ctx.fill();
         ctx.lineWidth = 2;
         ctx.stroke();
