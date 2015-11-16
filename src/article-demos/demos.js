@@ -9,7 +9,7 @@
     function bootstrapDemo(name, elem) {
         var demoSlot = document.createElement("div");
         demoSlot.classList.add('demo-' + name);
-        elem.appendChild(demoSlot);
+        elem.insertBefore(demoSlot, elem.firstChild);
         return demoSlot;
     }
 
@@ -47,7 +47,7 @@
         canvas.width = demoSlot.clientWidth;
         canvas.height = demoSlot.clientHeight;
         demoSlot.appendChild(canvas);
-        var res = { canvas: canvas, elem: elem };
+        var res = { canvas: canvas, elem: elem, demoSlot: demoSlot };
         demoFunc(res);
     };
 

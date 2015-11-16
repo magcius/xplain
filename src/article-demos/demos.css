@@ -61,6 +61,12 @@
 	height: 250px;
 }
 
+pre > code {
+	font-size: 12pt;
+	padding: 2em 1em !important;
+	margin: 2em 0;
+	font-family: "Source Code Pro", "Droid Sans Mono", monospace;
+}
 
 .demo-canvas .demo-region-basic {
 	height: 160px;
@@ -92,4 +98,22 @@
 
 .demo-canvas .demo-region-misleading-region {
 	height: 130px;
+}
+
+.demo-canvas .demo-region-walls {
+	height: 130px;
+}
+
+.demo-canvas .demo-region-walls-walkthrough {
+	height: 180px;
+}
+
+[data-demo=region-walls-walkthrough] li.selected {
+	font-weight: bold;
+}
+[data-demo=region-walls-walkthrough] button {
+	width: 80px;
+}
+[data-demo=region-walls-walkthrough] .buttons {
+	text-align: center;
 }

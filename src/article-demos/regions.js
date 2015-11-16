@@ -289,10 +289,7 @@
     }
 
     // Draws a given rectSet in a fancy way
-    function rectSetDraw(ctx, rectSet, x, y) {
-        ctx.save();
-        ctx.translate(x, y);
-
+    function rectSetDraw(ctx, rectSet) {
         ctx.save();
         ctx.beginPath();
         ctx.translate(6, 6);
@@ -308,8 +305,6 @@
         ctx.fill();
         ctx.lineWidth = 2;
         ctx.stroke();
-
-        ctx.restore();
     }
 
     ArticleDemos.registerDemo("region-incorrect-regions", function(res) {
@@ -333,16 +328,17 @@
         ctx.beginPath();
         ctx.save();
         ctx.translate(x, y);
-        rectSetPath(ctx, demos[0], x, y);
+        rectSetPath(ctx, demos[0]);
         ctx.fill();
         ctx.restore();
 
         y += regionHeight + padding;
         var demosWidth = demos.length * (regionWidth + padding) - padding;
         x = (canvas.width - demosWidth) / 2;
+        ctx.translate(x, y);
 
         demos.forEach(function(rs) {
-            rectSetDraw(ctx, rs, x, y);
+            rectSetDraw(ctx, rs);
             x += regionWidth + padding;
         });
     });
@@ -354,7 +350,8 @@
         var regionWidth = 120;
         var x = (canvas.width - regionWidth) / 2;
 
-        rectSetDraw(ctx, [ [0, 0, 80, 40], [ 0, 40, 120, 40], [40, 80, 80, 40] ], x, 2);
+        ctx.translate(x, 2);
+        rectSetDraw(ctx, [ [0, 0, 80, 40], [ 0, 40, 120, 40], [40, 80, 80, 40] ]);
     });
 
     // Takes a "band" (part of the region internals) and converts it to a rect set
@@ -424,7 +421,7 @@
             pathGuideLine(ctx, band.bottom);
         });
 
-        rectSetDraw(ctx, bandRectSet(band), 0, 0);
+        rectSetDraw(ctx, bandRectSet(band));
     });
 
     // Constructs a rect set out of all the rects in the region.
@@ -457,7 +454,147 @@
             pathRegionGuideLines(ctx, R1);
         });
 
-        rectSetDraw(ctx, regionRectSet(R1), 0, 0);
+        rectSetDraw(ctx, regionRectSet(R1));
+    });
+
+    function drawWalls(ctx, walls, height) {
+        height = height || 40;
+
+        function drawWall(w) {
+            if (w.open) return;
+
+            ctx.save();
+
+            if (w.selected)
+                ctx.fillStyle = ctx.strokeStyle = 'red';
+            else
+                ctx.fillStyle = ctx.strokeStyle = 'black';
+
+            ctx.font = '14pt sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'hanging';
+            ctx.fillText(w.label, w.x, height);
+
+            ctx.beginPath();
+            ctx.lineWidth = 2;
+            ctx.moveTo(w.x, 0);
+            ctx.lineTo(w.x, height);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawFill(w1, w2) {
+            var x1 = w1.x, x2 = w2.x;
+
+            var fillPad = 6;
+            var w = x2 - x1;
+            var y1 = fillPad;
+            var h = height - fillPad * 2;
+
+            ctx.beginPath();
+            ctx.rect(x1, y1, w, h);
+            ctx.save();
+            ctx.fillStyle = '#ddddff';
+            ctx.globalAlpha = 0.5;
+            ctx.fill();
+            ctx.restore();
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y1);
+            ctx.moveTo(x1, y1+h);
+            ctx.lineTo(x2, y1+h);
+            ctx.save();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#666';
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        for (var i = 0; i < walls.length; i += 2) {
+            var w1 = walls[i], w2 = walls[i+1];
+            if (w1 && w2) drawFill(w1, w2);
+            if (w1) drawWall(w1);
+            if (w2) drawWall(w2);
+        }
+    }
+
+    ArticleDemos.registerDemo("region-walls", function(res) {
+        var canvas = res.canvas;
+        var ctx = canvas.getContext('2d');
+
+        var walls1 = [ { x: 0, label: "20" }, { x: 200, label: "40" } ];
+        var walls2 = [ { x: 100, label: "30" }, { x: 300, label: "50" } ];
+
+        var width = 300;
+        var x = (canvas.width - width) / 2;
+
+        ctx.translate(x, 2);
+        drawWalls(ctx, walls1);
+
+        ctx.translate(0, 70);
+        drawWalls(ctx, walls2);
+    });
+
+    ArticleDemos.registerDemo("region-walls-walkthrough", function(res) {
+        var canvas = res.canvas;
+        var ctx = canvas.getContext('2d');
+        var elem = res.elem;
+
+        var liSteps = [].slice.call(elem.querySelectorAll('li'));
+
+        var buttons = document.createElement('div');
+        buttons.classList.add('buttons');
+        elem.insertBefore(buttons, res.demoSlot.nextSibling);
+
+        var currentStep;
+
+        var prevButton = document.createElement('button');
+        prevButton.textContent = '<<';
+        prevButton.addEventListener('click', function() { setStep(currentStep - 1); });
+        buttons.appendChild(prevButton);
+        var nextButton = document.createElement('button');
+        nextButton.textContent = '>>';
+        nextButton.addEventListener('click', function() { setStep(currentStep + 1); });
+        buttons.appendChild(nextButton);
+
+        var width = 300;
+        var x = (canvas.width - width) / 2;
+
+        function setStep(newStep) {
+            currentStep = newStep;
+
+            liSteps.forEach(function(li) { li.classList.remove('selected'); })
+            liSteps[currentStep].classList.add('selected');
+
+            var hasPrev = currentStep > 0;
+            prevButton.disabled = !hasPrev;
+            var hasNext = currentStep < (liSteps.length-1);
+            nextButton.disabled = !hasNext;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            var walls1 = [ { x: 0, label: "20" }, { x: 200, label: "40" } ];
+            var walls2 = [ { x: 100, label: "30" }, { x: 300, label: "50" } ];
+
+            var outWalls = [];
+
+            if (currentStep == 0) { walls1[0].selected = true; outWalls.push({ x: 0, label: "20" }); }
+            if (currentStep == 1) { walls2[0].selected = true; outWalls.push({ x: 0, label: "20" }); outWalls.push({ x: 100, open: true }); }
+            if (currentStep == 2) { walls1[1].selected = true; outWalls.push({ x: 0, label: "20" }); outWalls.push({ x: 200, open: true }); }
+            if (currentStep == 3) { walls2[1].selected = true; outWalls.push({ x: 0, label: "20" }); outWalls.push({ x: 300, label: "50" }); }
+
+            ctx.save();
+            ctx.translate(x, 2);
+            drawWalls(ctx, walls1);
+            ctx.translate(0, 70);
+            drawWalls(ctx, walls2);
+            ctx.translate(0, 70);
+            drawWalls(ctx, outWalls, 20);
+            ctx.restore();
+        }
+        setStep(0);
     });
 
 })(window);

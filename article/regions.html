@@ -158,18 +158,21 @@
             these walls, and that the first wall "enters" the region, while the second wall "exits" the region. The
             third enters, the fourth exits &mdash; it's a toggle.
         </p>
+        <p>
+            Remember that these two bands have the same tops and bottoms. I'm only putting them on two different Y axes
+            in the demonstration below simply so that you can see them both at the same time, since they do overlap.
+        </p>
         <div class="demo-canvas" data-demo="region-walls"></div>
         <p>
             Visually, it's very easy to see what the correct union for these two bands would be: 20 and 50. But
             algorithmically, it can be difficult to figure out what to do.
         </p>
         <p>
-            For future reference, whenever you see a data structure construction like this, with a big focus on splitting
-            up simple geometry into horizontal bands like this, it's a pretty big hint that we're going to perform a
+            For future reference, whenever you see a data structure construction like this, with a big focus on slicing
+            up simple geometry into horizontal segements, it's a pretty big hint that we're going to perform a
             <a href="http://en.wikipedia.org/wiki/Sweep_line_algorithm">"sweep-line algorithm"</a>. These are also sometimes
-            called "scanline" algorithms in the graphics and game development space, and they are so common there, that most
-            game developers I know of first start imagining ways to reduce a problem to a scanline algorithm. I know of two
-            developers, who, independently, wrote 3D audio engines and physics engines by reducing them to scanlines.
+            called "scanline" algorithms in the graphics and game development space, and they are so common there, that a lot
+            of game developers I know of first start imagining ways to reduce problems to a scanline algorithm.
             That's why I said they'd be there, smirking in the background. They've known this trick for <em>decades</em>.
         </p>
         <p>
@@ -177,50 +180,48 @@
             whether we're inside our outside of corresponding the band. When we transition from being outside both bands
             to being inside both bands, or vice versa, we output a wall.
         </p>
-        <code style="white-space: pre;">
-        function unionBands(bandA, bandB) {
-            // The resulting band from the union.
-            var outWalls = [];
+        <pre><code class="js">function unionBands(bandA, bandB) {
+    // The resulting band from the union.
+    var outWalls = [];
 
-            // The index into the walls of both.
-            var iA = 0, iB = 0;
+    // The index into the walls of both.
+    var iA = 0, iB = 0;
 
-            // Whether we're inside either band.
-            var insideA = false, insideB = false;
+    // Whether we're inside either band.
+    var insideA = false, insideB = false;
 
-            while (iA &lt; bandA.numWalls || iB &lt; bandB.numWalls) {
-                var wallA = bandA.walls[iA];
-                var wallB = bandB.walls[iB];
+    while (iA &lt; bandA.numWalls || iB &lt; bandB.numWalls) {
+        var wallA = bandA.walls[iA];
+        var wallB = bandB.walls[iB];
 
-                // The next wall we want to process is the one on the left,
-                // that is, the minimum of the two.
-                var wall = Math.min(wallA, wallB);
+        // The next wall we want to process is the one on the left,
+        // that is, the minimum of the two.
+        var wall = Math.min(wallA, wallB);
 
-                // Whether we're outside or inside the bands.
-                var wasInside = (insideA || insideB);
+        // Whether we're outside or inside the bands.
+        var wasInside = (insideA || insideB);
 
-                // Update our state for both bands, and advance to the next wall.
-                if (wall == wallA) {
-                    iA++;
-                    insideA = !insideA;
-                }
-                if (wall == wallB) {
-                    iB++;
-                    insideB = !insideB;
-                }
-
-                // Are we now inside?
-                var isInside = (insideA || insideB);
-
-                // If we're transitioning from inside to outside or outside to
-                // inside, then output a wall.
-                if (isInside != wasInside)
-                    outWalls.push(wall);
-            }
-
-            return outWalls;
+        // Update our state for both bands, and advance to the next wall.
+        if (wall == wallA) {
+            iA++;
+            insideA = !insideA;
         }
-        </code>
+        if (wall == wallB) {
+            iB++;
+            insideB = !insideB;
+        }
+
+        // Are we now inside?
+        var isInside = (insideA || insideB);
+
+        // If we're transitioning from inside to outside or outside to
+        // inside, then output a wall.
+        if (isInside != wasInside)
+            outWalls.push(wall);
+    }
+
+    return outWalls;
+}</code></pre>
         <p><sub>
             Yes, I know this code is actually broken. In the case where we run out of one set of walls, then we'll
             retrieve <code>undefined</code> from the array, and <code>Math.min</code> will return <code>NaN</code>.
@@ -230,13 +231,15 @@
         <p>
             Let's run through this, visually, in our heads.
         </p>
-        <ol>
-            <li> Pick the leftmost wall we haven't encountered. That's the wall on the left, 20. Now we're inside band A.
-            Since we weren't inside either band beforehand, we output a new wall, 20. </li>
-            <li> Pick the next wall. That's 30. We're now inside B, but since we were inside A before, we don't emit a wall. </li>
-            <li> The next wall is 40. We exit A. Since we're still inside B, we don't emit a wall. </li>
-            <li> The next wall is 50. We finally exit B. Since we're no longer inside either, we emit a wall, at 50. </li>
-        </ol>
+        <div class="demo-canvas" data-demo="region-walls-walkthrough">
+            <ol>
+                <li> Pick the leftmost wall we haven't encountered. That's the wall on the left, 20. Now we're inside band A.
+                Since we weren't inside either band beforehand, we output a new wall, 20. </li>
+                <li> Pick the next wall. That's 30. We're now inside B, but since we were inside A before, we don't emit a wall. </li>
+                <li> The next wall is 40. We exit A. Since we're still inside B, we don't emit a wall. </li>
+                <li> The next wall is 50. We finally exit B. Since we're no longer inside either band, we emit a wall, at 50. </li>
+            </ol>
+        </div>
         <p>
             So it does work!
         </p>
@@ -300,6 +303,9 @@
     <script src="../src/article-demos/demos.js"></script>
     <script src="../src/article-demos/regions.js"></script>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/railscasts.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/highlight.min.js"></script>
+
     <script>
         (function() {
             "use strict";
@@ -309,6 +315,8 @@
                 // Article.generateSectionLinks();
                 ArticleDemos.runAllDemos();
             });
+
+            hljs.initHighlightingOnLoad();
         })();
     </script>
 
