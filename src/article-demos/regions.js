@@ -510,7 +510,6 @@
             else
                 ctx.fillStyle = ctx.strokeStyle = 'black';
 
-            ctx.font = '14pt sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'hanging';
             ctx.fillText(w.label, w.x, height);
@@ -569,6 +568,7 @@
         var x = (canvas.width - width) / 2;
 
         ctx.fillStyle = '#ddddff';
+        ctx.font = '14pt sans-serif';
 
         ctx.translate(x, 2);
         drawWalls(ctx, walls1);
@@ -626,6 +626,7 @@
             if (currentStep == 3) { walls2[1].selected = true; outWalls.push({ x: 0, label: "20" }); outWalls.push({ x: 300, label: "50" }); }
 
             ctx.save();
+            ctx.font = '14pt sans-serif';
             ctx.fillStyle = '#ddddff';
             ctx.translate(x, 2);
             drawWalls(ctx, walls1);
@@ -651,7 +652,7 @@
 
         var R1 = new Region();
         var R2 = new Region();
-        R2.init_rect(0, 0, 80, 40);
+        R2.init_rect(0, 0, 100, 40);
 
         var R3 = new Region();
 
@@ -708,6 +709,7 @@
             }
 
             ctx.save();
+            ctx.font = '10pt sans-serif';
             ctx.beginPath();
             ctx.fillStyle = fade(op.color, .3);
             ctx.translate(10, 0);
@@ -729,7 +731,7 @@
             t += (t_ - t);
 
             var x = (Math.sin(t * 0.001) * 21) | 0;
-            R1.init_rect(25 + x, 0, 80, 40);
+            R1.init_rect(40 + x, 0, 60, 40);
 
             operations.forEach(drawOperation);
             window.requestAnimationFrame(update);
@@ -737,26 +739,49 @@
         update(0);
     });
 
-    ArticleDemos.registerDemo("region-band-explorer", "height: 140px", function(res) {
-        var canvas = res.canvas;
+    function regionExplorer(canvas) {
         var ctx = canvas.getContext('2d');
+        var selectedBand = null, selectedWall = null;
+        var region = new Region();
 
-        var R1 = new Region();
-        function makeScene(t) {
-            var r2x = (Math.cos(t * 0.0008) * 100) | 0;
-            var r2y = (Math.sin(t * 0.0008) * 20) | 0;
+        function pick() {
+            var x = mx, y = my;
 
-            R1.clear();
-            R1.union_rect(R1, 0, 0, 60, 40);
-            R1.union_rect(R1, r2x, 40 + r2y, 40, 40);
-            var regionWidth = 60;
-            var x = (canvas.width - regionWidth) / 2;
-            R1.translate(x, 20);
+            selectedWall = null;
+
+            if (y < 0)
+                return selectedBand = null;
+
+            if (y < region.extents.y1)
+                return selectedBand = -1;
+            else if (y > region.extents.y2)
+                return selectedBand = region.bands.length;
+
+            for (var i = 0; i < region.bands.length; i++) {
+                var band = region.bands[i];
+                if (y > band.bottom)
+                    continue;
+
+                selectedBand = i;
+
+                for (var j = 0; j < band.walls.length; j += 2) {
+                    var x1 = band.walls[j], x2 = band.walls[j + 1];
+                    if (x < x1)
+                        return;
+                    if (x < x2)
+                        return selectedWall = j;
+                }
+
+                return;
+            }
         }
 
-        var selectedBand = null, selectedWall = null;
-
         function draw() {
+            if (region.is_empty())
+                return;
+
+            pick();
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
 
@@ -766,11 +791,11 @@
                 ctx.fillStyle = '#ddddff';
                 var y, h;
                 if (selectedBand === -1) {
-                    y = 0; h = R1.bands[0].top;
-                } else if (selectedBand === R1.bands.length) {
-                    y = R1.bands[R1.bands.length - 1].bottom; h = canvas.height;
+                    y = 0; h = region.bands[0].top;
+                } else if (selectedBand === region.bands.length) {
+                    y = region.bands[region.bands.length - 1].bottom; h = canvas.height;
                 } else {
-                    band = R1.bands[selectedBand];
+                    band = region.bands[selectedBand];
                     y = band.top; h = band.bottom - y;
                 }
 
@@ -778,7 +803,7 @@
                 ctx.restore();
             }
 
-            CanvasUtil.pathFromRegion(ctx, R1);
+            CanvasUtil.pathFromRegion(ctx, region);
             ctx.globalAlpha = .2;
             ctx.fill();
             ctx.globalAlpha = 1;
@@ -801,7 +826,7 @@
 
             ctx.save();
             ctx.beginPath();
-            pathRegionGuideLines(ctx, R1);
+            pathRegionGuideLines(ctx, region);
             ctx.lineWidth = 2;
             ctx.globalAlpha = 0.3;
             ctx.setLineDash([5, 5]);
@@ -811,64 +836,91 @@
             ctx.restore();
         }
 
-        function pick() {
-            var x = mx, y = my;
-
-            selectedWall = null;
-
-            if (y < 0)
-                return selectedBand = null;
-
-            if (y < R1.extents.y1)
-                return selectedBand = -1;
-            else if (y > R1.extents.y2)
-                return selectedBand = R1.bands.length;
-
-            for (var i = 0; i < R1.bands.length; i++) {
-                var band = R1.bands[i];
-                if (y > band.bottom)
-                    continue;
-
-                selectedBand = i;
-
-                for (var j = 0; j < band.walls.length; j += 2) {
-                    var x1 = band.walls[j], x2 = band.walls[j + 1];
-                    if (x < x1)
-                        return;
-                    if (x < x2)
-                        return selectedWall = j;
-                }
-
-                return;
-            }
+        function setRegion(r) {
+            region.copy(r);
         }
 
-        function drawScene() {
-            pick();
+        var mx = -1, my = -1;
+        canvas.addEventListener('mousemove', function(e) {
+            var canvasPos = canvas.getBoundingClientRect();
+            mx = e.clientX - canvasPos.left, my = e.clientY - canvasPos.top;
             draw();
+        });
+        canvas.addEventListener('mouseout', function() {
+            mx = -1; my = -1;
+            draw();
+        });
+
+        return { setRegion: setRegion, draw: draw };
+    }
+
+    ArticleDemos.registerDemo("region-band-explorer", "height: 140px", function(res) {
+        var canvas = res.canvas;
+
+        var scene = regionExplorer(canvas);
+
+        var R1 = new Region();
+        function makeScene(t) {
+            var r2x = (Math.cos(t * 0.0008) * 100) | 0;
+            var r2y = (Math.sin(t * 0.0008) * 20) | 0;
+
+            R1.clear();
+            R1.union_rect(R1, 0, 0, 60, 40);
+            R1.union_rect(R1, r2x, 40 + r2y, 40, 40);
+            var regionWidth = 60;
+            var x = (canvas.width - regionWidth) / 2;
+            R1.translate(x, 20);
+            scene.setRegion(R1);
+            scene.draw();
         }
 
         var t = 0;
         function update(t_) {
             t += (t_ - t);
-
             makeScene(t);
-            drawScene();
-
             window.requestAnimationFrame(update);
         }
         update(0);
+    });
 
-        var mx, my;
-        canvas.addEventListener('mousemove', function(e) {
-            var canvasPos = canvas.getBoundingClientRect();
-            mx = e.clientX - canvasPos.left, my = e.clientY - canvasPos.top;
-            drawScene();
-        });
-        canvas.addEventListener('mouseout', function() {
-            mx = -1; my = -1;
-            drawScene();
-        });
+    ArticleDemos.registerDemo("region-rounded-corner", "height: 140px", function(res) {
+        var canvas = res.canvas;
+
+        var scene = regionExplorer(canvas);
+
+        var R1 = new Region();
+        var radius = 5;
+        var w = 600;
+        var scaleX = 5, scaleY = 10;
+        for (var i = 0; i < radius; i++) {
+            var x = (radius - Math.sqrt(radius*radius - (radius-i)*(radius-i))) * scaleX;
+            R1.union_rect(R1, x, i * 10, w-x*2, 10);
+        }
+        R1.union_rect(R1, 0, radius*scaleY, w, 50);
+        R1.translate((canvas.width-w)/2, 20);
+
+        scene.setRegion(R1);
+        scene.draw();
+    });
+
+    ArticleDemos.registerDemo("region-checkerboard", "height: 140px", function(res) {
+        var canvas = res.canvas;
+
+        var scene = regionExplorer(canvas);
+
+        var R1 = new Region();
+        var w = 40, h = 10;
+        var size = 10;
+        for (var y = 0; y < h; y++) {
+            for (var x = 0; x < w; x++) {
+                if ((x%2) == (y%2))
+                    R1.union_rect(R1, x*size, y*size, size, size);
+            }
+        }
+        R1.translate((canvas.width-w*size)/2, 20);
+
+        scene.setRegion(R1);
+        scene.draw();
     });
 
 })(window);

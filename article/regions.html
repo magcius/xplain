@@ -293,16 +293,19 @@
             bands looking for the one that starts lower, and the one that ends higher, and then merge the walls between
             them.
         </p>
-        <pre><code class="js">function combineRegion(regionA, regionB, bandOperation) {
-    function combineBands(bandA, bandB, bandOperation) {
-        // As above in unionBands, except we take a bandOperation which is a function
-        // like: function(insideA, insideB) { return insideA || insideB; }
+        <pre><code class="js">function combineBands(bandA, bandB, bandOperation) {
+    // As above in unionBands, except we take a bandOperation
+    // which is a function like:
+    //   function(insideA, insideB) { return insideA || insideB; }
 
-        // Left as an exercise for the reader.
-    }
+    // Implementation left as an exercise for the reader. :)
+}
 
-    // A region's bands start with: { top: -Infinity, bottom: topOfNextBand, walls: [] }
-    // and it always ends with: { top: bottomOfPrevBand, bottom: Infinity, walls: [] }
+function combineRegion(regionA, regionB, bandOperation) {
+    // A region's bands always starts with:
+    //   { top: -Infinity, bottom: topOfNextBand, walls: [] }
+    // and it always ends with:
+    //   { top: bottomOfPrevBand, bottom: Infinity, walls: [] }
 
     var newBands = [];
 
@@ -329,9 +332,41 @@
             And this is it! The only tiny thing here left is that sometimes this algorithm might not properly
             coalesce bands. If we have a union of two regions where one completely engulfs the other, we
             aren't yet smart enough to take the three resulting bands and merge them into one. That can be fixed
-            with a bit of trickiness, but nothing too difficult.
+            by simply <a href="https://github.com/magcius/xplain/blob/gh-pages/src/region.js#L253-L285">checking whether we're about to push a band that has the same properties as the last one</a>; nothing too difficult.
         </p>
+        </section>
 
+        <section id="useful-regions">
+        <h3>Some Useful Regions...</h3>
+        <p>
+            And that's it! That's all you need to know about regions &mdash; how they're constructed, how they're
+            operated with, and how they're used in the X server!
+        </p>
+        <p>
+            But you might be wondering, where might have I encountered regions before? Regions don't tend to be
+            used very often, but you might notice their tell-tale signs. The most useful region you've encountered
+            would be the 1-bit rounded border region. You know, it looks like this:
+        </p>
+        <div class="demo-canvas" data-demo="region-rounded-corner"></div>
+        <p>
+            Before the desktop world had the Composite extension for true transparency, we used regions like this
+            to simulate having rounded corners. But, of course, it was terribly sampled. Some applications, like Chromium,
+            actually <a href="https://code.google.com/p/chromium/codesearch#chromium/src/ui/views/window/window_shape.cc&amp;sq=package:chromium&amp;type=cs&amp;rcl=1447389431&amp;l=12">still do this in their own window decorations</a>.
+        </p>
+        <p>
+            I have also mentioned that regions are an optimization of a 1-bit bitmap with different semantics.
+            While bitmaps scale linearly with their size, regions however scale with the number of bands and walls:
+            that is, how many times we toggle the region on and off. You can already imagine what the worst case
+            for a region data might be.
+        </p>
+        <div class="demo-canvas" data-demo="region-checkerboard"></div>
+        <p>
+            It's a checkerboard. Each pixel in here has two walls. Each "on" pixel is two walls, and each row
+            is its own band, so assuming that we use 32-bit numbers for the positions, 8 bytes per pixel, and
+            8 extra bytes per band to store the top and bottom. Since is checkerboard is 16x10, that means we
+            have (16*4+8) bytes = 132 bytes per band, and we have ten of them, for 1,320 bytes. In a bitmap,
+            each row could be packed into two bytes, for a total of 20 bytes. Yeesh.
+        </p>
         </section>
 
         <div class="nav-bottom"></div>
