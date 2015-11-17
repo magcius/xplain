@@ -61,53 +61,6 @@
 	height: 250px;
 }
 
-pre > code {
-	font-size: 12pt;
-	padding: 2em 1em !important;
-	margin: 2em 0;
-	font-family: "Source Code Pro", "Droid Sans Mono", monospace;
-}
-
-.demo-canvas .demo-region-basic {
-	height: 160px;
-}
-
-.demo-canvas .demo-region-fork {
-	height: 250px;
-}
-
-.demo-canvas .demo-region-desktop {
-	height: 250px;
-}
-
-.demo-canvas .demo-region-desktop-L {
-	height: 250px;
-}
-
-.demo-canvas .demo-region-incorrect-regions {
-	height: 280px;
-}
-
-.demo-canvas .demo-region-correct-regions {
-	height: 130px;
-}
-
-.demo-canvas .demo-region-bands {
-	height: 120px;
-}
-
-.demo-canvas .demo-region-misleading-region {
-	height: 130px;
-}
-
-.demo-canvas .demo-region-walls {
-	height: 130px;
-}
-
-.demo-canvas .demo-region-walls-walkthrough {
-	height: 180px;
-}
-
 [data-demo=region-walls-walkthrough] li.selected {
 	font-weight: bold;
 }

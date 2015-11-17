@@ -6,9 +6,12 @@
     // Creates a server instance for each demo, and sets up "demo things".
     // It sizes each server according to the containing element, adds the
     // stipple pattern, and (optionally) adds the inspector as well.
-    function bootstrapDemo(name, elem) {
+    function bootstrapDemo(demo, elem) {
         var demoSlot = document.createElement("div");
-        demoSlot.classList.add('demo-' + name);
+        if (demo.style !== null)
+            demoSlot.style = demo.style;
+        console.log(demoSlot.style, demo.style);
+        demoSlot.classList.add('demo-' + demo.name);
         elem.insertBefore(demoSlot, elem.firstChild);
         return demoSlot;
     }
@@ -16,20 +19,22 @@
     var demos = {};
 
     var ArticleDemos = {};
-    ArticleDemos.registerDemo = function(name, func) {
-        demos[name] = func;
+    ArticleDemos.registerDemo = function(name, style, func) {
+        if (!func) { func = style; style = null; }
+        demos[name] = { name: name, func: func, style: style };
     };
 
     function findDemo(demoName) {
-        var demoFunc = demos[demoName];
-        if (!demoFunc)
+        var demo = demos[demoName];
+        if (!demo)
             console.error("Unknown demo: " + demoName);
-        return demoFunc;
+        return demo;
     }
     ArticleDemos.runServerDemo = function(elem) {
         var demoName = elem.dataset.demo;
-        var demoFunc = findDemo(demoName);
-        var demoSlot = bootstrapDemo(demoName, elem);
+        var demo = findDemo(demoName);
+        var demoFunc = demo.func;
+        var demoSlot = bootstrapDemo(demo, elem);
         var server = new Server();
         server.resize(demoSlot.clientWidth, demoSlot.clientHeight);
         demoSlot.appendChild(server.elem);
@@ -38,11 +43,11 @@
     };
     ArticleDemos.runCanvasDemo = function(elem) {
         var demoName = elem.dataset.demo;
-        var demoFunc = findDemo(demoName);
-        if (!demoFunc)
+        var demo = findDemo(demoName);
+        if (!demo)
             return;
-
-        var demoSlot = bootstrapDemo(demoName, elem);
+        var demoFunc = demo.func;
+        var demoSlot = bootstrapDemo(demo, elem);
         var canvas = document.createElement('canvas');
         canvas.width = demoSlot.clientWidth;
         canvas.height = demoSlot.clientHeight;

@@ -113,7 +113,7 @@
         ctx.stroke();
     }
 
-    ArticleDemos.registerDemo("region-desktop", function(res) {
+    ArticleDemos.registerDemo("region-desktop", "height: 250px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
@@ -150,7 +150,7 @@
         update(0);
     });
 
-    ArticleDemos.registerDemo("region-desktop-L", function(res) {
+    ArticleDemos.registerDemo("region-desktop-L", "height: 250px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
@@ -208,7 +208,7 @@
         update(0);
     });
 
-    ArticleDemos.registerDemo("region-basic", function(res) {
+    ArticleDemos.registerDemo("region-basic", "height: 160px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
@@ -342,7 +342,7 @@
         ctx.stroke();
     }
 
-    ArticleDemos.registerDemo("region-incorrect-regions", function(res) {
+    ArticleDemos.registerDemo("region-incorrect-regions", "height: 280px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
@@ -378,7 +378,7 @@
         });
     });
 
-    ArticleDemos.registerDemo("region-correct-regions", function(res) {
+    ArticleDemos.registerDemo("region-correct-regions", "height: 130px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
@@ -425,7 +425,7 @@
         ctx.restore();
     }
 
-    ArticleDemos.registerDemo("region-bands", function(res) {
+    ArticleDemos.registerDemo("region-bands", "height: 120px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
@@ -466,7 +466,7 @@
         return rs;
     }
 
-    ArticleDemos.registerDemo("region-misleading-region", function(res) {
+    ArticleDemos.registerDemo("region-misleading-region", "height: 130px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
@@ -555,7 +555,7 @@
         }
     }
 
-    ArticleDemos.registerDemo("region-walls", function(res) {
+    ArticleDemos.registerDemo("region-walls", "height: 130px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
@@ -572,7 +572,7 @@
         drawWalls(ctx, walls2);
     });
 
-    ArticleDemos.registerDemo("region-walls-walkthrough", function(res) {
+    ArticleDemos.registerDemo("region-walls-walkthrough",  "height: 180px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
         var elem = res.elem;

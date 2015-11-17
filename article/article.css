@@ -189,3 +189,10 @@ p.warning {
 	background: #eee;
 	padding: 4px;
 }
+
+pre > code {
+	font-size: 12pt;
+	padding: 2em 1em !important;
+	margin: 2em 0;
+	font-family: "Source Code Pro", "Droid Sans Mono", monospace;
+}
