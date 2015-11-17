@@ -126,40 +126,6 @@
 
     // Our main function, which combines the two regions given
     function combineRegion(op, src1, src2) {
-        // Are these two walls equal? Basically an "arrayEquals" method.
-        function wallsEqual(w1, w2) {
-            if (w1.length != w2.length)
-                return false;
-
-            for (var i = 0; i < w1.length; i++)
-                if (w1[i] != w2[i])
-                    return false;
-
-            return true;
-        }
-
-        // Push a new band to the list of bands in this region. If it notices
-        // that this and the last band are touching with the exact same set of
-        // walls, it will simply extend the last band down to where we are,
-        // and discard our band, coalescing the two together.
-        function pushBand(top, bottom, walls) {
-            if (top >= bottom)
-                return;
-            if (top == -Infinity || bottom == Infinity)
-                return;
-
-            // Coalesce bands that have the same walls and are touching each other.
-            if (bands.length >= 1) {
-                var aboveBand = bands[bands.length - 1];
-                if (wallsEqual(walls, aboveBand.walls) && top == aboveBand.bottom) {
-                    aboveBand.bottom = bottom;
-                    return;
-                }
-            }
-
-            bands.push(newBand(top, bottom, walls));
-        }
-
         // Some quick fast paths. We hit these a surprising number of times,
         // so they're important to have.
 
@@ -239,61 +205,112 @@
             return region.bands[i];
         }
 
-        var bands = [];
+        function selectMin(a, b) {
+            if (a !== undefined && b !== undefined)
+                return Math.min(a, b);
+            else if (a !== undefined)
+                return a;
+            else if (b !== undefined)
+                return b;
+            else
+                return undefined;
+        }
 
-        var b1 = -1, b2 = -1;
-        while (true) {
-            var band1 = getBand(src1, b1);
-            var band2 = getBand(src2, b2);
-
-            var top = Math.max(band1.top, band2.top);
-            var bottom = Math.min(band1.bottom, band2.bottom);
-
+        function combineBands(bandA, bandB) {
             var state = State.NONE;
-            var i1 = 0, i2 = 0;
+            var iA = 0, iB = 0;
             var walls = [];
             while (true) {
-                var oldState = state;
-
                 // Take the first wall we see.
-                var wall;
-                var w1 = band1.walls[i1];
-                var w2 = band2.walls[i2];
+                var wallA = bandA.walls[iA];
+                var wallB = bandB.walls[iB];
 
-                if (w1 !== undefined && w2 !== undefined)
-                    wall = Math.min(w1, w2);
-                else if (w1 !== undefined)
-                    wall = w1;
-                else if (w2 !== undefined)
-                    wall = w2;
-                else
+                var wall = selectMin(wallA, wallB);
+
+                // When we run out of walls, break out.
+                if (wall === undefined)
                     break;
 
-                if (wall == w1) {
-                    i1++;
+                var oldState = state;
+
+                if (wall === wallA) {
+                    iA++;
                     state ^= State.IN_1;
                 }
-                if (wall == w2) {
-                    i2++;
+                if (wall === wallB) {
+                    iB++;
                     state ^= State.IN_2;
                 }
 
                 // Edge-triggered: when we transition from matching to not matching,
                 // or from not matching to matching, now's our change to do a wall.
-                if (matchState(oldState) != matchState(state))
+                if (matchState(oldState) !== matchState(state))
                     walls.push(wall);
             }
-
-            pushBand(top, bottom, walls);
-
-            if (bottom == Infinity)
-                break;
-
-            if (bottom == band1.bottom)
-                b1++;
-            if (bottom == band2.bottom)
-                b2++;
+            return walls;
         }
+
+        function combine() {
+            var iA = -1, iB = -1;
+            var bands = [];
+
+            // Are these two walls equal? Basically an "arrayEquals" method.
+            function wallsEqual(w1, w2) {
+                if (w1.length != w2.length)
+                    return false;
+
+                for (var i = 0; i < w1.length; i++)
+                    if (w1[i] != w2[i])
+                        return false;
+
+                return true;
+            }
+
+            // Push a new band to the list of bands in this region. If it notices
+            // that this and the last band are touching with the exact same set of
+            // walls, it will simply extend the last band down to where we are,
+            // and discard our band, coalescing the two together.
+            function pushBand(top, bottom, walls) {
+                if (top >= bottom)
+                    return;
+                if (top == -Infinity || bottom == Infinity)
+                    return;
+
+                // Coalesce bands that have the same walls and are touching each other.
+                if (bands.length >= 1) {
+                    var aboveBand = bands[bands.length - 1];
+                    if (wallsEqual(walls, aboveBand.walls) && top == aboveBand.bottom) {
+                        aboveBand.bottom = bottom;
+                        return;
+                    }
+                }
+
+                bands.push(newBand(top, bottom, walls));
+            }
+
+            while (true) {
+                var bandA = getBand(src1, iA);
+                var bandB = getBand(src2, iB);
+
+                var top = Math.max(bandA.top, bandB.top);
+                var bottom = Math.min(bandA.bottom, bandB.bottom);
+
+                var walls = combineBands(bandA, bandB);
+                pushBand(top, bottom, walls);
+
+                if (bottom === Infinity)
+                    break;
+
+                if (bottom === bandA.bottom)
+                    iA++;
+                if (bottom === bandB.bottom)
+                    iB++;
+            }
+
+            return bands;
+        }
+
+        var bands = combine();
 
         // Through observation, all operations will result in one of three
         // different extents: the extents of src1 (subtraction), the
