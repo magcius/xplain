@@ -111,7 +111,7 @@
         },
     });
 
-    ArticleDemos.registerDemo("input", function(res) {
+    ArticleDemos.registerDemo("input", "height: 200px", function(res) {
         var server = res.server;
         var connection = server.connect();
         var display = connection.display;
@@ -127,7 +127,7 @@
         DemoCommon.addInspector(res);
     });
 
-    ArticleDemos.registerDemo("input-nested", function(res) {
+    ArticleDemos.registerDemo("input-nested", "height: 200px", function(res) {
         var server = res.server;
         var connection = server.connect();
         var display = connection.display;

@@ -58,7 +58,7 @@
         },
     });
 
-    ArticleDemos.registerDemo("two-kittens", function(res) {
+    ArticleDemos.registerDemo("two-kittens", "height: 200px", function(res) {
         DemoCommon.addInspector(res);
 
         var server = res.server;
@@ -96,7 +96,7 @@
         },
     });
 
-    ArticleDemos.registerDemo("expose", function(res) {
+    ArticleDemos.registerDemo("expose", "height: 250px", function(res) {
         DemoCommon.addInspector(res);
 
         var server = res.server;
@@ -151,7 +151,7 @@
         },
     });
 
-    ArticleDemos.registerDemo('shape', function(res) {
+    ArticleDemos.registerDemo('shape', "height: 250px", function(res) {
         DemoCommon.addInspector(res);
 
         var server = res.server;

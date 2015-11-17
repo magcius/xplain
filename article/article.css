@@ -196,3 +196,27 @@ pre > code {
 	margin: 2em 0;
 	font-family: "Source Code Pro", "Droid Sans Mono", monospace;
 }
+
+.demo-server {
+	position: relative;
+	margin: 1em;
+}
+
+.demo-server .overlay {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	pointer-events: none;
+}
+
+/* Special rules for the walkthrough in regions.html */
+
+[data-demo=region-walls-walkthrough] li.selected {
+	font-weight: bold;
+}
+[data-demo=region-walls-walkthrough] button {
+	width: 80px;
+}
+[data-demo=region-walls-walkthrough] .buttons {
+	text-align: center;
+}

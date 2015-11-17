@@ -5,7 +5,7 @@
 (function(exports) {
     "use strict";
 
-    ArticleDemos.registerDemo("window-pixel-map", function(res) {
+    ArticleDemos.registerDemo("window-pixel-map", "height: 250px", function(res) {
         var server = res.server;
         var connection = server.connect();
         var display = connection.display;
@@ -31,7 +31,7 @@
         shaker.start();
     });
 
-    ArticleDemos.registerDemo("window-pixel-map-shaped", function(res) {
+    ArticleDemos.registerDemo("window-pixel-map-shaped", "height: 250px", function(res) {
         var server = res.server;
         var connection = server.connect();
         var display = connection.display;
@@ -68,7 +68,7 @@
         shaker.start();
     });
 
-    ArticleDemos.registerDemo("naive-redirect", function(res) {
+    ArticleDemos.registerDemo("naive-redirect", "height: 250px", function(res) {
         var server = res.server;
         var connection = server.connect();
         var display = connection.display;
@@ -101,7 +101,7 @@
         shaker.start();
     });
 
-    ArticleDemos.registerDemo("composited-kitten", function(res) {
+    ArticleDemos.registerDemo("composited-kitten", "height: 250px", function(res) {
         var server = res.server;
         var connection = server.connect();
         var display = connection.display;
@@ -141,7 +141,7 @@
         var cm = new CompositingManager.Canvas2DCompositingManager(server, display.rootWindowId);
     });
 
-    ArticleDemos.registerDemo("gl-composite", function(res) {
+    ArticleDemos.registerDemo("gl-composite", "height: 250px", function(res) {
         var elem = res.elem;
         var serverSlot = elem.querySelector("div");
 
