@@ -408,22 +408,6 @@
             pathGuideLine(ctx, band.bottom);
         });
     }
-    function drawGuideLines(ctx, extents, padding, f) {
-        var regionWidth = extents.x2 - extents.x1;
-        var regionHeight = extents.y2 - extents.y1;
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(-padding/2, -2, regionWidth + padding, regionHeight+4);
-        ctx.clip();
-        ctx.beginPath();
-        f();
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.3;
-        ctx.setLineDash([5, 5]);
-        ctx.stroke();
-        ctx.restore();
-    }
 
     ArticleDemos.registerDemo("region-bands", "height: 120px", function(res) {
         var canvas = res.canvas;
@@ -436,6 +420,8 @@
         R1.subtract_rect(R1, 180, 40, 40, 40);
 
         var regionWidth = R1.extents.x2 - R1.extents.x1;
+        var regionHeight = R1.extents.y2 - R1.extents.y1;
+
         var padding = 50;
         var x = (canvas.width - regionWidth*2 - padding) / 2;
         ctx.translate(x, 0);
@@ -451,10 +437,19 @@
         ctx.globalAlpha = 1;
 
         var band = R1.bands[1];
-        drawGuideLines(ctx, R1.extents, padding, function() {
-            pathGuideLine(ctx, band.top);
-            pathGuideLine(ctx, band.bottom);
-        });
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-padding/2, -2, regionWidth + padding, regionHeight+4);
+        ctx.clip();
+        ctx.beginPath();
+        pathGuideLine(ctx, band.top);
+        pathGuideLine(ctx, band.bottom);
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.3;
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.restore();
 
         rectSetDraw(ctx, bandRectSet(band));
     });
@@ -475,6 +470,8 @@
         R1.union_rect(R1, 50, 30, 40, 20);
 
         var regionWidth = R1.extents.x2 - R1.extents.x1;
+        var regionHeight = R1.extents.y2 - R1.extents.y1;
+
         var padding = 70;
         var x = (canvas.width - regionWidth*2 - padding) / 2;
         ctx.translate(x, 2);
@@ -485,9 +482,17 @@
 
         ctx.translate(regionWidth + padding, 0);
 
-        drawGuideLines(ctx, R1.extents, padding, function() {
-            pathRegionGuideLines(ctx, R1);
-        });
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-padding/2, -2, regionWidth + padding, regionHeight+4);
+        ctx.clip();
+        ctx.beginPath();
+        pathRegionGuideLines(ctx, R1);
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.3;
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.restore();
 
         rectSetDraw(ctx, regionRectSet(R1));
     });
@@ -529,8 +534,6 @@
             ctx.beginPath();
             ctx.rect(x1, y1, w, h);
             ctx.save();
-            ctx.fillStyle = '#ddddff';
-            ctx.globalAlpha = 0.5;
             ctx.fill();
             ctx.restore();
 
@@ -564,6 +567,8 @@
 
         var width = 300;
         var x = (canvas.width - width) / 2;
+
+        ctx.fillStyle = '#ddddff';
 
         ctx.translate(x, 2);
         drawWalls(ctx, walls1);
@@ -621,6 +626,7 @@
             if (currentStep == 3) { walls2[1].selected = true; outWalls.push({ x: 0, label: "20" }); outWalls.push({ x: 300, label: "50" }); }
 
             ctx.save();
+            ctx.fillStyle = '#ddddff';
             ctx.translate(x, 2);
             drawWalls(ctx, walls1);
             ctx.translate(0, 70);
@@ -630,6 +636,239 @@
             ctx.restore();
         }
         setStep(0);
+    });
+
+    ArticleDemos.registerDemo("region-operations", "height: 220px", function(res) {
+        var canvas = res.canvas;
+        var ctx = canvas.getContext('2d');
+
+        var operations = [
+            { title: "Union", op: "union", color: '#dd6666', code: 'insideA || insideB' },
+            { title: "Subtract", op: "subtract", color: '#dddd66', code: 'insideA && !insideB' },
+            { title: "Intersect", op: "intersect", color: '#66dd66', code: 'insideA && insideB' },
+            { title: "Xor", op: "xor", color: '#dd66dd', code: 'insideA != insideB' },
+        ];
+
+        var R1 = new Region();
+        var R2 = new Region();
+        R2.init_rect(0, 0, 80, 40);
+
+        var R3 = new Region();
+
+        var binWidth = 160;
+        var binHeight = 160;
+        var padding = 20;
+        var spacing = (canvas.width - padding*2 - binWidth * operations.length) / (operations.length - 1);
+
+        var x = padding;
+        operations.forEach(function(op, i, arr) {
+            op.clipRect = { x: x, y: 0, width: binWidth, height: binHeight };
+
+            ctx.font = '14pt sans-serif';
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillText(op.title, x + binWidth / 2, canvas.height - 30);
+            ctx.textBaseline = 'hanging';
+            ctx.font = '12pt monospace';
+            ctx.fillText(op.code, x + binWidth / 2, canvas.height - 16);
+
+            if (i != arr.length - 1) {
+                x += binWidth;
+
+                ctx.beginPath();
+                ctx.save();
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.2;
+                ctx.setLineDash([5, 5]);
+                ctx.moveTo(x + spacing/2, 0);
+                ctx.lineTo(x + spacing/2, canvas.height);
+                ctx.stroke();
+                ctx.restore();
+
+                x += spacing;
+            }
+        });
+
+        function drawOperation(op) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(op.clipRect.x, op.clipRect.y, op.clipRect.width, op.clipRect.height);
+            ctx.clip();
+
+            ctx.translate(op.clipRect.x + 2, op.clipRect.y + 4);
+            ctx.clearRect(0, -1, op.clipRect.width, op.clipRect.height);
+
+            function makeDrawWalls(band) {
+                return band.walls.map(function(x) { return { x: x, label: x.toString() }});
+            }
+            function fade(color, alpha) {
+                function p(i) { return parseInt(color.substr(i, 2), 16); }
+                return 'rgba(' + [p(1), p(3), p(5), alpha].join(', ') + ')';
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.fillStyle = fade(op.color, .3);
+            ctx.translate(10, 0);
+            drawWalls(ctx, makeDrawWalls(R2.bands[0]), 20);
+            ctx.translate(0, 40);
+            drawWalls(ctx, makeDrawWalls(R1.bands[0]), 20);
+            ctx.translate(0, 60);
+
+            R3[op.op].call(R3, R2, R1);
+            ctx.fillStyle = op.color;
+            drawWalls(ctx, makeDrawWalls(R3.bands[0]), 30);
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        var t = 0;
+        function update(t_) {
+            t += (t_ - t);
+
+            var x = (Math.sin(t * 0.001) * 21) | 0;
+            R1.init_rect(25 + x, 0, 80, 40);
+
+            operations.forEach(drawOperation);
+            window.requestAnimationFrame(update);
+        }
+        update(0);
+    });
+
+    ArticleDemos.registerDemo("region-band-explorer", "height: 140px", function(res) {
+        var canvas = res.canvas;
+        var ctx = canvas.getContext('2d');
+
+        var R1 = new Region();
+        function makeScene(t) {
+            var r2x = (Math.cos(t * 0.0008) * 100) | 0;
+            var r2y = (Math.sin(t * 0.0008) * 20) | 0;
+
+            R1.clear();
+            R1.union_rect(R1, 0, 0, 60, 40);
+            R1.union_rect(R1, r2x, 40 + r2y, 40, 40);
+            var regionWidth = 60;
+            var x = (canvas.width - regionWidth) / 2;
+            R1.translate(x, 20);
+        }
+
+        var selectedBand = null, selectedWall = null;
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+
+            var band;
+            if (selectedBand !== null) {
+                ctx.save();
+                ctx.fillStyle = '#ddddff';
+                var y, h;
+                if (selectedBand === -1) {
+                    y = 0; h = R1.bands[0].top;
+                } else if (selectedBand === R1.bands.length) {
+                    y = R1.bands[R1.bands.length - 1].bottom; h = canvas.height;
+                } else {
+                    band = R1.bands[selectedBand];
+                    y = band.top; h = band.bottom - y;
+                }
+
+                ctx.fillRect(0, y, canvas.width, h);
+                ctx.restore();
+            }
+
+            CanvasUtil.pathFromRegion(ctx, R1);
+            ctx.globalAlpha = .2;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            if (band) {
+                ctx.save();
+                ctx.beginPath();
+                rectSetPath(ctx, bandRectSet(band));
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.restore();
+
+                if (selectedWall !== null) {
+                    var w1 = band.walls[selectedWall], w2 = band.walls[selectedWall+1];
+                    rectSetDraw(ctx, [[w1, band.top, w2-w1, band.bottom-band.top]]);
+                }
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            pathRegionGuideLines(ctx, R1);
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.3;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        function pick() {
+            var x = mx, y = my;
+
+            selectedWall = null;
+
+            if (y < 0)
+                return selectedBand = null;
+
+            if (y < R1.extents.y1)
+                return selectedBand = -1;
+            else if (y > R1.extents.y2)
+                return selectedBand = R1.bands.length;
+
+            for (var i = 0; i < R1.bands.length; i++) {
+                var band = R1.bands[i];
+                if (y > band.bottom)
+                    continue;
+
+                selectedBand = i;
+
+                for (var j = 0; j < band.walls.length; j += 2) {
+                    var x1 = band.walls[j], x2 = band.walls[j + 1];
+                    if (x < x1)
+                        return;
+                    if (x < x2)
+                        return selectedWall = j;
+                }
+
+                return;
+            }
+        }
+
+        function drawScene() {
+            pick();
+            draw();
+        }
+
+        var t = 0;
+        function update(t_) {
+            t += (t_ - t);
+
+            makeScene(t);
+            drawScene();
+
+            window.requestAnimationFrame(update);
+        }
+        update(0);
+
+        var mx, my;
+        canvas.addEventListener('mousemove', function(e) {
+            var canvasPos = canvas.getBoundingClientRect();
+            mx = e.clientX - canvasPos.left, my = e.clientY - canvasPos.top;
+            drawScene();
+        });
+        canvas.addEventListener('mouseout', function() {
+            mx = -1; my = -1;
+            drawScene();
+        });
     });
 
 })(window);

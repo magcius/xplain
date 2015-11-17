@@ -201,11 +201,11 @@
         var wasInside = (insideA || insideB);
 
         // Update our state for both bands, and advance to the next wall.
-        if (wall == wallA) {
+        if (wall === wallA) {
             iA++;
             insideA = !insideA;
         }
-        if (wall == wallB) {
+        if (wall === wallB) {
             iB++;
             insideB = !insideB;
         }
@@ -255,18 +255,12 @@
             <code>isInside</code>, which become <code>insideA &amp;&amp; insideB</code>. In fact, for all four operations,
             there's a boolean test for every one.
         </p>
-        <dl>
-            <dt>Union</dt> <dd><code>insideA || insideB</code></dd>
-            <dt>Intersection</dt> <dd><code>insideA &amp;&amp; insideB</code></dd>
-            <dt>Subtraction</dt> <dd><code>insideA &amp;&amp; !insideB</code></dd>
-            <dt>XOR</dt> <dd><code>insideA != insideB</code></dd>
-        </dl>
-
+        <div class="demo-canvas" data-demo="region-operations"></div>
         <p>
             In my actual implementation, not being content with ugly closures and, you know, <em>actual code</em>, I
             implemented each operation as a <a href="https://github.com/magcius/xplain/blob/gh-pages/src/region.js#L87-L118">bitwise trick</a>.
-            But it doesn't have to be that way &mdash; all I'm doing is implementing the above four operations a bit
-            more concisely.
+            But it doesn't have to be that way &mdash; all I'm doing is implementing the above four primitive operations
+            a bit more concisely.
         </p>
         </section>
 
@@ -275,17 +269,67 @@
         <p>
             Now we know how to merge bands together. How can we use this to our advantage to merge regions? While
             you might just start iterating over the bands of each region, and merging them together blindly, we have
-            to be a tad more careful than that. Let's look at a fairly sophisticated case.
+            to be a tad more careful than that. For instance, given the "text editor and kitten" region example we
+            started out with, we might first take the first band of the top region, that being the kitten window, and
+            try to merge it with... well, what, exactly? The other region doesn't have a band there! So now we have to
+            keep track of which regions have bands where, and the code quickly becomes
+            <a href="http://cgit.freedesktop.org/pixman/tree/pixman/pixman-region.c#n747">littered with special cases</a>.
+            While we could do this, like the X server does, let's take a different approach.
         </p>
-        <div class="demo-canvas" data-demo="region-fork"></div>
         <p>
-            This region looks a bit like a fork. We have a left part, which is one band with one rectangle. Then we
-            have the part on the right, which has three separate bands. How many bands do we have when we union it
-            together?
+            The issue we're trying to work around is that we sometimes don't have bands to merge in certain cases,
+            which complicates the state tracking of where we are in which region. But the power of computer science is
+            that <em>we can define our own rules</em>. If there's no band where we want, why not make one up? It would
+            be a band with no walls, but if you look closely at the algorithm I've defined above, assuming we fix the
+            issue with running out of walls, it should work for a band with no walls.
         </p>
-        <div class="demo-canvas" data-demo="region-fork-decomposed"></div>
+        <div class="demo-canvas" data-demo="region-band-explorer"></div>
         <p>
-            ... five. Hm, so, somehow, one and three make five.
+            This means that a region, in some sense, is defined <em>everywhere</em>. Point to a location anywhere in
+            a region, and I will tell you which band contains it, even if I made the band up.
+        </p>
+        <p>
+            With that trick, we can simply iterate through all the bands in a region in a similar way. Iterate through
+            bands looking for the one that starts lower, and the one that ends higher, and then merge the walls between
+            them.
+        </p>
+        <pre><code class="js">function combineRegion(regionA, regionB, bandOperation) {
+    function combineBands(bandA, bandB, bandOperation) {
+        // As above in unionBands, except we take a bandOperation which is a function
+        // like: function(insideA, insideB) { return insideA || insideB; }
+
+        // Left as an exercise for the reader.
+    }
+
+    // A region's bands start with: { top: -Infinity, bottom: topOfNextBand, walls: [] }
+    // and it always ends with: { top: bottomOfPrevBand, bottom: Infinity, walls: [] }
+
+    var newBands = [];
+
+    var iA = 0, iB = 0;
+    while (iA &lt; regionA.bands.length || iB &lt; regionB.bands.length) {
+        var bandA = regionA.bands[iA];
+        var bandB = regionB.bands[iB];
+
+        var top = Math.max(bandA.top, bandB.top);
+        var bottom = Math.min(bandA.bottom, bandA.bottom);
+
+        var walls = combineBands(bandA, band, bandOperation);
+        newBands.push({ top: top, bottom: bottom, walls: walls });
+
+        if (bottom === bandA.bottom)
+            iA++;
+        if (bottom === bandB.bottom)
+            iB++;
+    }
+
+    return newBands;
+}</pre></code>
+        <p>
+            And this is it! The only tiny thing here left is that sometimes this algorithm might not properly
+            coalesce bands. If we have a union of two regions where one completely engulfs the other, we
+            aren't yet smart enough to take the three resulting bands and merge them into one. That can be fixed
+            with a bit of trickiness, but nothing too difficult.
         </p>
 
         </section>
