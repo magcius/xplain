@@ -250,67 +250,61 @@
             return walls;
         }
 
-        function combine() {
-            var iA = -1, iB = -1;
-            var bands = [];
+        // Are these two walls equal? Basically an "arrayEquals" method.
+        function wallsEqual(w1, w2) {
+            if (w1.length != w2.length)
+                return false;
 
-            // Are these two walls equal? Basically an "arrayEquals" method.
-            function wallsEqual(w1, w2) {
-                if (w1.length != w2.length)
+            for (var i = 0; i < w1.length; i++)
+                if (w1[i] != w2[i])
                     return false;
 
-                for (var i = 0; i < w1.length; i++)
-                    if (w1[i] != w2[i])
-                        return false;
-
-                return true;
-            }
-
-            // Push a new band to the list of bands in this region. If it notices
-            // that this and the last band are touching with the exact same set of
-            // walls, it will simply extend the last band down to where we are,
-            // and discard our band, coalescing the two together.
-            function pushBand(top, bottom, walls) {
-                if (top >= bottom)
-                    return;
-                if (top == -Infinity || bottom == Infinity)
-                    return;
-
-                // Coalesce bands that have the same walls and are touching each other.
-                if (bands.length >= 1) {
-                    var aboveBand = bands[bands.length - 1];
-                    if (wallsEqual(walls, aboveBand.walls) && top == aboveBand.bottom) {
-                        aboveBand.bottom = bottom;
-                        return;
-                    }
-                }
-
-                bands.push(newBand(top, bottom, walls));
-            }
-
-            while (true) {
-                var bandA = getBand(src1, iA);
-                var bandB = getBand(src2, iB);
-
-                var top = Math.max(bandA.top, bandB.top);
-                var bottom = Math.min(bandA.bottom, bandB.bottom);
-
-                var walls = combineBands(bandA, bandB);
-                pushBand(top, bottom, walls);
-
-                if (bottom === Infinity)
-                    break;
-
-                if (bottom === bandA.bottom)
-                    iA++;
-                if (bottom === bandB.bottom)
-                    iB++;
-            }
-
-            return bands;
+            return true;
         }
 
-        var bands = combine();
+        // Push a new band to the list of bands in this region. If it notices
+        // that this and the last band are touching with the exact same set of
+        // walls, it will simply extend the last band down to where we are,
+        // and discard our band, coalescing the two together.
+        function pushBand(top, bottom, walls) {
+            if (top >= bottom)
+                return;
+            if (top == -Infinity || bottom == Infinity)
+                return;
+
+            // Coalesce bands that have the same walls and are touching each other.
+            if (bands.length >= 1) {
+                var aboveBand = bands[bands.length - 1];
+                if (wallsEqual(walls, aboveBand.walls) && top == aboveBand.bottom) {
+                    aboveBand.bottom = bottom;
+                    return;
+                }
+            }
+
+            bands.push(newBand(top, bottom, walls));
+        }
+
+        var iA = -1, iB = -1;
+        var bands = [];
+
+        while (true) {
+            var bandA = getBand(src1, iA);
+            var bandB = getBand(src2, iB);
+
+            var top = Math.max(bandA.top, bandB.top);
+            var bottom = Math.min(bandA.bottom, bandB.bottom);
+
+            var walls = combineBands(bandA, bandB);
+            pushBand(top, bottom, walls);
+
+            if (bottom === Infinity)
+                break;
+
+            if (bottom === bandA.bottom)
+                iA++;
+            if (bottom === bandB.bottom)
+                iB++;
+        }
 
         // Through observation, all operations will result in one of three
         // different extents: the extents of src1 (subtraction), the
