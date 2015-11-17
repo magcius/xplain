@@ -8,9 +8,7 @@
     // stipple pattern, and (optionally) adds the inspector as well.
     function bootstrapDemo(demo, elem) {
         var demoSlot = document.createElement("div");
-        if (demo.style !== null)
-            demoSlot.style = demo.style;
-        console.log(demoSlot.style, demo.style);
+        demoSlot.style = demo.style;
         demoSlot.classList.add('demo-' + demo.name);
         elem.insertBefore(demoSlot, elem.firstChild);
         return demoSlot;
@@ -20,7 +18,6 @@
 
     var ArticleDemos = {};
     ArticleDemos.registerDemo = function(name, style, func) {
-        if (!func) { func = style; style = null; }
         demos[name] = { name: name, func: func, style: style };
     };
 
