@@ -3,6 +3,42 @@
 (function(exports) {
     "use strict";
 
+    // A helper function that only requests animation frames when the element
+    // is visible.
+    function visibleRAF(elem, func) {
+        function isElemVisible(elem) {
+            var rect = elem.getBoundingClientRect();
+            if (rect.bottom < 0 || rect.top > window.innerHeight)
+                return false;
+            return true;
+        }
+
+        function update(t) {
+            func(t);
+
+            if (isRunning)
+                window.requestAnimationFrame(update);
+        }
+
+        function scrollHandler() {
+            setRunning(isElemVisible(elem));
+        }
+
+        var isRunning = false;
+        function setRunning(running) {
+            if (isRunning == running)
+                return;
+
+            isRunning = running;
+
+            if (isRunning)
+                window.requestAnimationFrame(update);
+        }
+
+        document.addEventListener('scroll', scrollHandler);
+        scrollHandler();
+    }
+
     // Given a region, draw a perimeter around the region as a stroke. This
     // is trickier than it might imagine. It's possible I'm overcomplicating
     // this, but I've come up with something that works.
@@ -158,9 +194,8 @@
         function update(t) {
             var x = (Math.sin(t * 0.001) * 30) | 0;
             draw(x);
-            window.requestAnimationFrame(update);
         }
-        update(0);
+        visibleRAF(canvas, update);
     });
 
     ArticleDemos.registerDemo("region-desktop-L", "height: 250px", function(res) {
@@ -214,9 +249,8 @@
         function update(t) {
             var x = (Math.sin(t * 0.001) * 30) | 0;
             draw(x);
-            window.requestAnimationFrame(update);
         }
-        update(0);
+        visibleRAF(canvas, update);
     });
 
     ArticleDemos.registerDemo("region-basic", "height: 160px", function(res) {
@@ -314,11 +348,9 @@
         function update(t) {
             var x = (Math.sin(t * 0.001) * 30) | 0;
             regionB.init_rect(40 + x, 0, 80, 80);
-
             operations.forEach(drawOperation);
-            window.requestAnimationFrame(update);
         }
-        update(0);
+        visibleRAF(canvas, update);
     });
 
     // Given a "rectangle set" ( [ [0,0,20,20], [20,20,50,50] ] ), path it onto
@@ -743,11 +775,9 @@
         function update(t) {
             var x = (Math.sin(t * 0.001) * 21) | 0;
             regionB.init_rect(40 + x, 0, 60, 40);
-
             operations.forEach(drawOperation);
-            window.requestAnimationFrame(update);
         }
-        update(0);
+        visibleRAF(canvas, update);
     });
 
     function regionExplorer(canvas) {
@@ -919,7 +949,6 @@
             afMsec = msec;
 
             makeScene();
-            window.requestAnimationFrame(update);
 
             if (isDragging || isPaused)
                 return;
@@ -927,7 +956,7 @@
             sceneT = (sceneT + dt) % 1;
             timeSlider.value = sceneT;
         }
-        update(0);
+        visibleRAF(canvas, update);
     });
 
     ArticleDemos.registerDemo("region-rounded-corner", "height: 140px", function(res) {
