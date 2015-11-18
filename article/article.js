@@ -13,6 +13,7 @@
         { id: "x-basics", title: "X Window System Basics" },
         { id: "window-tree", title: "Advanced Window Techniques" },
         { id: "composite", title: "Adding Transparency" },
+        { id: "regions", title: "Regional Geometry "},
     ];
 
     function findTOCEntryIndex(id) {

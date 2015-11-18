@@ -1,8 +1,22 @@
+// Contains the demo code for the "Regional Geometry".
+
 (function(exports) {
     "use strict";
 
-    // XXX: This reuses a lot of code from combineRegions.
+    // Given a region, draw a perimeter around the region as a stroke. This
+    // is trickier than it might imagine. It's possible I'm overcomplicating
+    // this, but I've come up with something that works.
+
+    // Since walls *always* toggle in and out of regions, they're easy. We
+    // simply always draw all walls we encounter as vertical lines.
+    // The complexity comes with the horizontal lines that trace each band.
+    // We use an edge-triggered-based approach similar to combineRegions,
+    // which walks the bands of a region in pairs, down the line.
+    // We draw a line when we transition from being in one band but not
+    // the other -- a XOR.
     function drawPerimeter(ctx, R) {
+        // XXX: This reuses a lot of code from combineRegions.
+
         function getBand(region, i) {
             if (i == -1)
                 return { top: -Infinity, bottom: region.bands[0].top, walls: [] };
@@ -73,15 +87,7 @@
         }
     }
 
-    function drawWindowShadow(ctx, w, h) {
-        ctx.save();
-        ctx.translate(6, 6);
-        ctx.fillStyle = 'black';
-        ctx.globalAlpha = 0.2;
-        ctx.fillRect(0, 0, w, h);
-        ctx.restore();
-    }
-
+    // Draw the window frames in the desktop examples.
     function drawWindowFrame(ctx, w, h, title) {
         var titleBarHeight = 30;
 
@@ -113,6 +119,17 @@
         ctx.stroke();
     }
 
+    // Draws the gray window shadows below each region. It's split out because
+    // the kitten.png window in the second example has no shadow.
+    function drawWindowShadow(ctx, w, h) {
+        ctx.save();
+        ctx.translate(6, 6);
+        ctx.fillStyle = 'black';
+        ctx.globalAlpha = 0.2;
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+    }
+
     ArticleDemos.registerDemo("region-desktop", "height: 250px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
@@ -138,13 +155,9 @@
             ctx.restore();
         }
 
-        var t = 0;
-        function update(t_) {
-            t += (t_ - t);
-
+        function update(t) {
             var x = (Math.sin(t * 0.001) * 30) | 0;
             draw(x);
-
             window.requestAnimationFrame(update);
         }
         update(0);
@@ -153,6 +166,8 @@
     ArticleDemos.registerDemo("region-desktop-L", "height: 250px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+
+        var region = new Region();
 
         function draw(x) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -165,16 +180,16 @@
 
             ctx.translate(wx, wy);
 
-            var R1 = new Region();
-            R1.union_rect(R1, 0, 0, ww, wh);
-            R1.subtract_rect(R1, 150 + x, -45, ww, wh);
+            region.clear();
+            region.union_rect(region, 0, 0, ww, wh);
+            region.subtract_rect(region, 150 + x, -45, ww, wh);
 
             drawWindowShadow(ctx, ww, wh);
             drawWindowFrame(ctx, ww, wh, "Text Editor");
 
             ctx.save();
             ctx.beginPath();
-            CanvasUtil.pathFromRegion(ctx, R1);
+            CanvasUtil.pathFromRegion(ctx, region);
             ctx.globalAlpha = .8;
             ctx.fillStyle = '#dddd66';
             ctx.fill();
@@ -184,25 +199,21 @@
             ctx.translate(150 + x, -45);
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, ww, wh);
-            ctx.globalAlpha = .5;
+            ctx.globalAlpha = .3;
             drawWindowFrame(ctx, ww, wh, "kitten.png");
             ctx.restore();
 
             ctx.beginPath();
             ctx.lineWidth = 2;
             ctx.lineCap = 'round';
-            drawPerimeter(ctx, R1);
+            drawPerimeter(ctx, region);
             ctx.stroke();
             ctx.restore();
         }
 
-        var t = 0;
-        function update(t_) {
-            t += (t_ - t);
-
+        function update(t) {
             var x = (Math.sin(t * 0.001) * 30) | 0;
             draw(x);
-
             window.requestAnimationFrame(update);
         }
         update(0);
@@ -219,11 +230,12 @@
             { title: "Xor", op: "xor", color: '#dd66dd' },
         ];
 
-        var R1 = new Region();
-        var R2 = new Region();
-        R2.init_rect(0, 40, 80, 80);
+        var regionA = new Region();
+        regionA.init_rect(0, 40, 80, 80);
 
-        var R3 = new Region();
+        var regionB = new Region();
+
+        var regionResult = new Region();
 
         var binWidth = 160;
         var binHeight = 140;
@@ -242,18 +254,15 @@
             if (i != arr.length - 1) {
                 x += binWidth;
 
-                /* I don't like the look of these dashes, actually... */
-                if (true) {
-                    ctx.beginPath();
-                    ctx.save();
-                    ctx.lineWidth = 2;
-                    ctx.globalAlpha = 0.2;
-                    ctx.setLineDash([5, 5]);
-                    ctx.moveTo(x + spacing/2, 0);
-                    ctx.lineTo(x + spacing/2, canvas.height);
-                    ctx.stroke();
-                    ctx.restore();
-                }
+                ctx.beginPath();
+                ctx.save();
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.2;
+                ctx.setLineDash([5, 5]);
+                ctx.moveTo(x + spacing/2, 0);
+                ctx.lineTo(x + spacing/2, canvas.height);
+                ctx.stroke();
+                ctx.restore();
 
                 x += spacing;
             }
@@ -268,46 +277,43 @@
             ctx.translate(op.clipRect.x + 2, op.clipRect.y + 4);
             ctx.clearRect(0, -1, op.clipRect.width, op.clipRect.height);
 
-            R3[op.op].call(R3, R2, R1);
+            regionResult[op.op].call(regionResult, regionA, regionB);
 
             ctx.save();
             ctx.beginPath();
             ctx.globalAlpha = 0.2;
             ctx.fillStyle = 'black';
             ctx.translate(6, 6);
-            CanvasUtil.pathFromRegion(ctx, R3);
+            CanvasUtil.pathFromRegion(ctx, regionResult);
             ctx.fill();
             ctx.restore();
 
             ctx.save();
             ctx.beginPath();
-            CanvasUtil.pathFromRegion(ctx, R1);
-            CanvasUtil.pathFromRegion(ctx, R2);
+            CanvasUtil.pathFromRegion(ctx, regionA);
+            CanvasUtil.pathFromRegion(ctx, regionB);
             ctx.globalAlpha = 0.5;
             ctx.fillStyle = op.color;
             ctx.fill();
             ctx.restore();
 
             ctx.beginPath();
-            CanvasUtil.pathFromRegion(ctx, R3);
+            CanvasUtil.pathFromRegion(ctx, regionResult);
             ctx.fillStyle = op.color;
             ctx.fill();
 
             ctx.beginPath();
             ctx.lineWidth = 2;
             ctx.lineCap = 'round';
-            drawPerimeter(ctx, R3);
+            drawPerimeter(ctx, regionResult);
             ctx.stroke();
 
             ctx.restore();
         }
 
-        var t = 0;
-        function update(t_) {
-            t += (t_ - t);
-
+        function update(t) {
             var x = (Math.sin(t * 0.001) * 30) | 0;
-            R1.init_rect(40 + x, 0, 80, 80);
+            regionB.init_rect(40 + x, 0, 80, 80);
 
             operations.forEach(drawOperation);
             window.requestAnimationFrame(update);
@@ -316,15 +322,16 @@
     });
 
     // Given a "rectangle set" ( [ [0,0,20,20], [20,20,50,50] ] ), path it onto
-    // the canvas context.
+    // the given canvas context.
     function rectSetPath(ctx, rectSet) {
         rectSet.forEach(function(r) {
             ctx.rect(r[0], r[1], r[2], r[3]);
         });
     }
 
-    // Draws a given rectSet in a fancy way
+    // Draws a given rectSet in a fancy way used by the rest of the article.
     function rectSetDraw(ctx, rectSet) {
+        // First, draw the shadow.
         ctx.save();
         ctx.beginPath();
         ctx.translate(6, 6);
@@ -334,6 +341,8 @@
         ctx.fill();
         ctx.restore();
 
+        // Now for the actual rectangle. We draw it in a blue color to make
+        // it stand out from the white background.
         ctx.beginPath();
         rectSetPath(ctx, rectSet);
         ctx.fillStyle = '#ddddff';
@@ -413,30 +422,30 @@
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
-        var R1 = new Region();
-        R1.union_rect(R1, 40, 0, 80, 80);
-        R1.union_rect(R1, 0, 40, 80, 80);
-        R1.union_rect(R1, 140, 0, 120, 120);
-        R1.subtract_rect(R1, 180, 40, 40, 40);
+        var region = new Region();
+        region.union_rect(region, 40, 0, 80, 80);
+        region.union_rect(region, 0, 40, 80, 80);
+        region.union_rect(region, 140, 0, 120, 120);
+        region.subtract_rect(region, 180, 40, 40, 40);
 
-        var regionWidth = R1.extents.x2 - R1.extents.x1;
-        var regionHeight = R1.extents.y2 - R1.extents.y1;
+        var regionWidth = region.extents.x2 - region.extents.x1;
+        var regionHeight = region.extents.y2 - region.extents.y1;
 
         var padding = 50;
         var x = (canvas.width - regionWidth*2 - padding) / 2;
         ctx.translate(x, 0);
 
         ctx.beginPath();
-        CanvasUtil.pathFromRegion(ctx, R1);
+        CanvasUtil.pathFromRegion(ctx, region);
         ctx.fill();
 
         ctx.translate(regionWidth + padding, 0);
-        CanvasUtil.pathFromRegion(ctx, R1);
+        CanvasUtil.pathFromRegion(ctx, region);
         ctx.globalAlpha = .2;
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        var band = R1.bands[1];
+        var band = region.bands[1];
 
         ctx.save();
         ctx.beginPath();
@@ -465,19 +474,19 @@
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
-        var R1 = new Region();
-        R1.union_rect(R1, 0, 0, 40, 120);
-        R1.union_rect(R1, 50, 30, 40, 20);
+        var region = new Region();
+        region.union_rect(region, 0, 0, 40, 120);
+        region.union_rect(region, 50, 30, 40, 20);
 
-        var regionWidth = R1.extents.x2 - R1.extents.x1;
-        var regionHeight = R1.extents.y2 - R1.extents.y1;
+        var regionWidth = region.extents.x2 - region.extents.x1;
+        var regionHeight = region.extents.y2 - region.extents.y1;
 
         var padding = 70;
         var x = (canvas.width - regionWidth*2 - padding) / 2;
         ctx.translate(x, 2);
 
         ctx.beginPath();
-        CanvasUtil.pathFromRegion(ctx, R1);
+        CanvasUtil.pathFromRegion(ctx, region);
         ctx.fill();
 
         ctx.translate(regionWidth + padding, 0);
@@ -487,18 +496,29 @@
         ctx.rect(-padding/2, -2, regionWidth + padding, regionHeight+4);
         ctx.clip();
         ctx.beginPath();
-        pathRegionGuideLines(ctx, R1);
+        pathRegionGuideLines(ctx, region);
         ctx.lineWidth = 2;
         ctx.globalAlpha = 0.3;
         ctx.setLineDash([5, 5]);
         ctx.stroke();
         ctx.restore();
 
-        rectSetDraw(ctx, regionRectSet(R1));
+        rectSetDraw(ctx, regionRectSet(region));
     });
 
+    // Given a series of "walls", draw them with the standard band diagram we
+    // introduce in the "Merging Bands" section.
     function drawWalls(ctx, walls, height) {
         height = height || 40;
+
+        // XXX: This function merges a lot of responsibilities and should
+        // probably be split out or refactored to be better.
+
+        // A "wall" has an "x", its X position, a "label" (which is usually a
+        // multiple of the X position -- we scale the band up for demonstration
+        // purposes), whether the wall is "selected" (used for the walkthrough),
+        // and whether the wall is "open" (used for the walkthrough -- this means)
+        // it draws the fill to the wall position but doesn't draw the wall itself.
 
         function drawWall(w) {
             if (w.open) return;
@@ -584,20 +604,12 @@
 
         var liSteps = [].slice.call(elem.querySelectorAll('li'));
 
-        var buttons = document.createElement('div');
-        buttons.classList.add('buttons');
-        elem.insertBefore(buttons, res.demoSlot.nextSibling);
-
         var currentStep;
 
-        var prevButton = document.createElement('button');
-        prevButton.textContent = '<<';
+        var prevButton = elem.querySelector('button.prev');
         prevButton.addEventListener('click', function() { setStep(currentStep - 1); });
-        buttons.appendChild(prevButton);
-        var nextButton = document.createElement('button');
-        nextButton.textContent = '>>';
+        var nextButton = elem.querySelector('button.next')
         nextButton.addEventListener('click', function() { setStep(currentStep + 1); });
-        buttons.appendChild(nextButton);
 
         var width = 300;
         var x = (canvas.width - width) / 2;
@@ -650,11 +662,12 @@
             { title: "Xor", op: "xor", color: '#dd66dd', code: 'insideA != insideB' },
         ];
 
-        var R1 = new Region();
-        var R2 = new Region();
-        R2.init_rect(0, 0, 100, 40);
+        var regionA = new Region();
+        regionA.init_rect(0, 0, 100, 40);
 
-        var R3 = new Region();
+        var regionB = new Region();
+
+        var regionResult = new Region();
 
         var binWidth = 160;
         var binHeight = 160;
@@ -713,25 +726,23 @@
             ctx.beginPath();
             ctx.fillStyle = fade(op.color, .3);
             ctx.translate(10, 0);
-            drawWalls(ctx, makeDrawWalls(R2.bands[0]), 20);
+            drawWalls(ctx, makeDrawWalls(regionA.bands[0]), 20);
             ctx.translate(0, 40);
-            drawWalls(ctx, makeDrawWalls(R1.bands[0]), 20);
+            drawWalls(ctx, makeDrawWalls(regionB.bands[0]), 20);
             ctx.translate(0, 60);
 
-            R3[op.op].call(R3, R2, R1);
+            regionResult[op.op].call(regionResult, regionA, regionB);
+
             ctx.fillStyle = op.color;
-            drawWalls(ctx, makeDrawWalls(R3.bands[0]), 30);
+            drawWalls(ctx, makeDrawWalls(regionResult.bands[0]), 30);
             ctx.restore();
 
             ctx.restore();
         }
 
-        var t = 0;
-        function update(t_) {
-            t += (t_ - t);
-
+        function update(t) {
             var x = (Math.sin(t * 0.001) * 21) | 0;
-            R1.init_rect(40 + x, 0, 60, 40);
+            regionB.init_rect(40 + x, 0, 60, 40);
 
             operations.forEach(drawOperation);
             window.requestAnimationFrame(update);
@@ -859,26 +870,62 @@
 
         var scene = regionExplorer(canvas);
 
-        var R1 = new Region();
-        function makeScene(t) {
-            var r2x = (Math.cos(t * 0.0008) * 100) | 0;
-            var r2y = (Math.sin(t * 0.0008) * 20) | 0;
+        var region = new Region();
+        var sceneT = 0;
 
-            R1.clear();
-            R1.union_rect(R1, 0, 0, 60, 40);
-            R1.union_rect(R1, r2x, 40 + r2y, 40, 40);
+        function makeScene() {
+            var r2x = (Math.cos(sceneT * Math.PI * 2) * 100) | 0;
+            var r2y = (Math.sin(sceneT * Math.PI * 2) * 20) | 0;
+
+            region.clear();
+            region.union_rect(region, 0, 0, 60, 40);
+            region.union_rect(region, r2x, 40 + r2y, 40, 40);
             var regionWidth = 60;
             var x = (canvas.width - regionWidth) / 2;
-            R1.translate(x, 20);
-            scene.setRegion(R1);
+            region.translate(x, 20);
+            scene.setRegion(region);
             scene.draw();
         }
 
-        var t = 0;
-        function update(t_) {
-            t += (t_ - t);
-            makeScene(t);
+        var elem = res.elem;
+
+        var isDragging = false;
+        var isPaused = false;
+
+        var timeSlider = elem.querySelector('.time-slider');
+        timeSlider.addEventListener('input', function() {
+            isDragging = true;
+            sceneT = timeSlider.value;
+        });
+        timeSlider.addEventListener('change', function() {
+            isDragging = false;
+            sceneT = Number(timeSlider.value);
+        });
+
+        var timeButton = elem.querySelector('.time-button');
+        function setPaused(paused) {
+            isPaused = paused;
+            timeButton.textContent = isPaused ? 'Play' : 'Pause';
+        }
+        timeButton.addEventListener('click', function() {
+            setPaused(!isPaused);
+        });
+        setPaused(false);
+
+        var afMsec = 0;
+        var duration = 5 * 1000;
+        function update(msec) {
+            var dt = (msec - afMsec) / duration;
+            afMsec = msec;
+
+            makeScene();
             window.requestAnimationFrame(update);
+
+            if (isDragging || isPaused)
+                return;
+
+            sceneT = (sceneT + dt) % 1;
+            timeSlider.value = sceneT;
         }
         update(0);
     });
@@ -888,18 +935,18 @@
 
         var scene = regionExplorer(canvas);
 
-        var R1 = new Region();
+        var region = new Region();
         var radius = 5;
         var w = 600;
         var scaleX = 5, scaleY = 10;
         for (var i = 0; i < radius; i++) {
             var x = (radius - Math.sqrt(radius*radius - (radius-i)*(radius-i))) * scaleX;
-            R1.union_rect(R1, x, i * 10, w-x*2, 10);
+            region.union_rect(region, x, i * 10, w-x*2, 10);
         }
-        R1.union_rect(R1, 0, radius*scaleY, w, 50);
-        R1.translate((canvas.width-w)/2, 20);
+        region.union_rect(region, 0, radius*scaleY, w, 50);
+        region.translate((canvas.width-w)/2, 20);
 
-        scene.setRegion(R1);
+        scene.setRegion(region);
         scene.draw();
     });
 
@@ -908,18 +955,18 @@
 
         var scene = regionExplorer(canvas);
 
-        var R1 = new Region();
+        var region = new Region();
         var w = 40, h = 10;
         var size = 10;
         for (var y = 0; y < h; y++) {
             for (var x = 0; x < w; x++) {
                 if ((x%2) == (y%2))
-                    R1.union_rect(R1, x*size, y*size, size, size);
+                    region.union_rect(region, x*size, y*size, size, size);
             }
         }
-        R1.translate((canvas.width-w*size)/2, 20);
+        region.translate((canvas.width-w*size)/2, 20);
 
-        scene.setRegion(R1);
+        scene.setRegion(region);
         scene.draw();
     });
 

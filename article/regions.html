@@ -231,6 +231,10 @@
             Let's run through this, visually, in our heads.
         </p>
         <div class="demo-canvas" data-demo="region-walls-walkthrough">
+            <div class="buttons">
+                <button class="prev">&lt;&lt;</button>
+                <button class="next">&gt;&gt;</button>
+            </div>
             <ol>
                 <li> Pick the leftmost wall we haven't encountered. That's the wall on the left, 20. Now we're inside band A.
                 Since we weren't inside either band beforehand, we output a new wall, 20. </li>
@@ -283,7 +287,12 @@
             be a band with no walls, but if you look closely at the algorithm I've defined above, assuming we fix the
             issue with running out of walls, it should work for a band with no walls.
         </p>
-        <div class="demo-canvas" data-demo="region-band-explorer"></div>
+        <div class="demo-canvas" data-demo="region-band-explorer">
+            <div class="time-control">
+                <input class="time-slider" type="range" min="0" max="1" step=".01">
+                <button class="time-button"></button>
+            </div>
+        </div>
         <p>
             This means that a region, in some sense, is defined <em>everywhere</em>. Point to a location anywhere in
             a region, and I will tell you which band contains it, even if I made the band up.
@@ -367,6 +376,52 @@ function combineRegion(regionA, regionB, bandOperation) {
             have (16*4+8) bytes = 132 bytes per band, and we have ten of them, for 1,320 bytes. In a bitmap,
             each row could be packed into two bytes, for a total of 20 bytes. Yeesh.
         </p>
+        <p>
+            Enlightenment used to use checkerboard regions like these to fake transparency, along with other
+            tricks like copying the front buffer to its own windows. The Xorg of the day tended to crumble under
+            the weight of such regions and tricks, but it was an important part of history that let us figure out
+            how to move forward. As the
+            <a href="http://cgit.freedesktop.org/xorg/proto/compositeproto/plain/compositeproto.txt">COMPOSITE extension specification</a>
+            puts it, "clever hacks are an awfully close substitute for changes in the underlying system".
+        </p>
+        <p>
+            Window shapes, both on the output and input sides, are clearly the most useful case for complex
+            regions like this. You likely won't need to write a window system like this any time soon. But I
+            think the simplicity of the data structures and algorithms in play here are something we can all
+            take lessons from. This isn't a constructed algorithms class example, this is a real example from
+            real code to solve a real problem.
+        </p>
+        </section>
+
+        <section id="next-time">
+        <h3>Next time...</h3>
+        <p>
+            I know, I know. I've been particularly bad at writing new entries to this series. One might assume
+            it's because of a lack of time, or because I'm just "too busy with real work", but the reality is
+            that I have plenty of time. I simply, have, until recently, lacked the motivation to sit down and
+            finish an article. It's especially hard since I've chosen such a niche audience, that I'm disappointed
+            when it doesn't get more recognition than it does.
+        </p>
+        <p>
+            This is a labor of love project for me. I get an incredible joy out of explaining things and turning
+            them inside out; turning the esoteric and archaic into something accessible and fun. I'm not an
+            incredible programmer by any means. If you've enjoyed this series thus far and want me to continue,
+            the best way to do it would be to tell me you appreciated it. Send me questions, perhaps fix a few
+            of my silly typos in a pull request. Nothing inspires me more than knowing I helped somebody, and
+            that people are enjoying my work.
+        </p>
+        <p>
+            Recently, a handful of you have reached out, and because of that, I've picked this series back up
+            again. I had a lot of fun writing the text and code for this article, and I've already started the
+            next. It's "Expert Window Techniques", which covers the practical ways of combining X11's toolbox
+            of windows to construct a working desktop environment. We'll go over window managers, taskbars, the
+            ICCCM, the Extended Window Manager Hints, and all of that fun jazz. I can't promise a deadline for it,
+            and I won't even make vague statements like "by the end of the year". It'll come out when I'm happy
+            with it, when I'm motivated enough to complete it.
+        </p>
+        <p>
+            Thank you.
+        </p>
         </section>
 
         <div class="nav-bottom"></div>
@@ -389,8 +444,8 @@ function combineRegion(regionA, regionB, bandOperation) {
             "use strict";
 
             window.addEventListener("load", function() {
-                // Article.generateNavButtons();
-                // Article.generateSectionLinks();
+                Article.generateNavButtons();
+                Article.generateSectionLinks();
                 ArticleDemos.runAllDemos();
             });
 
