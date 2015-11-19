@@ -208,9 +208,7 @@
             <a href="http://cairographics.org">cairo graphics library</a>, it has an implementation of regions, called
             <a href="http://cairographics.org/manual/cairo-Regions.html" class="code-literal">cairo_region_t</a>.
             (Actually, both the implementation in the Xorg codebase and the one in cairo are the same code, they're
-            both using the <a href="http://www.pixman.org/">pixman</a> library, underneath. And in fact, the pixman
-            region code is the one here that is used in our interactive demos. It's the only code here that's been
-            compiled with emscripten!)
+            both using the <a href="http://www.pixman.org/">pixman</a> library, underneath.)
         </p>
         <p>
             However, like any data structure, it isn't efficient in all use cases. A simple example here is a
