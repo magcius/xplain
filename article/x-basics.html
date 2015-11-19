@@ -222,14 +222,14 @@
             Ahem, sorry. Enough reminiscing. Anyway, the story goes that when people working on the X server source
             code were doing anything with windows, they had code that looked like this:
         </p>
-        <div class="code-block">void do_something_with_window(Window window)
+        <pre><code class="c">void do_something_with_window(Window window)
 {
     Region region = new Region();
     region.add_rectangle(window.bounding_rectangle);
 
     region.intersect_rectangle(other_window.whatever);
     draw_some_nonsense(region);
-}</div>
+}</pre></code>
         <p>
             That is, the code was almost always taking the window's bounding rectangle, and then converting it into a
             region to use elsewhere. So, they said to themselves, <q class="historical-quote">Hey, why don't we let the
@@ -353,6 +353,9 @@
     <script src="../src/article-demos/demo-common.js"></script>
     <script src="../src/article-demos/x-basics.js"></script>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/railscasts.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/highlight.min.js"></script>
+
     <script>
         (function() {
             "use strict";
@@ -362,6 +365,8 @@
                 Article.generateSectionLinks();
                 ArticleDemos.runAllDemos();
             });
+
+            hljs.initHighlightingOnLoad();
         })();
     </script>
 
