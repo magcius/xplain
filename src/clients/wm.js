@@ -78,6 +78,8 @@
                 this._display.configureWindow(props);
             }
 
+            this._display.changeProperty({ windowId: this._clientWindowId, name: '_NET_WM_FRAME_EXTENTS', value: FRAME_BORDER });
+
             if (sizeUpdated) {
                 // Update the client window
                 var props = Object.create(this._clientGeometry);

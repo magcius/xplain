@@ -63,12 +63,27 @@
         // Make it move.
         _sync: function() {
             var query = this._display.queryTree({ windowId: this._windowId });
-            var newCoords = this._display.translateCoordinates({ srcWindowId: this._display.rootWindowId, 
+
+            // If the parent window is a frame, then configuring the window should be in root coordinates,
+            // according to the ICCCM 4.1.5.
+            var frameExtents = this._display.getProperty({ windowId: this._windowId, name: '_NET_WM_FRAME_EXTENTS' });
+
+            var newX, newY;
+            if (frameExtents) {
+                // In this case, we have the new mouse position in root coords, and the offset of the
+                // drag in the client window. To construct the new position for the window, we need to
+                // offset by the _NET_WM_FRAME_EXTENTS.
+
+                newX = this._rootMouseX - this._winMouseX - frameExtents.left;
+                newY = this._rootMouseY - this._winMouseY - frameExtents.top;
+            } else {
+                newCoords = this._display.translateCoordinates({ srcWindowId: this._display.rootWindowId, 
                                                                  destWindowId: query.parent,
                                                                  x: this._rootMouseX - this._winMouseX,
                                                                  y: this._rootMouseY - this._winMouseY });
-            var newX = newCoords.x;
-            var newY = newCoords.y;
+                newX = newCoords.x;
+                newY = newCoords.y;
+            }
 
             if (this._bounded) {
                 var geom = this._display.getGeometry({ drawableId: this._windowId });
