@@ -1592,19 +1592,19 @@
             }
 
             function FocusInEvents(ancestor, child, detail) {
-                var parent = child.windowTreeParent;
-                if (ancestor == parent)
+                if (!child || ancestor === child)
                     return;
 
+                var parent = child.windowTreeParent;
                 FocusInEvents(ancestor, parent, detail);
                 FocusEvent("FocusIn", detail, child);
             }
 
             function FocusOutEvents(child, ancestor, detail) {
-                var parent = child.windowTreeParent;
-                if (ancestor == parent)
+                if (!child || ancestor === child)
                     return;
 
+                var parent = child.windowTreeParent;
                 FocusEvent("FocusOut", detail, child);
                 FocusOutEvents(parent, ancestor, detail);
             }
