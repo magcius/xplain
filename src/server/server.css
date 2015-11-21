@@ -19,33 +19,33 @@
 }
 
 .xserver.js[data-cursor="top"] {
-	cursor: url(top_side.png) 18 8, auto;
+    cursor: url(top_side.png) 18 8, auto;
 }
 
 .xserver.js[data-cursor="top-left"] {
-	cursor: url(top_left_corner.png) 8 8, auto;
+    cursor: url(top_left_corner.png) 8 8, auto;
 }
 
 .xserver.js[data-cursor="top-right"] {
-	cursor: url(top_right_corner.png) 26 8, auto;
+    cursor: url(top_right_corner.png) 26 8, auto;
 }
 
 .xserver.js[data-cursor="bottom"] {
-	cursor: url(bottom_side.png) 15 20, auto;
+    cursor: url(bottom_side.png) 15 20, auto;
 }
 
 .xserver.js[data-cursor="bottom-left"] {
-	cursor: url(bottom_left_corner.png) 6 30, auto;
+    cursor: url(bottom_left_corner.png) 6 30, auto;
 }
 
 .xserver.js[data-cursor="bottom-right"] {
-	cursor: url(bottom_right_corner.png) 28 28, auto;
+    cursor: url(bottom_right_corner.png) 28 28, auto;
 }
 
 .xserver.js[data-cursor="left"] {
-	cursor: url(left_side.png) 10 20, auto;
+    cursor: url(left_side.png) 10 20, auto;
 }
 
 .xserver.js[data-cursor="right"] {
-	cursor: url(right_side.png) 30 19, auto;
+    cursor: url(right_side.png) 30 19, auto;
 }
