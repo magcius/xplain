@@ -114,6 +114,12 @@
                 ctx.moveTo(0, 0);
                 ctx.lineTo(radius - 20, 0);
                 ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(radius - 5, 0);
+                ctx.lineTo(radius - 20, -4);
+                ctx.lineTo(radius - 30, 0);
+                ctx.lineTo(radius - 20, 4);
+                ctx.fill();
                 ctx.restore();
             }.bind(this));
         },
