@@ -116,9 +116,7 @@
         display.mapWindow({ windowId: kitten1.windowId });
 
         var dragger = new DemoCommon.WindowDragger(server, kitten1.windowId);
-
         var shaker = new DemoCommon.WindowShaker(server, kitten2.windowId);
-        shaker.start();
     });
 
     // A simple image with a shape region.
@@ -171,9 +169,7 @@
         display.mapWindow({ windowId: kittencircle.windowId });
 
         var dragger = new DemoCommon.WindowDragger(server, kittencircle.windowId);
-
         var shaker = new DemoCommon.WindowShaker(server, kitten2.windowId);
-        shaker.start();
     });
 
 })(window);

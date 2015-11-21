@@ -188,23 +188,55 @@
             var connection = server.connect();
             this._display = connection.display;
 
+            var port = connection.clientPort;
+            port.addEventListener("message", function(messageEvent) {
+                this._handleEvent(messageEvent.data);
+            }.bind(this));
+
             this._windowId = windowId;
+
+            this._display.selectInput({ windowId: this._windowId, events: ["ConfigureNotify", "MapNotify", "UnmapNotify"] });
 
             this._timer = new Timer(TICK_MSEC, this._tick.bind(this));
             this._tickCount = 0;
             this._startX = 0;
         },
 
-        start: function() {
-            var geometry = this._display.getGeometry({ drawableId: this._windowId });
+        _getXSway: function() {
+            var theta = TAU * (this._tickCount / TICKS_PER_SEC / PERIOD);
+            return Math.round(SWAY_AMOUNT * Math.sin(theta));
+        },
+
+        _configureNotify: function(event) {
+            if (event.synthetic && event.x !== undefined)
+                this._startX = event.x - this._getXSway();
+        },
+
+        _handleEvent: function(event) {
+            switch (event.type) {
+            case "ConfigureNotify":
+                return this._configureNotify(event);
+            case "MapNotify":
+                return this._mapNotify(event);
+            case "UnmapNotify":
+                return this._unmapNotify(event);
+            }
+        },
+
+        _mapNotify: function() {
+            var geometry = this._display.translateCoordinates({ srcWindowId: this._windowId,
+                                                                destWindowId: this._display.rootWindowId,
+                                                                x: 0, y: 0 });
             this._startX = geometry.x;
             this._timer.start();
+        },
+        _unmapNotify: function() {
+            this._timer.stop();
         },
 
         // Make it move.
         _sync: function() {
-            var theta = TAU * (this._tickCount / TICKS_PER_SEC / PERIOD);
-            var x = this._startX + SWAY_AMOUNT * Math.sin(theta);
+            var x = this._startX + this._getXSway();
             this._display.configureWindow({ windowId: this._windowId, x: x });
         },
 

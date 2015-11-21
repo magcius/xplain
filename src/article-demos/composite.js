@@ -28,7 +28,6 @@
         display.mapWindow({ windowId: kitten1 });
 
         var shaker = new DemoCommon.WindowShaker(server, kitten2);
-        shaker.start();
     });
 
     ArticleDemos.registerDemo("window-pixel-map-shaped", "height: 250px", function(res) {
@@ -65,7 +64,6 @@
         });
 
         var shaker = new DemoCommon.WindowShaker(server, kitten2);
-        shaker.start();
     });
 
     ArticleDemos.registerDemo("naive-redirect", "height: 250px", function(res) {
@@ -98,7 +96,6 @@
         var dragger = new DemoCommon.WindowDragger(server, kitten1);
 
         var shaker = new DemoCommon.WindowShaker(server, kitten2);
-        shaker.start();
     });
 
     ArticleDemos.registerDemo("composited-kitten", "height: 250px", function(res) {
@@ -136,7 +133,6 @@
         var dragger = new DemoCommon.WindowDragger(server, kitten1);
 
         var shaker = new DemoCommon.WindowShaker(server, kitten2);
-        shaker.start();
 
         var cm = new CompositingManager.Canvas2DCompositingManager(server, display.rootWindowId);
     });
@@ -191,7 +187,6 @@
         var dragger = new DemoCommon.WindowDragger(server, kitten1);
 
         var shaker = new DemoCommon.WindowShaker(server, kitten2);
-        shaker.start();
 
         var cm = new CompositingManager.GLCompositingManager(server, display.rootWindowId, gl);
         display.mapWindow({ windowId: kitten2 });
