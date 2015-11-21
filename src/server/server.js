@@ -796,7 +796,7 @@
                 this._server.sendEvent(event);
 
                 this._wrapBoundingRegionChange(function() {
-                    this._configureWindow(eventBase);
+                    this._configureWindow(props);
                 }.bind(this));
 
                 if (this.drawTree && !this.drawTreeParent)
