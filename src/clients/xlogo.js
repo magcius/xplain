@@ -12,9 +12,6 @@
                 this._handleEvent(messageEvent.data);
             }.bind(this));
 
-            this._pointerRootX = -1;
-            this._pointerRootY = -1;
-
             this.windowId = this._display.createWindow({ x: 500, y: 50, width: 150, height: 150 });
             this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ConfigureNotify"] });
             this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "xlogo.js" });
