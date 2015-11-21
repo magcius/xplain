@@ -1898,6 +1898,9 @@
             // Does anything validly use a separate windowId than what's passed
             // to SendEvent?
             event.windowId = destination.xid;
+
+            event.synthetic = true;
+
             this.sendEvent(event);
         },
 
