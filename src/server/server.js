@@ -767,11 +767,6 @@
 
             this._syncDrawTreePosition();
             this._unshapedBoundingRegion.init_rect(0, 0, this.width, this.height);
-
-            if (props.stackMode) {
-                var sibling = props.sibling ? this._server.getServerWindow(null, props.sibling) : null;
-                this._insertIntoStack(sibling, props.stackMode);
-            }
         },
         configureWindow: function(client, props) {
             function configureValue(newValue, existingValue) {
@@ -781,11 +776,13 @@
                 return (newValue | 0);
             }
 
-            var eventBase = { windowId: this.xid, sibling: props.sibling, detail: props.stackMode };
-            eventBase.x = configureValue(props.x, this.x);
-            eventBase.y = configureValue(props.y, this.y);
-            eventBase.width = configureValue(props.width, this.width);
-            eventBase.height = configureValue(props.height, this.height);
+            var x = configureValue(props.x, this.x);
+            var y = configureValue(props.y, this.y);
+            var width = configureValue(props.width, this.width);
+            var height = configureValue(props.height, this.height);
+
+            var eventBase = { windowId: this.xid, sibling: props.sibling, detail: props.stackMode,
+                              x: x, y: y, width: width, height: height };
 
             var event;
             event = Object.create(eventBase);
@@ -796,7 +793,12 @@
                 this._server.sendEvent(event);
 
                 this._wrapBoundingRegionChange(function() {
-                    this._configureWindow(props);
+                    this._configureWindow({ x: x, y: y, width: width, height: height });
+
+                    if (props.stackMode) {
+                        var sibling = props.sibling ? this._server.getServerWindow(null, props.sibling) : null;
+                        this._insertIntoStack(sibling, props.stackMode);
+                    }
                 }.bind(this));
 
                 if (this.drawTree && !this.drawTreeParent)
