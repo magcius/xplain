@@ -210,11 +210,14 @@
 
             this._windowId = windowId;
 
-            this._display.selectInput({ windowId: this._windowId, events: ["ConfigureNotify", "MapNotify", "UnmapNotify"] });
-
             this._timer = new Timer(TICK_MSEC, this._tick.bind(this));
             this._tickCount = 0;
             this._startX = 0;
+
+            this._display.selectInput({ windowId: this._windowId, events: ["ConfigureNotify", "MapNotify", "UnmapNotify"] });
+            var attrs = this._display.getAttributes({ windowId: this._windowId });
+            if (attrs.mapState === 'Viewable')
+                this._start();
         },
 
         _getXSway: function() {
@@ -238,12 +241,15 @@
             }
         },
 
-        _mapNotify: function() {
+        _start: function() {
             var geometry = this._display.translateCoordinates({ srcWindowId: this._windowId,
                                                                 destWindowId: this._display.rootWindowId,
                                                                 x: 0, y: 0 });
             this._startX = geometry.x;
             this._timer.start();
+        },
+        _mapNotify: function() {
+            this._start();
         },
         _unmapNotify: function() {
             this._timer.stop();
