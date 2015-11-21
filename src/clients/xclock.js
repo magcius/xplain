@@ -108,7 +108,7 @@
                 ctx.rotate(now.getSeconds() * TAU / 60);
                 ctx.beginPath();
                 ctx.moveTo(0, 0);
-                ctx.lineTo(0, radius - 5);
+                ctx.lineTo(0, radius - 20);
                 ctx.stroke();
                 ctx.restore();
             }.bind(this));
