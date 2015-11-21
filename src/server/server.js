@@ -1637,7 +1637,10 @@
         },
         _revertInputFocus: function() {
             // Always revert to the parent window, like RevertToParent does.
-            this._setInputFocus(this._focusServerWindow.windowTreeParent.xid);
+            var parent = this._focusServerWindow;
+            while (!parent.viewable)
+                parent = parent.windowTreeParent;
+            this._setInputFocus(parent);
         },
 
         _grabPointer: function(grabInfo, isPassive) {
