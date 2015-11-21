@@ -66,6 +66,8 @@
                 ctx.translate(hw, hh);
                 ctx.lineWidth = 2;
 
+                ctx.rotate(-TAU / 4);
+
                 var radius = Math.min(width, height) / 2 - 5;
 
                 ctx.beginPath();
@@ -110,7 +112,7 @@
                 ctx.rotate(now.getSeconds() * TAU / 60);
                 ctx.beginPath();
                 ctx.moveTo(0, 0);
-                ctx.lineTo(0, radius - 20);
+                ctx.lineTo(radius - 20, 0);
                 ctx.stroke();
                 ctx.restore();
             }.bind(this));
