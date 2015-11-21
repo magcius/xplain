@@ -15,8 +15,7 @@
             this.windowId = this._display.createWindow({ x: 300, y: 50, width: 150, height: 150 });
             this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ConfigureNotify", "MapNotify", "UnmapNotify"] });
             this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "xclock.js" });
-            this._display.changeProperty({ windowId: this.windowId, name: "MIN_WIDTH", value: 125 });
-            this._display.changeProperty({ windowId: this.windowId, name: "MIN_HEIGHT", value: 125 });
+            this._display.changeProperty({ windowId: this.windowId, name: "WM_NORMAL_HINTS", value: { minWidth: 125, minHeight: 125 } });
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
         },
         _start: function() {

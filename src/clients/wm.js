@@ -27,15 +27,15 @@
         _constrainNewSize: function(clientGeometry) {
             var defaultMinSize = 50; // Reasonable size
 
-            var minWidth = this._display.getProperty({ windowId: this._clientWindowId, name: 'MIN_WIDTH' });
-            if (!minWidth)
-                minWidth = defaultMinSize;
+            var minWidth = defaultMinSize, minHeight = defaultMinSize;
+
+            var normalHints = this._display.getProperty({ windowId: this._clientWindowId, name: 'WM_NORMAL_HINTS' });
+            if (normalHints && normalHints.minWidth)
+                minWidth = normalHints.minWidth;
+            if (normalHints && normalHints.minHeight)
+                minHeight = normalHints.minHeight;
             if (clientGeometry.width < minWidth)
                 clientGeometry.width = minWidth;
-
-            var minHeight = this._display.getProperty({ windowId: this._clientWindowId, name: 'MIN_HEIGHT' });
-            if (!minHeight)
-                minHeight = defaultMinSize;
             if (clientGeometry.height < minHeight)
                 clientGeometry.height = minHeight;
         },
@@ -91,6 +91,17 @@
                 // Invalidate the frame that's already been partially painted.
                 this._display.invalidateWindow({ windowId: this._frameWindowId });
             }
+
+            if (!sizeUpdated) {
+                var configureEvent = {};
+                configureEvent.type = 'ConfigureNotify';
+                configureEvent.x = this._frameGeometry.x;
+                configureEvent.y = this._frameGeometry.y;
+                configureEvent.width = this._clientGeometry.width;
+                configureEvent.height = this._clientGeometry.height;
+                this._display.sendEvent({ destinationId: this._clientWindowId,
+                                          event: configureEvent });
+            }
         },
 
         _makeButton: function() {
@@ -126,6 +137,7 @@
 
             var title = this._display.getProperty({ windowId: this._clientWindowId, name: "WM_NAME" });
             this._display.changeProperty({ windowId: this._frameWindowId, name: 'WM_NAME', value: 'Frame for "' + title + '"' });
+            this._display.changeProperty({ windowId: this._frameWindowId, name: '_XJS_FRAME', value: "true" });
 
             this._closeWindowId = this._makeButton();
             ClientUtil.loadImageAsPixmap(this._display, 'frame-close-button.png', function(pixmapId) {
@@ -169,7 +181,6 @@
             // outer frame window. Note that the width/height are of the client
             // window.
 
-            // We don't generate synthetic events quite yet.
             this._updateGeometry(event);
 
             if (event.detail !== undefined)
