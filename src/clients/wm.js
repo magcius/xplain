@@ -360,21 +360,48 @@
                 this._exposeHandler.clip(ctx);
 
                 // Background
-                ctx.fillStyle = 'white';
+                var gradient = ctx.createLinearGradient(0, 0, 0, FRAME_BORDER.top);
+                gradient.addColorStop(0, '#eee');
+                gradient.addColorStop(1, '#aaa');
+                ctx.fillStyle = gradient;
                 ctx.fillRect(0, 0, this._frameGeometry.width, this._frameGeometry.height);
+
+                ctx.lineWidth = 6;
+                if (this._frameHasFocus)
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+                else
+                    ctx.strokeStyle = 'rgba(255, 255, 255, .4)';
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(this._frameGeometry.width, 0);
+                ctx.stroke();
+
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, .6)';
+                ctx.shadowBlur = 4;
+                ctx.fillRect(this._clientGeometry.x, this._clientGeometry.y, this._clientGeometry.width, this._clientGeometry.height);
+                ctx.restore();
 
                 // Border
                 ctx.lineWidth = 2;
-                ctx.strokeStyle = 'black';
+                ctx.strokeStyle = '#000';
                 ctx.strokeRect(0, 0, this._frameGeometry.width, this._frameGeometry.height);
 
                 // Title text
                 var title = this._display.getProperty({ windowId: this._clientWindowId, name: "WM_NAME" });
                 if (title) {
-                    ctx.fillStyle = this._frameHasFocus ? '#000' : '#aaa';
+                    ctx.save();
                     ctx.textAlign = 'center';
-                    ctx.font = '12pt sans-serif';
+                    ctx.font = 'bold 12pt sans-serif';
+                    if (this._frameHasFocus) {
+                        ctx.fillStyle = '#000';
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+                        ctx.shadowBlur = 4;
+                    } else {
+                        ctx.fillStyle = '#666';
+                    }
                     ctx.fillText(title, this._frameGeometry.width / 2, 21);
+                    ctx.restore();
                 }
             }.bind(this));
         },
