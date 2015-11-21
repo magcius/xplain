@@ -3,24 +3,17 @@
 (function(exports) {
     "use strict";
 
-    function ellipse(ctx, x, y, rx, ry) {
-        x -= rx;
-        y -= ry;
-
+    function ellipse(ctx, rx, ry) {
         var kappa = .5522848;
         var ox = rx * kappa;
         var oy = ry * kappa;
-        var xe = x + rx * 2;
-        var ye = y + ry * 2;
-        var xm = x + rx;
-        var ym = y + ry;
 
         ctx.beginPath();
-        ctx.moveTo(x, ym);
-        ctx.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
-        ctx.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
-        ctx.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
-        ctx.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
+        ctx.moveTo(-rx, 0);
+        ctx.bezierCurveTo(-rx, -oy, -ox, -ry, 0, -ry);
+        ctx.bezierCurveTo(ox, -ry, rx, -oy, rx, 0);
+        ctx.bezierCurveTo(rx, oy, ox, ry, 0, ry);
+        ctx.bezierCurveTo(-ox, ry, -rx, oy, -rx, 0);
         ctx.closePath();
     }
 
@@ -36,10 +29,10 @@
             this._pointerRootX = -1;
             this._pointerRootY = -1;
 
-            this.windowId = this._display.createWindow({ x: 0, y: 0, width: 200, height: 150 });
+            this.windowId = this._display.createWindow({ x: 50, y: 50, width: 200, height: 150 });
             this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ConfigureNotify", "MapNotify", "UnmapNotify"] });
             this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "xeyes.js" });
-            this._exposeHandler = new DemoCommon.ExposeHandler(this._draw.bind(this));
+            this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
         },
         _start: function() {
             this._intervalId = setInterval(function() {
@@ -63,7 +56,7 @@
             if (event.width !== undefined || event.height !== undefined)
                 this._display.invalidateWindow({ windowId: this.windowId });
         },
-        handleEvent: function(event) {
+        _handleEvent: function(event) {
             switch(event.type) {
             case "Expose":
                 return this._exposeHandler.handleExpose(event);
@@ -77,11 +70,14 @@
         },
 
         _draw: function() {
-            var eyeRX = this.width / 4 - 6;
-            var eyeRY = this.height / 2 - 6;
-            var eyeCenterLX = this.width * (1/4);
-            var eyeCenterRX = this.width * (3/4);
-            var eyeCenterY = this.height / 2;
+            var geom = this._display.getGeometry({ drawableId: this.windowId });
+            var width = geom.width, height = geom.height;
+
+            var eyeRX = width / 4 - 6;
+            var eyeRY = height / 2 - 6;
+            var eyeCenterLX = width * (1/4);
+            var eyeCenterRX = width * (3/4);
+            var eyeCenterY = height / 2;
 
             var pupilRX = eyeRX / 4;
             var pupilRY = eyeRY / 4;
@@ -121,32 +117,44 @@
             this._display.drawTo(this.windowId, function(ctx) {
                 this._exposeHandler.clip(ctx);
 
-                ctx.fillStyle = '#eeeeec';
-                ctx.fillRect(0, 0, this.width, this.height);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, width, height);
 
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 10;
-                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 6;
 
                 // scleras
-                ellipse(ctx, eyeCenterLX, eyeCenterY, eyeRX, eyeRY);
+                ctx.save();
+                ctx.translate(eyeCenterLX, eyeCenterY);
+                ellipse(ctx, eyeRX, eyeRY);
                 ctx.fill();
                 ctx.stroke();
+                ctx.restore();
 
-                ellipse(ctx, eyeCenterRX, eyeCenterY, eyeRX, eyeRY);
+                ctx.save();
+                ctx.translate(eyeCenterRX, eyeCenterY);
+                ellipse(ctx, eyeRX, eyeRY);
                 ctx.fill();
                 ctx.stroke();
+                ctx.restore();
+
                 // pupils
-                ctx.fillStyle = '#000000';
+                ctx.fillStyle = 'black';
 
                 var pos;
 
                 pos = getPupilPosition(eyeCenterLX);
-                ellipse(ctx, eyeCenterLX + pos.x, eyeCenterY + pos.y, pupilRX, pupilRY);
+                ctx.save();
+                ctx.translate(eyeCenterLX + pos.x, eyeCenterY + pos.y);
+                ellipse(ctx, pupilRX, pupilRY);
+                ctx.restore();
                 ctx.fill();
 
                 pos = getPupilPosition(eyeCenterRX);
-                ellipse(ctx, eyeCenterRX + pos.x, eyeCenterY + pos.y, pupilRX, pupilRY);
+                ctx.save();
+                ctx.translate(eyeCenterRX + pos.x, eyeCenterY + pos.y);
+                ellipse(ctx, pupilRX, pupilRY);
+                ctx.restore();
                 ctx.fill();
             }.bind(this));
         },
