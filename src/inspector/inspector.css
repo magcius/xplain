@@ -104,6 +104,7 @@
     -webkit-flex: 1;
     flex: 1;
     border-right: 1px dotted #aaa;
+    height: 224px;
 }
 
 .inspector .pane-container > div:last-child {
