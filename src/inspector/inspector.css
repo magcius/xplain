@@ -122,6 +122,10 @@
     cursor: default;
 }
 
+.inspector .window-tree .window:not(.viewable) .title {
+    opacity: 0.6;
+}
+
 .inspector .window-tree .window .title:hover {
     background: #eeeeff;
 }

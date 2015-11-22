@@ -317,6 +317,9 @@
                     childList.appendChild(makeNodeForWindow(childXid));
                 });
 
+                var attribs = this._display.getAttributes({ windowId: xid });
+                node.classList.toggle('viewable', attribs.mapState === 'Viewable');
+
                 node.addEventListener("mouseover", function(event) {
                     this.onWindowHighlighted(xid);
                     event.stopPropagation();
@@ -503,6 +506,19 @@
                 this._pixmapDisplay.destroy();
                 this._pixmapDisplay = null;
             }
+
+            var node = document.createElement('div');
+            node.classList.add('attribute');
+
+            var nameNode = document.createElement('span');
+            nameNode.classList.add('name');
+            nameNode.textContent = 'map-state';
+            node.appendChild(nameNode);
+            var valNode = document.createElement('span');
+            valNode.classList.add('value');
+            valNode.textContent = attribs.mapState;
+            node.appendChild(valNode);
+            this._attributes.content.appendChild(node);
 
             if (attribs.backgroundColor) {
                 var node = document.createElement('div');
