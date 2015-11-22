@@ -419,6 +419,9 @@
             this._display.changeAttributes({ windowId: this.windowId, backgroundColor: '#ffffff' });
 
             this._display.changeProperty({ windowId: this.windowId, name: 'WM_NAME', value: imgSrc });
+            this._display.changeProperty({ windowId: this.windowId, name: '_XJS_ACTIONS', value: {
+                hasClose: false,
+            } });
             this._display.selectInput({ windowId: this.windowId, events: ['Expose'] });
 
             this._pixmapId = 0;

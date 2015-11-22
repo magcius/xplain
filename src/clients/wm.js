@@ -126,8 +126,15 @@
             this._display.changeAttributes({ windowId: buttonWindowId, cursor: "pointer" });
             this._display.reparentWindow({ windowId: buttonWindowId,
                                            newParentId: this._frameWindowId });
-            this._display.mapWindow({ windowId: buttonWindowId });
             return buttonWindowId;
+        },
+
+        _syncButtonActions: function() {
+            var actions = this._display.getProperty({ windowId: this._clientWindowId, name: '_XJS_ACTIONS' });
+            if (actions.hasClose !== undefined && actions.hasClose)
+                this._display.mapWindow({ windowId: this._closeWindowId });
+            else
+                this._display.unmapWindow({ windowId: this._closeWindowId });
         },
 
         construct: function() {
@@ -158,6 +165,8 @@
                 this._display.invalidateWindow({ windowId: this._closeWindowId });
             }.bind(this));
             this._display.changeProperty({ windowId: this._closeWindowId, name: 'WM_NAME', value: 'Close Button' });
+
+            this._syncButtonActions();
 
             this._display.reparentWindow({ windowId: this._clientWindowId,
                                            newParentId: this._frameWindowId });
