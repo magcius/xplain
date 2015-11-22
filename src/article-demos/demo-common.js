@@ -423,6 +423,11 @@
 
             this._pixmapId = 0;
             ClientUtil.loadImageAsPixmap(this._display, imgSrc, function(pixmapId) {
+                var geometry = this._display.getGeometry({ drawableId: pixmapId });
+                this._display.changeProperty({ windowId: this.windowId, name: 'WM_NORMAL_HINTS', value: {
+                    minWidth: geometry.width, maxWidth: geometry.width,
+                    minHeight: geometry.height, maxHeight: geometry.height
+                } });
                 this._pixmapId = pixmapId;
                 this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this));
