@@ -4,60 +4,6 @@
 (function(exports) {
     "use strict";
 
-    var BaseImage = new Class({
-        initialize: function(server, imgSrc) {
-            var connection = server.connect();
-            this._display = connection.display;
-            var port = connection.clientPort;
-            port.addEventListener("message", function(messageEvent) {
-                this._handleEvent(messageEvent.data);
-            }.bind(this));
-
-            this.windowId = this._display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
-
-            // Set a background color, as without it, the X server won't fill in the exposed
-            // areas, and we're left with old contents that are hard to recognize in a demo.
-            this._display.changeAttributes({ windowId: this.windowId, backgroundColor: '#ffffff' });
-
-            this._display.changeProperty({ windowId: this.windowId, name: 'WM_NAME', value: imgSrc });
-            this._display.selectInput({ windowId: this.windowId, events: ['Expose'] });
-
-            this._pixmapId = 0;
-            ClientUtil.loadImageAsPixmap(this._display, imgSrc, function(pixmapId) {
-                this._pixmapId = pixmapId;
-                this._display.invalidateWindow({ windowId: this.windowId });
-            }.bind(this));
-        },
-
-        _draw: function() {
-            if (!this._pixmapId)
-                return;
-
-            var image = this._display.getPixmapImage({ pixmapId: this._pixmapId });
-            this._display.drawTo(this.windowId, function(ctx) {
-                ctx.drawImage(image, 0, 0);
-            }.bind(this));
-        },
-
-        _handleEvent: function(event) {
-            switch (event.type) {
-                case "Expose":
-                    return this._handleExpose(event);
-            }
-        },
-    });
-
-    // SimpleImage draws whenever it gets an expose. We could use the
-    // ExposeProcessor to prevent repeated redraws, but since we know that
-    // in this demo the window will always be on top, I think we're OK.
-    var SimpleImage = new Class({
-        Extends: BaseImage,
-
-        _handleExpose: function(event) {
-            this._draw();
-        },
-    });
-
     ArticleDemos.registerDemo("two-kittens", "height: 200px", function(res) {
         DemoCommon.addInspector(res);
 
@@ -68,32 +14,14 @@
         DemoCommon.setBackground(display, DemoCommon.makeStipple(display));
 
         // The window on the left.
-        var kitten1 = new SimpleImage(server, "kitten1.png");
+        var kitten1 = new DemoCommon.SimpleImage(server, "kitten1.png");
         DemoCommon.centerWindow(display, kitten1.windowId, { x: -125, y: 0 });
         display.mapWindow({ windowId: kitten1.windowId });
 
         // The window on the right.
-        var kitten2 = new SimpleImage(server, "kitten2.png");
+        var kitten2 = new DemoCommon.SimpleImage(server, "kitten2.png");
         DemoCommon.centerWindow(display, kitten2.windowId, { x: +125, y: 0 });
         display.mapWindow({ windowId: kitten2.windowId });
-    });
-
-    // DelayedExposeImage waits a bit before processing expose events, to
-    // emulate a "hung" or "slow" app and show off how expose processing works.
-    var DelayedExposeImage = new Class({
-        Extends: BaseImage,
-
-        _scheduledDraw: function() {
-            this._draw();
-            this._drawTimeoutId = 0;
-        },
-
-        _handleExpose: function(event) {
-            if (this._drawTimeoutId)
-                return;
-
-            this._drawTimeoutId = setTimeout(this._scheduledDraw.bind(this), 200);
-        },
     });
 
     ArticleDemos.registerDemo("expose", "height: 250px", function(res) {
@@ -106,12 +34,12 @@
         DemoCommon.setBackground(display, DemoCommon.makeStipple(display));
 
         // The shaking window that's behind.
-        var kitten2 = new DelayedExposeImage(server, "kitten2.png");
+        var kitten2 = new DemoCommon.DelayedExposeImage(server, "kitten2.png");
         DemoCommon.centerWindow(display, kitten2.windowId, { x: -20, y: 40 });
         display.mapWindow({ windowId: kitten2.windowId });
 
         // The window on top that's obscuring the window behind it.
-        var kitten1 = new SimpleImage(server, "kitten1.png");
+        var kitten1 = new DemoCommon.SimpleImage(server, "kitten1.png");
         DemoCommon.centerWindow(display, kitten1.windowId);
         display.mapWindow({ windowId: kitten1.windowId });
 

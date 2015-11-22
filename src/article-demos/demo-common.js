@@ -403,6 +403,78 @@
         inspector.addButton(button);
     };
 
+    var BaseImage = new Class({
+        initialize: function(server, imgSrc) {
+            var connection = server.connect();
+            this._display = connection.display;
+            var port = connection.clientPort;
+            port.addEventListener("message", function(messageEvent) {
+                this._handleEvent(messageEvent.data);
+            }.bind(this));
+
+            this.windowId = this._display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
+
+            // Set a background color, as without it, the X server won't fill in the exposed
+            // areas, and we're left with old contents that are hard to recognize in a demo.
+            this._display.changeAttributes({ windowId: this.windowId, backgroundColor: '#ffffff' });
+
+            this._display.changeProperty({ windowId: this.windowId, name: 'WM_NAME', value: imgSrc });
+            this._display.selectInput({ windowId: this.windowId, events: ['Expose'] });
+
+            this._pixmapId = 0;
+            ClientUtil.loadImageAsPixmap(this._display, imgSrc, function(pixmapId) {
+                this._pixmapId = pixmapId;
+                this._display.invalidateWindow({ windowId: this.windowId });
+            }.bind(this));
+        },
+
+        _draw: function() {
+            if (!this._pixmapId)
+                return;
+
+            var image = this._display.getPixmapImage({ pixmapId: this._pixmapId });
+            this._display.drawTo(this.windowId, function(ctx) {
+                ctx.drawImage(image, 0, 0);
+            }.bind(this));
+        },
+
+        _handleEvent: function(event) {
+            switch (event.type) {
+                case "Expose":
+                    return this._handleExpose(event);
+            }
+        },
+    });
+
+    // SimpleImage draws whenever it gets an expose. We could use the
+    // ExposeProcessor to prevent repeated redraws, but since we know that
+    // in this demo the window will always be on top, I think we're OK.
+    DemoCommon.SimpleImage = new Class({
+        Extends: BaseImage,
+
+        _handleExpose: function(event) {
+            this._draw();
+        },
+    });
+
+    // DelayedExposeImage waits a bit before processing expose events, to
+    // emulate a "hung" or "slow" app and show off how expose processing works.
+    DemoCommon.DelayedExposeImage = new Class({
+        Extends: BaseImage,
+
+        _scheduledDraw: function() {
+            this._draw();
+            this._drawTimeoutId = 0;
+        },
+
+        _handleExpose: function(event) {
+            if (this._drawTimeoutId)
+                return;
+
+            this._drawTimeoutId = setTimeout(this._scheduledDraw.bind(this), 200);
+        },
+    });
+
     exports.DemoCommon = DemoCommon;
 
 })(window);
