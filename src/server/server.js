@@ -781,7 +781,7 @@
             var width = configureValue(props.width, this.width);
             var height = configureValue(props.height, this.height);
 
-            var eventBase = { windowId: this.xid, sibling: props.sibling, detail: props.stackMode,
+            var eventBase = { windowId: this.xid, sibling: props.sibling, stackMode: props.stackMode,
                               x: x, y: y, width: width, height: height };
 
             var event;
