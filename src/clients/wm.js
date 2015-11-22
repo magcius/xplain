@@ -157,7 +157,7 @@
 
             var title = this._display.getProperty({ windowId: this._clientWindowId, name: "WM_NAME" });
             this._display.changeProperty({ windowId: this._frameWindowId, name: 'WM_NAME', value: 'Frame for "' + title + '"' });
-            this._display.changeProperty({ windowId: this._frameWindowId, name: '_XJS_FRAME', value: "true" });
+            this._display.changeProperty({ windowId: this._frameWindowId, name: '_XJS_FRAME', value: true });
 
             this._closeWindowId = this._makeButton();
             ClientUtil.loadImageAsPixmap(this._display, 'frame-close-button.png', function(pixmapId) {
