@@ -1,6 +1,10 @@
 (function(exports) {
     "use strict";
 
+    function clamp(a, min, max) {
+        return Math.min(Math.max(a, min), max);
+    }
+
     function valueUpdated(a, b) {
         return a !== undefined && a !== b;
     }
@@ -26,18 +30,25 @@
 
         _constrainNewSize: function(clientGeometry) {
             var defaultMinSize = 50; // Reasonable size
+            var defaultMaxSize = 200;
 
             var minWidth = defaultMinSize, minHeight = defaultMinSize;
+            var maxWidth = defaultMaxSize, maxHeight = defaultMaxSize;
 
             var normalHints = this._display.getProperty({ windowId: this._clientWindowId, name: 'WM_NORMAL_HINTS' });
-            if (normalHints && normalHints.minWidth)
+            if (normalHints && normalHints.minWidth !== undefined)
                 minWidth = normalHints.minWidth;
-            if (normalHints && normalHints.minHeight)
+            if (normalHints && normalHints.minHeight !== undefined)
                 minHeight = normalHints.minHeight;
-            if (clientGeometry.width < minWidth)
-                clientGeometry.width = minWidth;
-            if (clientGeometry.height < minHeight)
-                clientGeometry.height = minHeight;
+            if (normalHints && normalHints.maxWidth !== undefined)
+                maxWidth = normalHints.maxWidth;
+            if (normalHints && normalHints.maxHeight !== undefined)
+                maxHeight = normalHints.maxHeight;
+
+            if (clientGeometry.width !== undefined)
+                clientGeometry.width = clamp(clientGeometry.width, minWidth, maxWidth);
+            if (clientGeometry.height !== undefined)
+            clientGeometry.height = clamp(clientGeometry.height, minHeight, maxHeight);
         },
 
         _updateGeometry: function(clientGeometry) {
@@ -204,7 +215,7 @@
                 return this._frameExpose(event);
             }
         },
-        _getControl: function(x, y) {
+        _getControlInner: function(x, y) {
             var topBorder = 4;
             var xDirection, yDirection;
 
@@ -243,6 +254,20 @@
             // client area, shouldn't ever happen
             return "";
         },
+        _getControl: function(x, y) {
+            var control = this._getControlInner(x, y);
+            var normalHints = this._display.getProperty({ windowId: this._clientWindowId, name: 'WM_NORMAL_HINTS' });
+
+            var yConstrained = normalHints && normalHints.minHeight !== undefined && normalHints.minHeight === normalHints.maxHeight;
+            if (yConstrained && (control.startsWith("top") || control.startsWith("bottom")))
+                return "";
+
+            var xConstrained = normalHints && normalHints.minWidth !== undefined && normalHints.minWidth === normalHints.maxWidth;
+            if (xConstrained && (control.endsWith("left") || control.endsWith("right")))
+                return "";
+
+            return control;
+        },
         _frameButtonPress: function(event) {
             if (event.button != 1)
                 return;
@@ -254,6 +279,8 @@
                 return;
 
             this._grabControl = this._getControl(event.winX, event.winY);
+            if (!this._grabControl)
+                return;
 
             this._origMousePos = { x: event.rootX, y: event.rootY };
 
