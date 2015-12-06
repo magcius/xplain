@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf8">
+    <link rel="stylesheet" href="article.css">
+    <link rel="stylesheet" href="../src/inspector/inspector.css">
+    <link rel="stylesheet" href="../src/server/server.css">
+    <link rel="shortcut icon" href="favicon.png">
+    <title>Xplain</title>
+</head>
+<body id="wm"><div class="main">
+    <header>
+        <a href="index.html">
+            <h1><span>Xplain</span></h1>
+            <span class="subtitle">Explaining X11 for the rest of us</span>
+        </a>
+    </header>
+
+    <article>
+        <h2></h2>
+
+        <section id="prologue">
+        <h3>Recap</h3>
+
+        <p>
+            Last time, we studied one of the core data structures of the X server, the
+            <span class="definition">region</span>. The region told the X server about the shapes of windows
+            and helped calculate which windows should be drawn where, and to which windows mouse input should
+            be sent to. We explored the construction, internals, and algorithms behind these regions,
+            concretely, and in detail.
+        </p>
+        <p>
+            The region article was different in that instead of high-level conceptual articles about the
+            X server's data model, we instead dove into the internals directly. Today, we'll be taking a step
+            back up and going back to the conceptual model and design of the X Window System. Specifically,
+            about how we can use the tools provided by X11 to construct a full desktop, not just a singular
+            application.
+        </p>
+        </section>
+
+        <section id="">
+        <h3></h3>
+        <p>
+            I've mentioned several times that X11, the protocol, is effectively a bag of tools that developers
+            can use to compose and construct applications in different ways, with different tradeoffs. These
+            tools are powerful, but given that we want a cohesive desktop full of applications that can be
+            controlled in a common way, we probably want some conventions for applications to follow.
+        </p>
+        <p>
+            Over the first few articles, I've used shaking kittens and input crosshairs for my "X server"
+            examples. My demos didn't provide frames with close buttons, or a taskbar. This isn't because
+            I wasn't using "a real X server" as you might imagine, it's simply that X11 simply does not
+            these features out of the box. Below, I have the same exact same shaking kitten demo as in the
+            first article, with one crucial difference: I have launched a window manager first.
+        </p>
+        <div class="demo-server" data-demo="two-kittens-wm"></div>
+        <p>
+            And yes, if you check, the only difference between the two is the line of code that starts up
+            the window manager. The
+            <a href="https://github.com/magcius/xplain/blob/gh-pages/src/article-demos/x-basics.js#L27-L48">client</a>
+            <a href="https://github.com/magcius/xplain/blob/gh-pages/src/article-demos/wm.js#L6-L30">code</a>,
+            otherwise, is identical in both cases. You can drag both windows around by clicking on the titlebar,
+            and you can still drag the top window around by clicking on the kitten.
+        </p>
+        <p>
+            Opening up the inspector, we can see that the window tree has become a tad more complex. Both of
+            the kitten windows from before are now wrapped in "frame windows", and we can even see a window
+            for a close button. Click on some of the windows, and under the properties section, you'll see
+            strange fields like <span class="definition">WM_NAME</span> and
+            <span class="definition">_NET_WM_FRAME_EXTENTS</span>. What are these?
+        </p>
+        <p>
+            The conventions that clients and window managers have to obey is documented in a large document
+            known as the "Inter-Client Communication Convention Manual", or <a href="http://www.x.org/releases/current/doc/xorg-docs/icccm/icccm.html">"ICCCM"</a>,
+            written back in the late 1980s. Using the expansive toolbox provided by the X11 protocol, the
+            authors of this manual devised clever schemes to wrap
+        </section>
+
+        <div class="nav-bottom"></div>
+    </article>
+
+    <script src="article.js"></script>
+
+    <script src="../src/region.js"></script>
+    <script src="../src/class.js"></script>
+    <script src="../src/canvas-util.js"></script>
+    <script src="../src/client-util.js"></script>
+    <script src="../src/server/server.js"></script>
+    <script src="../src/inspector/inspector.js"></script>
+    <script src="../src/article-demos/demos.js"></script>
+    <script src="../src/article-demos/demo-common.js"></script>
+    <script src="../src/article-demos/wm.js"></script>
+    <script src="../src/clients/xeyes.js"></script>
+    <script src="../src/clients/xclock.js"></script>
+    <script src="../src/clients/xlogo.js"></script>
+    <script src="../src/clients/wm.js"></script>
+    <script src="../src/clients/panel.js"></script>
+
+    <script>
+        (function() {
+            "use strict";
+
+            window.addEventListener("load", function() {
+                // Article.generateNavButtons();
+                // Article.generateSectionLinks();
+                ArticleDemos.runAllDemos();
+            });
+        })();
+    </script>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-35480078-2', 'magcius.github.io');
+      ga('send', 'pageview');
+    </script>
+</div></body>
+</html>
