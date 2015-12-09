@@ -87,7 +87,7 @@
         DemoCommon.setBackground(display, DemoCommon.makeStipple(display));
 
         // The shaking window that's behind.
-        var kitten2 = new DelayedExposeImage(server, "kitten2.png");
+        var kitten2 = new DemoCommon.DelayedExposeImage(server, "kitten2.png");
         DemoCommon.centerWindow(display, kitten2.windowId, { x: -20, y: 40 });
         display.mapWindow({ windowId: kitten2.windowId });
 

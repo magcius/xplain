@@ -77,10 +77,10 @@
                 newX = this._rootMouseX - this._winMouseX - frameExtents.left;
                 newY = this._rootMouseY - this._winMouseY - frameExtents.top;
             } else {
-                newCoords = this._display.translateCoordinates({ srcWindowId: this._display.rootWindowId, 
-                                                                 destWindowId: query.parent,
-                                                                 x: this._rootMouseX - this._winMouseX,
-                                                                 y: this._rootMouseY - this._winMouseY });
+                var newCoords = this._display.translateCoordinates({ srcWindowId: this._display.rootWindowId,
+                                                                     destWindowId: query.parent,
+                                                                     x: this._rootMouseX - this._winMouseX,
+                                                                     y: this._rootMouseY - this._winMouseY });
                 newX = newCoords.x;
                 newY = newCoords.y;
             }
