@@ -44,14 +44,15 @@
             I've mentioned several times that X11, the protocol, is effectively a bag of tools that developers
             can use to compose and construct applications in different ways, with different tradeoffs. These
             tools are powerful, but given that we want a cohesive desktop full of applications that can be
-            controlled in a common way, we probably want some conventions for applications to follow.
+            controlled in a common way, we probably want some common conventions between applications.
         </p>
         <p>
             Over the first few articles, I've used shaking kittens and input crosshairs for my "X server"
-            examples. My demos didn't provide frames with close buttons, or a taskbar. This isn't because
-            I wasn't using "a real X server" as you might imagine, it's simply that X11 simply does not
-            these features out of the box. Below, I have the same exact same shaking kitten demo as in the
-            first article, with one crucial difference: I have launched a window manager first.
+            examples. My demos didn't provide, as an example, titlebars you could drag the kittens around
+            with. This isn't because I wasn't using "a real X server" as you might imagine, it's simply
+            that X11 simply does not these features out of the box. Below, I have the same exact same
+            shaking kitten demo as in the first article, with one crucial difference: I have launched a
+            window manager first.
         </p>
         <div class="demo-server" data-demo="two-kittens-wm"></div>
         <p>
@@ -66,14 +67,125 @@
             Opening up the inspector, we can see that the window tree has become a tad more complex. Both of
             the kitten windows from before are now wrapped in "frame windows", and we can even see a window
             for a close button. Click on some of the windows, and under the properties section, you'll see
-            strange fields like <span class="definition">WM_NAME</span> and
-            <span class="definition">_NET_WM_FRAME_EXTENTS</span>. What are these?
+            fields like <code>WM_NAME</code> and <code>_NET_WM_FRAME_EXTENTS</code>. What are these?
         </p>
         <p>
-            The conventions that clients and window managers have to obey is documented in a large document
+            X11 does not dictate how you takes its primitives and put them together. This very explicit design
+            decision is sometimes worded as "providing mechanism, not policy". Windows don't have a titlebar or
+            are even required to have a title. They don't get close buttons, and they don't raise to the top
+            when you click on them. To the X11 protocol authors, these decisions are "policy" and are best left
+            to application and desktop environment authors.
+        </p>
+        <p>
+            In its stead, X11 provided a very flexible mechanism for having <span class="definition">properties</span>
+            on windows. It's effectively a key/value store, where you can put arbitrary data on a window, from
+            simple integers and strings to even icons and even pointers to other windows. Additionally, it's
+            possible to send events to other clients using the
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:SendEvent" class="code-literal">SendEvent</a>
+            request.
+        </p>
+        <p>
+            Well, a quick footnote. This is a bit inconsequential, but since it was featured in an
+            <a href="http://lists.slug.org.au/archives/slug-chat/2001/July/msg00054.html">infamous rant</a> on the ICCCM (warning: explicit language),
+            I can't help but mention this. For the keys of window properties, instead of using a string key,
+            you are required to first create an <code>Atom</code>, which is an interned string for the purpose of cutting
+            down on traffic. To create or lookup an atom from a string, you send the
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:InternAtom">InternAtom</a> request.
+            For debugging purposes, you can also retrieve the string behind an atom with
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:GetAtomName">GetAtomName</a>.
+            Atoms aren't complex or difficult to understand &mdash; they're just a quick way to cut down on traffic. They are
+            used as key names, as property type names, as enum values, and in plenty of other places.
+        </p>
+        <p>
+            The rules that clients and window managers have to obey is documented in a large document
             known as the "Inter-Client Communication Convention Manual", or <a href="http://www.x.org/releases/current/doc/xorg-docs/icccm/icccm.html">"ICCCM"</a>,
-            written back in the late 1980s. Using the expansive toolbox provided by the X11 protocol, the
-            authors of this manual devised clever schemes to wrap
+            written back in the late 1980s. Using these basic primitives provided by X11 &mdash; windows, properties,
+            and events &mdash; the authors constructed on top new features like window managers with
+            titlebars, copy/paste functionality, taskbars, and plenty more. Additionally, as a namespacing thing,
+            the ICCCM prefixed all properties and names it defined with <code>WM_</code>.
+        </p>
+        <p>
+            As a matter of history, this document was constructed by editors at UNIX vendors like Sun Microsystems,
+            Digital Equipment Corporation, and Hewlett-Packard, constructing a closed-source called
+            <a href="https://en.wikipedia.org/wiki/Motif_%28software%29">Motif</a>, and later, a full desktop
+            environment, <a href="https://en.wikipedia.org/wiki/Common_Desktop_Environment">CDE</a>.
+        </p>
+        <p>
+            In the open-source world, work had started on the KDE and GNOME desktop environments. Developers
+            there could read and understand the ICCCM, but since the ICCCM was authored by a committee focused
+            solely on CDE and related software, there was no way to contribute back. In response, the
+            open-source developers started an alternative specification, the
+            <a href="http://standards.freedesktop.org/wm-spec/wm-spec-latest.html">Extended Window Manager Hints</a> (EWMH),
+            sometimes also called the "wm-spec", after the document's name. The ICCCM also recommended that
+            any vendor-specific extensions be prefixed with the vendor's name. Since the EWMH team saw themselves
+            as part of the "<a href="https://mail.gnome.org/archives/wm-spec-list/1999-June/msg00019.html">internet community,</a>"
+            all EWMH-defined properties start with <code>_NET_WM_</code>, so it also informally known as the "net wm spec".
+        </p>
+        <p>
+            As the UNIX wars dwindled and as Linux and the free environments took over, the ICCCM stagnated.
+            The last version was released in 1994. A lot of parts of it have been superseded by the newer EWMH
+            specification, but not all. It's still a worthwhile document if you're interested in doing
+            X11 application development, or in writing a window manager.
+        </p>
+        </section>
+
+        <section>
+        <p>
+            With that history out of the way, it's worth talking about how the basics of window managers work,
+            distilled down from the ICCCM. When an application wants to create and then show a window, it first
+            send the <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:CreateWindow" class="code-literal">CreateWindow</a>
+            request, and then follows up with a <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#requests:MapWindow" class="code-literal">MapWindow</a>
+            to actually show the window. Without a window manager running, these execute "normally", by creating
+            and then showing the window. A window manager, however, needs a hook into when windows are shown, so
+            it can... well... manage the window.
+        </p>
+        <p>
+            This hook is known as "<code>SubstructureRedirect</code>". As I've mentioned previously, clients can
+            "select" for events on windows, like Expose or ButtonPress. But clients can also select for things
+            that might seem like concepts, like this <code>SubstructureRedirect</code>. A client selecting for
+            this will get all <code>MapWindow</code> requests redirected to it, in the form of a
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#events:MapRequest" class="code-literal">MapRequest</a> event.
+            The window manager has the power to adjust the request. Perhaps it resizes the window if it is
+            too large, or repositions it to not cover existing windows. It reparents the given window into a
+            new "frame window" it creates, draws a titlebar in it, and then resubmits the <code>MapWindow</code>
+            request once ready.
+        </p>
+        <p>
+            If this "hook" to implement allow external policies feels a bit foreign or forced, you're not alone.
+            While "mechanism, not policy" is generally a good concept, sometimes figuring out how to expose those
+            policies can be awkward in practice. At other times, the line between the two can seem extremely thin.
+            One of the X11 authors talked about their experience integrating X11 into
+            <a href="https://lwn.net/Articles/611969/">SteamOS</a> while taking into account the goals, and
+            the result is pretty strange. Some of the things that X11 assumed were mechanism, like the mouse cursor
+            and the monitor's display mode, needed to be turned into policy. A wide variety of complex
+            application-specific workarounds and some (personally speaking) pretty ugly kludges were needed.
+        </p>
+        <p>
+            It becomes even more awkward once you realize that moving or resizing windows is also covered under
+            this <code>SubstructureRedirect</code> hook. It feels a bit too much like an "insert window manager here".
+        </p>
+        </section>
+
+        <section>
+        <p>
+            The ICCCM is majorly complex, but we can look at an interesting special case: the humble drop-down menu.
+            While at first sight it might look 
+        </p>
+        </section>
+
+        <section>
+        <p>
+            Unfortunately, to understand a lot of the complexity of ICCCM, you also have to understand the X11
+            input model. We briefly touched on it back in "Advanced Window Techniques", where we learned how it
+            applied to the window tree. The new feature we're going to learn about today is "grabs". I've put off
+            wanting to talk about grabs simply because they are varied and complex, with a number of different
+            toggles (asynchronous vs. synchronous grabs, explicit vs. implicit grabs, active vs. passive grabs).
+        </p>
+        <p>
+            For now, let's focus on the simplest case: an asynchronous, explicit, active pointer grab. When
+            drop-down menus are opened in most X11 applications, clicking elsewhere pops down the menu but also
+            eats the click from the
+        </p>
         </section>
 
         <div class="nav-bottom"></div>
