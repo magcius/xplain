@@ -373,7 +373,7 @@ function combineRegion(regionA, regionB, bandOperation) {
             It's a checkerboard. Each pixel in here has two walls. Each "on" pixel is two walls, and each row
             is its own band, so assuming that we use 32-bit numbers for the positions, 8 bytes per pixel, and
             8 extra bytes per band to store the top and bottom. Since is checkerboard is 16x10, that means we
-            have (16*4+8) bytes = 132 bytes per band, and we have ten of them, for 1,320 bytes. In a bitmap,
+            have (16*4+8) bytes = 72 bytes per band, and we have ten of them, for 720 bytes. In a bitmap,
             each row could be packed into two bytes, for a total of 20 bytes. Yeesh.
         </p>
         <p>
