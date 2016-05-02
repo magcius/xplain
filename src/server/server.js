@@ -1036,6 +1036,9 @@
         },
         filterEvent: function(event) {
             var windowId = event.windowId;
+            if (windowId === undefined)
+                return false;
+
             if (this.isInterestedInWindowEvent(windowId, event.type))
                 return true;
 
@@ -1167,9 +1170,10 @@
             // Else, if we should report this event, report it with respect
             // to the grab window.
             } else if (this._events.indexOf(event.type) >= 0) {
-                var newEvent = Object.create(event);
-                newEvent.windowId = this.grabWindow.xid;
-                this.serverClient.sendEvent(newEvent);
+                // XXX: We should set child to be the immediate child if the
+                // source window is inside the grab window tree.
+                this._server.setEventWindowForEvent(event, this.grabWindow, null);
+                this.serverClient.sendEvent(event);
             }
         },
         sendEvent: function(event) {
@@ -1320,6 +1324,10 @@
                 this._grabClient.sendEvent(event);
                 return true;
             } else {
+                // Unselected events are simply discarded.
+                if (!event.windowId)
+                    return;
+
                 var clients = this._getServerClientsForEvent(event, except);
                 clients.forEach(function(serverClient) {
                     serverClient.sendEvent(event);
@@ -1378,7 +1386,7 @@
                 case "Motion":
                 case "ButtonPress":
                 case "ButtonRelease":
-                    eventWindow = this._grabClient ? this._grabClient.grabWindow : findInterestedWindow(childWindow, eventType, null);
+                    eventWindow = findInterestedWindow(childWindow, eventType, null);
                 break;
                 case "KeyPress":
                 case "KeyRelease":
@@ -1394,25 +1402,29 @@
             return { event: eventWindow,
                      child: childWindow };
         },
+        setEventWindowForEvent: function(event, eventWindow, childWindow) {
+            if (eventWindow) {
+                event.windowId = eventWindow.xid;
+                var winCoords = this._translateCoordinates(this._rootWindow, eventWindow, event.rootX, event.rootY);
+                event.winX = winCoords.x;
+                event.winY = winCoords.y;
+            }
+            if (childWindow)
+                event.childWindowId = childWindow.xid;
+        },
         _handleInputBase: function(eventType, domEvent) {
             // The X server should capture all input events.
             domEvent.preventDefault();
             domEvent.stopPropagation();
 
-            var windows = this._findEventAndChildWindow(eventType);
-            if (!windows.event)
-                return null;
-
-            var winCoords = this._translateCoordinates(this._rootWindow, windows.event, this._cursorX, this._cursorY);
-
             var event = { type: eventType,
                           rootWindowId: this.rootWindowId,
                           rootX: this._cursorX,
-                          rootY: this._cursorY,
-                          windowId: windows.event.xid,
-                          childWindowId: windows.child ? windows.child.xid : null,
-                          winX: winCoords.x,
-                          winY: winCoords.y };
+                          rootY: this._cursorY, };
+
+            var windows = this._findEventAndChildWindow(eventType);
+            this.setEventWindowForEvent(event, windows.event, windows.child);
+
             return event;
         },
         _updateCursor: function(domEvent) {
