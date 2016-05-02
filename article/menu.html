@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf8">
+    <link rel="stylesheet" href="article.css">
+    <link rel="stylesheet" href="../src/inspector/inspector.css">
+    <link rel="stylesheet" href="../src/server/server.css">
+    <link rel="shortcut icon" href="favicon.png">
+    <title>Xplain</title>
+</head>
+<body id="menu"><div class="main">
+    <header>
+        <a href="index.html">
+            <h1><span>Xplain</span></h1>
+            <span class="subtitle">Explaining X11 for the rest of us</span>
+        </a>
+    </header>
+
+    <article>
+        <h2></h2>
+
+        <section id="intro">
+        <h3>Tunnel vision</h3>
+        <p>
+            Writing this series is difficult. I often grapple with trying to come up with compelling demos,
+            an understandable, linear story to tell, with understandable writing. I want to show people the
+            power of how the X11 protocol works in practice. And a lot of the time, I struggle to come up
+            with an topic I can make interesting in the first place.
+        </p>
+        <p>
+            For the last little while, I've wanted to build up to an article on window managers, and so I
+            write a bunch of accurate JavaScript which implements a window manager, and I write xclock
+            and xlogo and a panel for people to play around with. I talk about the ICCCM, and window
+            reparenting, and grab semantics, but, well, it just never comes out good. It becomes a bunch
+            of tedious minutae more than an interesting premise.
+        </p>
+        <p>
+            And so I switched gears, and talked about the region data structure, for instance. And I was
+            able to write that in a day or two. I want to write more, but it's easy to get discouraged
+            when I have a topic but can't find a way to make it feel good.
+        </p>
+        <p>
+            I focused too heavily on "window managers", struggling to fit the pieces, that I forgot about
+            my goal for this series. I want to teach people about the different pieces of the X11 protocol,
+            why they exist, and how we've been able to build real-world applications with the sometimes
+            fairly unintitive primitives it provides.
+        </p>
+        <p>
+            Today's article is not about window managers.
+        </p>
+        <p>
+            Today, we're going to learn about why building a seemingly simple widget, the humble dropdown
+            menu, is a lot harder than first appearances might lead you to believe. Together, we'll
+            learn a lot about grabs in the X11 input model, about why subwindows aren't at all useful,
+            and maybe, just maybe, learn a bit about Wayland as well.
+        </p>
+        <p>
+            Sounds like fun? I hope so.
+        </p>
+        </section>
+
+        <section id="the-humble-dropdown menu">
+        <h3>The humble dropdown menu</h3>
+
+        <div class="demo-server" data-demo="menu-example"></div>
+        <p>
+            Here. I've placed a tiny image viewer widget in front of you. It's like the kitten windows
+            from the first set of articles, but it now has a few extra features &mdash; it allows you to
+            resize it with a grip at the bottom right, and it allows you to drag with the grip in the top
+            left, It also has a drop-down menu directly to the right of the move grip.
+        </p>
+        </section>
+
+        <div class="nav-bottom"></div>
+    </article>
+
+    <script src="article.js"></script>
+
+    <script src="../src/region.js"></script>
+    <script src="../src/class.js"></script>
+    <script src="../src/canvas-util.js"></script>
+    <script src="../src/client-util.js"></script>
+    <script src="../src/server/server.js"></script>
+    <script src="../src/inspector/inspector.js"></script>
+    <script src="../src/article-demos/demos.js"></script>
+    <script src="../src/article-demos/demo-common.js"></script>
+    <script src="../src/article-demos/menu.js"></script>
+
+    <script>
+        (function() {
+            "use strict";
+
+            window.addEventListener("load", function() {
+                // Article.generateNavButtons();
+                // Article.generateSectionLinks();
+                ArticleDemos.runAllDemos();
+            });
+        })();
+    </script>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-35480078-2', 'magcius.github.io');
+      ga('send', 'pageview');
+    </script>
+</div></body>
+</html>
