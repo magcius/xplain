@@ -598,6 +598,10 @@
                 case 'ConfigureNotify':
                     this._syncGeometry();
                 break;
+                case 'MapNotify':
+                case 'UnmapNotify':
+                    this._syncAttributes();
+                break;
                 case 'PropertyNotify':
                     this._syncProperties();
                 break;
@@ -610,11 +614,11 @@
 
             if (this._selectedWindowId)
                 this._display.selectInput({ windowId: this._selectedWindowId,
-                                            events: ['!ConfigureNotify', '!PropertyNotify'] });
+                                            events: ['!ConfigureNotify', '!PropertyNotify', '!MapNotify', '!UnmapNotify'] });
             this._selectedWindowId = xid;
             if (this._selectedWindowId)
                 this._display.selectInput({ windowId: this._selectedWindowId,
-                                            events: ['ConfigureNotify', 'PropertyNotify'] });
+                                            events: ['ConfigureNotify', 'PropertyNotify', 'MapNotify', 'UnmapNotify'] });
             this._sync();
         },
     });
