@@ -1651,6 +1651,9 @@
                           rootX: this._cursorX,
                           rootY: this._cursorY };
 
+            if (!focusWindow.viewable)
+                throw clientError("BadMatch");
+
             if (focusWindow != this._focusServerWindow) {
                 this._sendFocusEvents(event, this._focusServerWindow, focusWindow);
                 this._focusServerWindow = focusWindow;
