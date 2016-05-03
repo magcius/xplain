@@ -129,7 +129,7 @@
             this._parentWindowId = parentWindowId;
             this.windowId = this._display.createWindow({ x: 8, y: 8, width: 16, height: 16 });
             this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ButtonPress"] });
-            this._display.changeAttributes({ windowId: this.windowId, cursor: "x-cursor" });
+            this._display.changeAttributes({ windowId: this.windowId, cursor: "grab" });
             this._display.changeProperty({ windowId: this.windowId, name: "DEBUG_NAME", value: "Move Grip" });
             this._display.reparentWindow({ windowId: this.windowId, newParentId: this._parentWindowId });
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));

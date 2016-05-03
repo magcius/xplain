@@ -10,6 +10,10 @@
     cursor: url(pointer.png) 14 8, auto;
 }
 
+.xserver.js[data-cursor="grab"] {
+    cursor: url(grab.png) 20 17, auto;
+}
+
 .xserver.js[data-cursor="grabbing"] {
     cursor: url(grabbing.png) 20 17, auto;
 }
