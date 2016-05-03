@@ -3,6 +3,13 @@
 (function(exports) {
     "use strict";
 
+    var BACKGROUND = '#eee';
+    var FOREGROUND = '#000';
+    var BACKGROUND_HILITE = '#fff';
+    var FOREGROUND_HILITE = '#000';
+    var BACKGROUND_SELECTED = '#aaccff';
+    var FOREGROUND_SELECTED = '#000';
+
     var ResizeGrip = new Class({
         initialize: function(server, parentWindowId) {
             var connection = server.connect();
@@ -41,6 +48,11 @@
             var dy = this._rootMouseY - this._origRootMouseY;
             var newWidth = this._origWindowWidth + dx;
             var newHeight = this._origWindowHeight + dy;
+            var hints = this._display.getProperty({ windowId: this._parentWindowId, name: "WM_NORMAL_HINTS" });
+            if (hints && hints.minWidth)
+                newWidth = Math.max(newWidth, hints.minWidth);
+            if (hints && hints.minHeight)
+                newHeight = Math.max(newHeight, hints.minHeight);
             this._display.configureWindow({ windowId: this._parentWindowId, width: newWidth, height: newHeight });
         },
         _updateWindowFromEvent: function(event) {
@@ -93,17 +105,23 @@
             this._display.drawTo(this.windowId, function(ctx) {
                 this._exposeHandler.clip(ctx);
 
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = BACKGROUND;
+                ctx.fillRect(0, 0, width, height);
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = '#000';
-                ctx.rect(0, 0, width, height);
-                ctx.fill();
+                ctx.moveTo(width, 0);
+                ctx.lineTo(width, height);
+                ctx.lineTo(0, height);
                 ctx.stroke();
 
                 ctx.beginPath();
+                ctx.rect(0, 0, width-2, height-2);
+                ctx.clip();
+
+                ctx.beginPath();
                 ctx.lineWidth = 1;
-                ctx.strokeStyle = '#000';
-                var N_LINES = 4;
+                ctx.strokeStyle = '#666';
+                var N_LINES = 5;
                 for (var i = 0; i < N_LINES; i++) {
                     var startX = (i / N_LINES) * (width / 2);
                     var endX = startX + width;
@@ -127,7 +145,7 @@
             }.bind(this));
 
             this._parentWindowId = parentWindowId;
-            this.windowId = this._display.createWindow({ x: 8, y: 8, width: 16, height: 16 });
+            this.windowId = this._display.createWindow({ x: 8, y: 10, width: 16, height: 16 });
             this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ButtonPress"] });
             this._display.changeAttributes({ windowId: this.windowId, cursor: "grab" });
             this._display.changeProperty({ windowId: this.windowId, name: "DEBUG_NAME", value: "Move Grip" });
@@ -192,12 +210,18 @@
             this._display.drawTo(this.windowId, function(ctx) {
                 this._exposeHandler.clip(ctx);
 
-                ctx.fillStyle = '#777';
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = '#000';
-                ctx.rect(0, 0, width, height);
-                ctx.fill();
-                ctx.stroke();
+                ctx.fillStyle = BACKGROUND;
+                ctx.fillRect(0, 0, width, height);
+
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = '#666';
+                var N_LINES = 4;
+                for (var y = .5; y < height; y += ctx.lineWidth * 2) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
             }.bind(this));
         },
     })
@@ -303,7 +327,7 @@
             this._display.drawTo(this.windowId, function(ctx) {
                 this._exposeHandler.clip(ctx);
 
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = BACKGROUND;
                 ctx.fillRect(0, 0, width, height);
 
                 ctx.save();
@@ -326,17 +350,17 @@
 
                         var isSelected = (idx == this._selectedItemIndex);
                         if (isSelected && this._isPressed) {
-                            ctx.fillStyle = '#000';
+                            ctx.fillStyle = BACKGROUND_SELECTED;
                             ctx.fillRect(0, 0, width, this.heightPerItem);
-                            ctx.fillStyle = '#fff';
+                            ctx.fillStyle = FOREGROUND_SELECTED;
                             ctx.fillText(item, textLeftPad, textTopPad);
                         } else if (isSelected) {
-                            ctx.fillStyle = '#ccc';
+                            ctx.fillStyle = BACKGROUND_HILITE;
                             ctx.fillRect(0, 0, width, this.heightPerItem);
-                            ctx.fillStyle = '#000';
+                            ctx.fillStyle = FOREGROUND_HILITE;
                             ctx.fillText(item, textLeftPad, textTopPad);
                         } else {
-                            ctx.fillStyle = '#000';
+                            ctx.fillStyle = FOREGROUND;
                             ctx.fillText(item, textLeftPad, textTopPad);
                         }
                     }
@@ -345,7 +369,7 @@
                 ctx.restore();
 
                 ctx.lineWidth = 2;
-                ctx.strokeStyle = '#000';
+                ctx.strokeStyle = '#aaa';
                 ctx.strokeRect(0, 0, width, height);
             }.bind(this));
         },
@@ -505,7 +529,7 @@
             this._display.drawTo(this.windowId, function(ctx) {
                 this._exposeHandler.clip(ctx);
 
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = BACKGROUND;
                 ctx.fillRect(0, 0, width, height);
 
                 ctx.textAlign = 'center';
@@ -515,21 +539,22 @@
                     var x = item.x;
                     var slotWidth = item.slotWidth;
                     var textX = x + slotWidth/2;
-                    var textTopPad = 6;
+                    var textTopPad = 8;
                     ctx.font = '12pt sans-serif';
 
                     if (i == this._currentPopupItemIndex) {
-                        ctx.fillStyle = '#000';
+                        ctx.fillStyle = BACKGROUND_SELECTED;
                         ctx.fillRect(x, 0, slotWidth, height);
-                        ctx.fillStyle = '#fff';
+
+                        ctx.fillStyle = FOREGROUND_SELECTED;
                         ctx.fillText(item.label, textX, textTopPad);
                     } else if (i == this._selectedItemIndex) {
-                        ctx.fillStyle = '#eee';
+                        ctx.fillStyle = BACKGROUND_HILITE;
                         ctx.fillRect(x, 0, slotWidth, height);
-                        ctx.fillStyle = '#000';
+                        ctx.fillStyle = FOREGROUND_HILITE;
                         ctx.fillText(item.label, textX, textTopPad);
                     } else {
-                        ctx.fillStyle = '#000';
+                        ctx.fillStyle = FOREGROUND;
                         ctx.fillText(item.label, textX, textTopPad);
                     }
                 }.bind(this));
@@ -546,9 +571,12 @@
                 this._handleEvent(messageEvent.data);
             }.bind(this));
 
-            this.windowId = this._display.createWindow({ x: 200, y: 50, width: 300, height: 300 });
+            this.windowId = this._display.createWindow({ x: 190, y: 50, width: 400, height: 320 });
             this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ConfigureNotify"] });
             this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "Image Viewer" });
+            this._display.changeProperty({ windowId: this.windowId, name: 'WM_NORMAL_HINTS', value: {
+                minWidth: 100, minHeight: 100,
+            } });
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
 
             this._resizeGrip = new ResizeGrip(server, this.windowId);
@@ -568,10 +596,12 @@
             this._display.configureWindow({ windowId: this._menuBar.windowId, x: 32, y: 1 });
             this._display.mapWindow({ windowId: this._menuBar.windowId });
 
-            /*
-            this._menuPopup = new DropdownMenuPopup(server, menuItems[0][1]);
-            this._menuPopup.popup(100, 100);
-            */
+            this._pixmapId = 0;
+            ClientUtil.loadImageAsPixmap(this._display, 'kitten500.jpg', function(pixmapId) {
+                var geometry = this._display.getGeometry({ drawableId: pixmapId });
+                this._pixmapId = pixmapId;
+                this._display.invalidateWindow({ windowId: this.windowId });
+            }.bind(this));
         },
         _configureNotify: function(event) {
             // Invalidate the entire window when we get resized, as we need
@@ -595,12 +625,46 @@
             this._display.drawTo(this.windowId, function(ctx) {
                 this._exposeHandler.clip(ctx);
 
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = BACKGROUND;
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = '#000';
                 ctx.rect(0, 0, width, height);
                 ctx.fill();
                 ctx.stroke();
+
+                var padTop = 40;
+                var padBottom = 20;
+                var padLeft = 8, padRight = 8;
+
+                if (this._pixmapId) {
+                    var image = this._display.getPixmapImage({ pixmapId: this._pixmapId });
+                    var imageWidth = image.width, imageHeight = image.height;
+
+                    var innerWidth = width - padLeft - padRight;
+                    var innerHeight = height - padTop - padBottom;
+
+                    var innerRatio = innerWidth / innerHeight;
+                    var imageRatio = imageWidth / imageHeight;
+                    var drawWidth, drawHeight;
+                    if (imageRatio > innerRatio) {
+                        drawWidth = innerWidth;
+                        drawHeight = innerWidth / imageRatio;
+                    } else {
+                        drawWidth = innerHeight;
+                        drawHeight = innerHeight * imageRatio;
+                    }
+
+                    var centerX = (padLeft + (innerWidth - drawWidth) / 2) | 0;
+                    var centerY = (padTop + (innerHeight - drawHeight) / 2) | 0;
+
+                    ctx.shadowColor = '#aaa';
+                    ctx.shadowBlur = 10;
+                    ctx.drawImage(image, centerX, centerY, drawWidth, drawHeight);
+
+                    ctx.strokeStyle = '#666';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(centerX+.5, centerY+.5, drawWidth, drawHeight);
+                }
             }.bind(this));
         },
     });
@@ -612,7 +676,8 @@
         var connection = server.connect();
         var display = connection.display;
 
-        DemoCommon.setBackground(display, DemoCommon.makeStipple(display));
+        display.changeAttributes({ windowId: display.rootWindowId, backgroundColor: '#335180' });
+        display.invalidateWindow({ windowId: display.rootWindowId });
 
         var menu = new Kitten(server);
         display.mapWindow(menu);
