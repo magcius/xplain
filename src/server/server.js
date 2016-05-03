@@ -147,7 +147,7 @@
             // region of serverWindow's parent.
             var recursivelyExpose = function(serverWindow, inRegion) {
                 // Skip mapped windows.
-                if (!serverWindow.mapped)
+                if (!serverWindow.viewable)
                     return;
                 // Skip redirected windows.
                 if (serverWindow.drawTree != this)
@@ -292,6 +292,7 @@
             this.cursor = '';
             this.mapped = false;
             this.viewable = false;
+            this._inputOnly = !!props.inputOnly;
 
             this._configureWindow(props);
         },
@@ -454,6 +455,7 @@
                 overrideRedirect: this._overrideRedirect,
                 cursor: this.cursor,
                 mapState: mapState,
+                inputOnly: this._inputOnly,
             };
         },
         changeAttributes: function(client, attributes) {
@@ -483,6 +485,10 @@
         _shouldBeViewable: function() {
             // Unmapped windows are unviewable.
             if (!this.mapped)
+                return false;
+
+            // InputOnly windows are unviewable.
+            if (this._inputOnly)
                 return false;
 
             if (this.windowTreeParent) {
