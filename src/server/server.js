@@ -1172,8 +1172,9 @@
             } else if (this._events.indexOf(event.type) >= 0) {
                 // XXX: We should set child to be the immediate child if the
                 // source window is inside the grab window tree.
-                this._server.setEventWindowForEvent(event, this.grabWindow, null);
-                this.serverClient.sendEvent(event);
+                var newEvent = Object.create(event);
+                this._server.setEventWindowForEvent(newEvent, this.grabWindow, null);
+                this.serverClient.sendEvent(newEvent);
             }
         },
         sendEvent: function(event) {
