@@ -10,224 +10,8 @@
     var BACKGROUND_SELECTED = '#aaccff';
     var FOREGROUND_SELECTED = '#000';
 
-    var ResizeGrip = new Class({
-        initialize: function(server, parentWindowId) {
-            var connection = server.connect();
-            this._display = connection.display;
-            var port = connection.clientPort;
-            port.addEventListener("message", function(messageEvent) {
-                this._handleEvent(messageEvent.data);
-            }.bind(this));
-
-            this._parentWindowId = parentWindowId;
-            this.windowId = this._display.createWindow({ x: 0, y: 0, width: 16, height: 16 });
-            this._display.selectInput({ windowId: this._parentWindowId, events: ["ConfigureNotify"] });
-            this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ButtonPress"] });
-            this._display.changeAttributes({ windowId: this.windowId, cursor: "bottom-right" });
-            this._display.changeProperty({ windowId: this.windowId, name: "DEBUG_NAME", value: "Resize Grip" });
-            this._display.reparentWindow({ windowId: this.windowId, newParentId: this._parentWindowId });
-            this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
-            this._parentResized();
-        },
-        _handleEvent: function(event) {
-            switch(event.type) {
-            case "ButtonPress":
-                return this._handleButtonPress(event);
-            case "ButtonRelease":
-                return this._handleButtonRelease(event);
-            case "Motion":
-                return this._handleMotion(event);
-            case "Expose":
-                return this._exposeHandler.handleExpose(event);
-            case "ConfigureNotify":
-                return this._parentReconfigured(event);
-            }
-        },
-        _sync: function() {
-            var dx = this._rootMouseX - this._origRootMouseX;
-            var dy = this._rootMouseY - this._origRootMouseY;
-            var newWidth = this._origWindowWidth + dx;
-            var newHeight = this._origWindowHeight + dy;
-            var hints = this._display.getProperty({ windowId: this._parentWindowId, name: "WM_NORMAL_HINTS" });
-            if (hints && hints.minWidth)
-                newWidth = Math.max(newWidth, hints.minWidth);
-            if (hints && hints.minHeight)
-                newHeight = Math.max(newHeight, hints.minHeight);
-            this._display.configureWindow({ windowId: this._parentWindowId, width: newWidth, height: newHeight });
-        },
-        _updateWindowFromEvent: function(event) {
-            this._rootMouseX = event.rootX;
-            this._rootMouseY = event.rootY;
-            this._sync();
-        },
-        _handleButtonRelease: function(event) {
-            if (event.button != 1)
-                return;
-
-            this._updateWindowFromEvent(event);
-            this._display.ungrabPointer({ windowId: this._windowId });
-        },
-        _handleMotion: function(event) {
-            this._updateWindowFromEvent(event);
-        },
-        _handleButtonPress: function(event) {
-            if (event.button != 1)
-                return;
-
-            this._origRootMouseX = event.rootX;
-            this._origRootMouseY = event.rootY;
-            var parentGeometry = this._display.getGeometry({ drawableId: this._parentWindowId });
-            this._origWindowWidth = parentGeometry.width;
-            this._origWindowHeight = parentGeometry.height;
-            this._updateWindowFromEvent(event);
-
-            this._display.grabPointer({ windowId: this.windowId,
-                                        ownerEvents: false,
-                                        events: ["ButtonRelease", "Motion"],
-                                        pointerMode: "Async" });
-        },
-        _parentReconfigured: function(event) {
-            if (event.width !== undefined || event.height !== undefined)
-                this._parentResized(event);
-        },
-        _parentResized: function() {
-            var geometry = this._display.getGeometry({ drawableId: this.windowId });
-            var parentGeometry = this._display.getGeometry({ drawableId: this._parentWindowId });
-
-            this._display.configureWindow({ windowId: this.windowId,
-                                            x: parentGeometry.width - geometry.width,
-                                            y: parentGeometry.height - geometry.height });
-        },
-        _draw: function() {
-            var geom = this._display.getGeometry({ drawableId: this.windowId });
-            var width = geom.width, height = geom.height;
-
-            this._display.drawTo(this.windowId, function(ctx) {
-                this._exposeHandler.clip(ctx);
-
-                ctx.fillStyle = BACKGROUND;
-                ctx.fillRect(0, 0, width, height);
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = '#000';
-                ctx.moveTo(width, 0);
-                ctx.lineTo(width, height);
-                ctx.lineTo(0, height);
-                ctx.stroke();
-
-                ctx.beginPath();
-                ctx.rect(0, 0, width-2, height-2);
-                ctx.clip();
-
-                ctx.beginPath();
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = '#666';
-                var N_LINES = 5;
-                for (var i = 0; i < N_LINES; i++) {
-                    var startX = (i / N_LINES) * (width / 2);
-                    var endX = startX + width;
-                    var endY = (i / N_LINES) * (height / 2);
-                    var startY = endY + height;
-                    ctx.moveTo(startX, startY);
-                    ctx.lineTo(endX, endY);
-                }
-                ctx.stroke();
-            }.bind(this));
-        },
-    })
-
-    var MoveGrip = new Class({
-        initialize: function(server, parentWindowId) {
-            var connection = server.connect();
-            this._display = connection.display;
-            var port = connection.clientPort;
-            port.addEventListener("message", function(messageEvent) {
-                this._handleEvent(messageEvent.data);
-            }.bind(this));
-
-            this._parentWindowId = parentWindowId;
-            this.windowId = this._display.createWindow({ x: 8, y: 10, width: 16, height: 16 });
-            this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ButtonPress"] });
-            this._display.changeAttributes({ windowId: this.windowId, cursor: "grab" });
-            this._display.changeProperty({ windowId: this.windowId, name: "DEBUG_NAME", value: "Move Grip" });
-            this._display.reparentWindow({ windowId: this.windowId, newParentId: this._parentWindowId });
-            this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
-        },
-        _handleEvent: function(event) {
-            switch(event.type) {
-            case "ButtonPress":
-                return this._handleButtonPress(event);
-            case "ButtonRelease":
-                return this._handleButtonRelease(event);
-            case "Motion":
-                return this._handleMotion(event);
-            case "Expose":
-                return this._exposeHandler.handleExpose(event);
-            }
-        },
-        _sync: function() {
-            var dx = this._rootMouseX - this._origRootMouseX;
-            var dy = this._rootMouseY - this._origRootMouseY;
-            var newX = this._origWindowX + dx;
-            var newY = this._origWindowY + dy;
-            this._display.configureWindow({ windowId: this._parentWindowId, x: newX, y: newY });
-        },
-        _updateWindowFromEvent: function(event) {
-            this._rootMouseX = event.rootX;
-            this._rootMouseY = event.rootY;
-            this._sync();
-        },
-        _handleButtonRelease: function(event) {
-            if (event.button != 1)
-                return;
-
-            this._updateWindowFromEvent(event);
-            this._display.ungrabPointer({ windowId: this._windowId });
-        },
-        _handleMotion: function(event) {
-            this._updateWindowFromEvent(event);
-        },
-        _handleButtonPress: function(event) {
-            if (event.button != 1)
-                return;
-
-            this._origRootMouseX = event.rootX;
-            this._origRootMouseY = event.rootY;
-            var parentGeometry = this._display.getGeometry({ drawableId: this._parentWindowId });
-            this._origWindowX = parentGeometry.x;
-            this._origWindowY = parentGeometry.y;
-            this._updateWindowFromEvent(event);
-
-            this._display.grabPointer({ windowId: this.windowId,
-                                        ownerEvents: false,
-                                        events: ["ButtonRelease", "Motion"],
-                                        pointerMode: "Async",
-                                        cursor: "grabbing" });
-        },
-        _draw: function() {
-            var geom = this._display.getGeometry({ drawableId: this.windowId });
-            var width = geom.width, height = geom.height;
-
-            this._display.drawTo(this.windowId, function(ctx) {
-                this._exposeHandler.clip(ctx);
-
-                ctx.fillStyle = BACKGROUND;
-                ctx.fillRect(0, 0, width, height);
-
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = '#666';
-                var N_LINES = 4;
-                for (var y = .5; y < height; y += ctx.lineWidth * 2) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(width, y);
-                    ctx.stroke();
-                }
-            }.bind(this));
-        },
-    })
-
     var DropdownMenuPopup = new Class({
-        initialize: function(connection, items, onPopdown) {
+        initialize: function(connection, items, onPopdown, x, y) {
             // A weird quirk of dropdown menus is that for hover switching
             // correctly, they *need* to be on the same client as the dropdown
             // menu, since the grab encompasses everything. So, the dropdown
@@ -243,10 +27,10 @@
             this._onPopdown = onPopdown;
 
             this.heightPerItem = 32;
-            this.windowId = this._display.createWindow({ x: 0, y: 0, width: 200, height: this._items.length * this.heightPerItem });
+            this.windowId = this._display.createWindow({ x: x, y: y, width: 200, height: this._items.length * this.heightPerItem });
             this._display.changeAttributes({ windowId: this.windowId, overrideRedirect: true });
             this._display.changeProperty({ windowId: this.windowId, name: "DEBUG_NAME", value: "Dropdown Menu Popup" });
-            this._display.selectInput({ windowId: this.windowId, events: ["Expose"] });
+            this._display.selectInput({ windowId: this.windowId, events: ["Expose", "Motion", "Leave", "ButtonPress", "ButtonRelease"] });
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
             this._selectedItemIndex = -1;
             this._isPressed = false;
@@ -373,19 +157,31 @@
                 ctx.strokeRect(0, 0, width, height);
             }.bind(this));
         },
-        popup: function(x, y) {
-            this._selectedItemIndex = -1;
-            this._display.configureWindow({ windowId: this.windowId, x: x, y: y });
-            this._display.mapWindow({ windowId: this.windowId });
+        _grab: function() {
             this._display.grabPointer({ windowId: this.windowId,
                                         ownerEvents: true,
-                                        events: ["ButtonPress", "ButtonRelease", "Motion", "Leave"],
+                                        events: [],
                                         pointerMode: "Async" });
+        },
+        _ungrab: function() {
+            this._display.ungrabPointer({ windowId: this.windowId });
+        },
+        popup: function() {
+            this._selectedItemIndex = -1;
+            this._display.configureWindow({ windowId: this.windowId, stackMode: "Above" });
+            this._display.mapWindow({ windowId: this.windowId });
+            this._grab();
         },
         popdown: function(callCallback) {
             this._isPressed = false;
-            this._display.ungrabPointer({ windowId: this.windowId });
+            this._ungrab();
             this._display.unmapWindow({ windowId: this.windowId });
+
+            // Set a timeout to destroy the popups so users can see them
+            // being "GC"d in the inspector...
+            setTimeout(function() {
+                this._display.destroyWindow({ windowId: this.windowId });
+            }.bind(this), 1000);
 
             if (callCallback)
                 this._onPopdown();
@@ -452,7 +248,7 @@
                 item.slotWidth = Math.ceil(item.textWidth + this.itemPadding * 2);
                 x += item.slotWidth;
 
-                item.popup = new DropdownMenuPopup(this._connection, itemPopupItems, this._handlePopdown.bind(this));
+                item.popupItems = itemPopupItems;
                 return item;
             }.bind(this));
 
@@ -460,9 +256,24 @@
             this._width = Math.ceil(x);
         },
         _handlePopdown: function() {
+            this._currentPopup = null;
             this._shouldMenuBeOpen = false;
             this._setSelectedItemIndex(-1);
             this._syncPopup();
+        },
+        _getPopupClass: function() {
+            return DropdownMenuPopup;
+        },
+        _makePopup: function(item) {
+            var popupX = item.x;
+            var geom = this._display.getGeometry({ drawableId: this.windowId });
+            var popupY = geom.height;
+
+            var coords = this._display.translateCoordinates({ srcWindowId: this.windowId,
+                                                              destWindowId: this._display.rootWindowId,
+                                                              x: popupX, y: popupY });
+            var popupClass = this._getPopupClass();
+            return new popupClass(this._connection, item.popupItems, this._handlePopdown.bind(this), coords.x, coords.y);
         },
         _syncPopup: function() {
             if (this._shouldMenuBeOpen)
@@ -482,16 +293,8 @@
 
             if (this._currentPopupItemIndex >= 0) {
                 var item = this._items[this._currentPopupItemIndex];
-                var popupX = item.x;
-                var geom = this._display.getGeometry({ drawableId: this.windowId });
-                var popupY = geom.height;
-
-                var coords = this._display.translateCoordinates({ srcWindowId: this.windowId,
-                                                                  destWindowId: this._display.rootWindowId,
-                                                                  x: popupX, y: popupY });
-
-                this._currentPopup = item.popup;
-                this._currentPopup.popup(coords.x, coords.y);
+                this._currentPopup = this._makePopup(item);
+                this._currentPopup.popup();
             }
 
             this._display.invalidateWindow({ windowId: this.windowId });
@@ -562,6 +365,12 @@
         },
     });
 
+    var EXAMPLE_MENU_ITEMS = [
+        ["File", ["New", "-", "Open...", "Save", "Save as...", "-", "Quit"]],
+        ["Edit", ["Undo", "Redo", "-", "Cut", "Copy", "Paste"]],
+        ["View", ["Always on Top"]],
+    ];
+
     var Kitten = new Class({
         initialize: function(server) {
             var connection = server.connect();
@@ -571,29 +380,20 @@
                 this._handleEvent(messageEvent.data);
             }.bind(this));
 
-            this.windowId = this._display.createWindow({ x: 190, y: 50, width: 400, height: 320 });
+            this.windowId = this._display.createWindow({ x: 190, y: 55, width: 400, height: 320 });
             this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ConfigureNotify"] });
-            this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "Image Viewer" });
+            this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "kitten.jpg" });
             this._display.changeProperty({ windowId: this.windowId, name: 'WM_NORMAL_HINTS', value: {
                 minWidth: 100, minHeight: 100,
             } });
+            // Hide the close button so the user can't accidentally click it.
+            this._display.changeProperty({ windowId: this.windowId, name: '_XJS_ACTIONS', value: {
+                hasClose: false,
+            } });
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
 
-            this._resizeGrip = new ResizeGrip(server, this.windowId);
-            this._display.mapWindow({ windowId: this._resizeGrip.windowId });
-
-            this._moveGrip = new MoveGrip(server, this.windowId);
-            this._display.mapWindow({ windowId: this._moveGrip.windowId });
-
-            var menuItems = [
-                ["File", ["New", "-", "Open...", "Save", "Save as...", "-", "Quit"]],
-                ["Edit", ["Undo", "Redo", "-", "Cut", "Copy", "Paste"]],
-                ["View", ["Always on Top"]],
-            ];
-
-            this._menuBar = new DropdownMenuBar(server, menuItems);
+            this._menuBar = new DropdownMenuBar(server, EXAMPLE_MENU_ITEMS);
             this._display.reparentWindow({ windowId: this._menuBar.windowId, newParentId: this.windowId });
-            this._display.configureWindow({ windowId: this._menuBar.windowId, x: 32, y: 1 });
             this._display.mapWindow({ windowId: this._menuBar.windowId });
 
             this._pixmapId = 0;
@@ -626,14 +426,10 @@
                 this._exposeHandler.clip(ctx);
 
                 ctx.fillStyle = BACKGROUND;
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = '#000';
-                ctx.rect(0, 0, width, height);
-                ctx.fill();
-                ctx.stroke();
+                    ctx.fillRect(0, 0, width, height);
 
                 var padTop = 40;
-                var padBottom = 20;
+                var padBottom = 8;
                 var padLeft = 8, padRight = 8;
 
                 if (this._pixmapId) {
@@ -669,7 +465,7 @@
         },
     });
 
-    ArticleDemos.registerDemo("menu-example", "height: 400px", function(res) {
+    ArticleDemos.registerDemo("example-kitten", "height: 400px", function(res) {
         DemoCommon.addInspector(res);
 
         var server = res.server;
@@ -679,8 +475,120 @@
         display.changeAttributes({ windowId: display.rootWindowId, backgroundColor: '#335180' });
         display.invalidateWindow({ windowId: display.rootWindowId });
 
+        var wm = new WindowManager(server);
+
         var menu = new Kitten(server);
-        display.mapWindow(menu);
+        display.mapWindow({ windowId: menu.windowId });
+    });
+
+    var ExampleHarness = new Class({
+        initialize: function(server, menubar) {
+            var connection = server.connect();
+            this._display = connection.display;
+            var port = connection.clientPort;
+            port.addEventListener("message", function(messageEvent) {
+                this._handleEvent(messageEvent.data);
+            }.bind(this));
+
+            this.windowId = this._display.createWindow({ x: 190, y: 55, width: 400, height: 100 });
+            this._display.changeProperty({ windowId: this.windowId, name: 'WM_NORMAL_HINTS', value: {
+                minWidth: 100, minHeight: 100,
+            } });
+            // Hide the close button so the user can't accidentally click it.
+            this._display.changeProperty({ windowId: this.windowId, name: '_XJS_ACTIONS', value: {
+                hasClose: false,
+            } });
+            this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "My Amazing App" });
+            this._display.changeAttributes({ windowId: this.windowId, backgroundColor: BACKGROUND });
+
+            this._menuBar = new menubar(server, EXAMPLE_MENU_ITEMS);
+            this._display.reparentWindow({ windowId: this._menuBar.windowId, newParentId: this.windowId });
+            this._display.mapWindow({ windowId: this._menuBar.windowId });
+        },
+    });
+
+    var SubmenuDropdownMenuBar = new Class({
+        Extends: DropdownMenuBar,
+        _makePopup: function(item) {
+            var popupX = item.x;
+            var geom = this._display.getGeometry({ drawableId: this.windowId });
+            var popupY = geom.height;
+
+            var popup = new DropdownMenuPopup(this._connection, item.popupItems, this._handlePopdown.bind(this), popupX, popupY);
+            var query = this._display.queryTree({ windowId: this.windowId });
+            this._display.reparentWindow({ windowId: popup.windowId, newParentId: query.parent });
+            return popup;
+        },
+    });
+
+    ArticleDemos.registerDemo("subwindow", "height: 180px", function(res) {
+        DemoCommon.addInspector(res);
+
+        var server = res.server;
+        var connection = server.connect();
+        var display = connection.display;
+
+        display.changeAttributes({ windowId: display.rootWindowId, backgroundColor: '#335180' });
+        display.invalidateWindow({ windowId: display.rootWindowId });
+
+        var wm = new WindowManager(server);
+
+        var menu = new ExampleHarness(server, SubmenuDropdownMenuBar);
+        display.mapWindow({ windowId: menu.windowId });
+    });
+
+    var DumbToplevelDropdownMenuBar = new Class({
+        Extends: DropdownMenuBar,
+        _makePopup: function(item) {
+            var popup = this.parent(item);
+            this._display.changeAttributes({ windowId: popup.windowId, overrideRedirect: false });
+            return popup;
+        },
+    });
+
+    ArticleDemos.registerDemo("dumb-toplevel-attempt", "height: 180px", function(res) {
+        DemoCommon.addInspector(res);
+
+        var server = res.server;
+        var connection = server.connect();
+        var display = connection.display;
+
+        display.changeAttributes({ windowId: display.rootWindowId, backgroundColor: '#335180' });
+        display.invalidateWindow({ windowId: display.rootWindowId });
+
+        var wm = new WindowManager(server);
+
+        var menu = new ExampleHarness(server, DumbToplevelDropdownMenuBar);
+        display.mapWindow({ windowId: menu.windowId });
+    });
+
+    var DumbORDropdownMenuPopup = new Class({
+        Extends: DropdownMenuPopup,
+        _grab: function() {},
+        _ungrab: function() {},
+    });
+
+    var DumbORDropdownMenuBar = new Class({
+        Extends: DropdownMenuBar,
+        _getPopupClass: function() {
+            return DumbORDropdownMenuPopup;
+        },
+    });
+
+    ArticleDemos.registerDemo("dumb-or-attempt", "height: 350px", function(res) {
+        DemoCommon.addInspector(res);
+
+        var server = res.server;
+        var connection = server.connect();
+        var display = connection.display;
+
+        display.changeAttributes({ windowId: display.rootWindowId, backgroundColor: '#335180' });
+        display.invalidateWindow({ windowId: display.rootWindowId });
+
+        var wm = new WindowManager(server);
+
+        var menu = new ExampleHarness(server, DumbORDropdownMenuBar);
+        display.mapWindow({ windowId: menu.windowId });
     });
 
 })(window);

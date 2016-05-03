@@ -1,15 +1,45 @@
 (function(exports) {
     "use strict";
 
-    function clamp(a, min, max) {
-        return Math.min(Math.max(a, min), max);
-    }
-
     function valueUpdated(a, b) {
         return a !== undefined && a !== b;
     }
 
     var FRAME_BORDER = { top: 30, left: 4, right: 4, bottom: 4 };
+
+    var WindowFrameButton = new Class({
+        initialize: function(frame, display, onClick) {
+            this._frame = frame;
+            this._display = display;
+            this._onClick = onClick;
+            this.hover = false;
+            this.visible = false;
+
+            var size = 16;
+            this.windowId = this._display.createWindow({ x: 0, y: 0, width: size, height: size, inputOnly: true });
+            this._display.selectInput({ windowId: this.windowId, events: ['Enter', 'Leave', 'ButtonPress', 'ButtonRelease'] });
+            this._display.changeAttributes({ windowId: this.windowId, cursor: 'pointer' });
+        },
+        setVisible: function(visible) {
+            this.visible = visible;
+            if (this.visible)
+                this._display.mapWindow({ windowId: this.windowId });
+            else
+                this._display.unmapWindow({ windowId: this.windowId });
+        },
+        handleEvent: function(event) {
+            switch (event.type) {
+            case "Enter":
+                this.hover = true;
+                return this._frame.redraw();
+            case "Leave":
+                this.hover = false;
+                return this._frame.redraw();
+            case "ButtonRelease":
+                return this._onClick();
+            }
+        },
+    });
 
     // Don't extend Window as this needs to be in the
     // WM client, not its own client.
@@ -18,6 +48,7 @@
             this._wm = wm;
             this._display = display;
             this._clientWindowId = windowId;
+            this._destroyed = false;
 
             // Client geometry relative to the parent frame
             this._clientGeometry = {};
@@ -29,26 +60,18 @@
         },
 
         _constrainNewSize: function(clientGeometry) {
-            var defaultMinSize = 50; // Reasonable size
-            var defaultMaxSize = 200;
-
-            var minWidth = defaultMinSize, minHeight = defaultMinSize;
-            var maxWidth = defaultMaxSize, maxHeight = defaultMaxSize;
-
             var normalHints = this._display.getProperty({ windowId: this._clientWindowId, name: 'WM_NORMAL_HINTS' });
-            if (normalHints && normalHints.minWidth !== undefined)
-                minWidth = normalHints.minWidth;
-            if (normalHints && normalHints.minHeight !== undefined)
-                minHeight = normalHints.minHeight;
-            if (normalHints && normalHints.maxWidth !== undefined)
-                maxWidth = normalHints.maxWidth;
-            if (normalHints && normalHints.maxHeight !== undefined)
-                maxHeight = normalHints.maxHeight;
+            if (!normalHints)
+                return;
 
-            if (clientGeometry.width !== undefined)
-                clientGeometry.width = clamp(clientGeometry.width, minWidth, maxWidth);
-            if (clientGeometry.height !== undefined)
-            clientGeometry.height = clamp(clientGeometry.height, minHeight, maxHeight);
+            if (clientGeometry.width !== undefined && normalHints.minWidth !== undefined)
+                clientGeometry.width = Math.max(clientGeometry.width, normalHints.minWidth);
+            if (clientGeometry.height !== undefined && normalHints.minHeight !== undefined)
+                clientGeometry.height = Math.max(clientGeometry.height, normalHints.minHeight);
+            if (clientGeometry.width !== undefined && normalHints.maxWidth !== undefined)
+                clientGeometry.width = Math.min(clientGeometry.width, normalHints.maxWidth);
+            if (clientGeometry.height !== undefined && normalHints.maxHeight !== undefined)
+                clientGeometry.height = Math.min(clientGeometry.height, normalHints.maxHeight);
         },
 
         _updateGeometry: function(clientGeometry) {
@@ -97,7 +120,7 @@
                 props.windowId = this._clientWindowId;
                 this._display.configureWindow(props);
 
-                this._display.configureWindow({ windowId: this._closeWindowId,
+                this._display.configureWindow({ windowId: this._closeButton.windowId,
                                                 x: border.left + this._clientGeometry.width - 20,
                                                 y: 8 });
 
@@ -117,24 +140,22 @@
             }
         },
 
-        _makeButton: function() {
+        _makeButton: function(onClick) {
             var size = 16;
-            var geom = { x: 0, y: 0, width: size, height: size };
-            var buttonWindowId = this._display.createWindow(geom);
-            this._wm.register(buttonWindowId, this);
-            this._display.selectInput({ windowId: buttonWindowId, events: ["ButtonPress", "ButtonRelease"] });
-            this._display.changeAttributes({ windowId: buttonWindowId, cursor: "pointer" });
-            this._display.reparentWindow({ windowId: buttonWindowId,
+            var button = new WindowFrameButton(this, this._display, onClick);
+            this._display.reparentWindow({ windowId: button.windowId,
                                            newParentId: this._frameWindowId });
-            return buttonWindowId;
+            this._wm.register(button.windowId, this);
+            return button;
         },
 
         _syncButtonActions: function() {
             var actions = this._display.getProperty({ windowId: this._clientWindowId, name: '_XJS_ACTIONS' });
-            if (actions.hasClose !== undefined && actions.hasClose)
-                this._display.mapWindow({ windowId: this._closeWindowId });
-            else
-                this._display.unmapWindow({ windowId: this._closeWindowId });
+            var shouldShowClose = !actions || actions.hasClose === true;
+            this._closeButton.setVisible(shouldShowClose);
+        },
+        _onCloseClicked: function() {
+            return this.destroy();
         },
 
         construct: function() {
@@ -156,15 +177,16 @@
                                         events: ["SubstructureRedirect", "SubstructureNotify", "Expose", "ButtonPress", "FocusIn", "FocusOut", "Motion"] });
 
             var title = this._display.getProperty({ windowId: this._clientWindowId, name: "WM_NAME" });
-            this._display.changeProperty({ windowId: this._frameWindowId, name: 'WM_NAME', value: 'Frame for "' + title + '"' });
+            if (!title)
+                title = this._display.getProperty({ windowId: this._clientWindowId, name: "DEBUG_NAME" });
+            if (!title)
+                title = "Window " + this._clientWindowId;
+
+            this._display.changeProperty({ windowId: this._frameWindowId, name: 'DEBUG_NAME', value: 'Frame for "' + title + '"' });
             this._display.changeProperty({ windowId: this._frameWindowId, name: '_XJS_FRAME', value: true });
 
-            this._closeWindowId = this._makeButton();
-            ClientUtil.loadImageAsPixmap(this._display, 'frame-close-button.png', function(pixmapId) {
-                this._display.changeAttributes({ windowId: this._closeWindowId, backgroundPixmap: pixmapId });
-                this._display.invalidateWindow({ windowId: this._closeWindowId });
-            }.bind(this));
-            this._display.changeProperty({ windowId: this._closeWindowId, name: 'WM_NAME', value: 'Close Button' });
+            this._closeButton = this._makeButton(this._onCloseClicked.bind(this));
+            this._display.changeProperty({ windowId: this._closeButton.windowId, name: 'DEBUG_NAME', value: 'Close Button' });
 
             this._syncButtonActions();
 
@@ -177,12 +199,19 @@
         _unregister: function() {
             this._wm.unregister(this._frameWindowId);
             this._wm.unregister(this._clientWindowId);
-            this._wm.unregister(this._closeWindowId);
+            this._wm.unregister(this._closeButton.windowId);
         },
         destroy: function() {
+            this._destroyed = true;
+
+            // Force the window unmapped, and then reparent it to the root so
+            // that we don't destroy it when we destroy the frame.
+            this._display.unmapWindow({ windowId: this._clientWindowId });
+            this._display.reparentWindow({ windowId: this._clientWindowId, newParentId: this._display.rootWindowId });
+
             this._display.destroyWindow({ windowId: this._frameWindowId });
-            this._wm.focusDefaultWindow();
             this._unregister();
+            this._wm.focusDefaultWindow();
         },
         frameWasReceiver: function(event) {
             // The frame has several internal helper windows for buttons, etc.
@@ -279,17 +308,17 @@
         },
         _frameButtonPress: function(event) {
             if (event.button != 1)
-                return;
+                return false;
 
             // If a client window doesn't select for ButtonPress / ButtonRelease,
             // then it will bubble up to us. Make sure that we don't start a grab
             // in that case.
             if (event.childWindowId != this._frameWindowId)
-                return;
+                return false;
 
             this._grabControl = this._getControl(event.winX, event.winY);
             if (!this._grabControl)
-                return;
+                return false;
 
             this._origMousePos = { x: event.rootX, y: event.rootY };
 
@@ -308,6 +337,7 @@
                                         events: ["ButtonRelease", "Motion"],
                                         pointerMode: "Async",
                                         cursor: cursor });
+            return true;
         },
         _frameButtonRelease: function(event) {
             if (event.button != 1)
@@ -392,9 +422,14 @@
             else
                 return this._notGrabbedMotion(event);
         },
+        redraw: function() {
+            if (this._destroyed)
+                return;
+            this._display.invalidateWindow({ windowId: this._frameWindowId });
+        },
         _frameFocusIn: function(event) {
             this._frameHasFocus = true;
-            this._display.invalidateWindow({ windowId: this._frameWindowId });
+            this.redraw();
         },
         _frameFocusOut: function(event) {
             // Don't lose focus when it's simply going to a child window.
@@ -402,7 +437,7 @@
                 return;
 
             this._frameHasFocus = false;
-            this._display.invalidateWindow({ windowId: this._frameWindowId });
+            this.redraw();
         },
         _draw: function() {
             this._display.drawTo(this._frameWindowId, function(ctx) {
@@ -431,7 +466,12 @@
                 ctx.fillRect(this._clientGeometry.x, this._clientGeometry.y, this._clientGeometry.width, this._clientGeometry.height);
                 ctx.restore();
 
-                // Border
+                // Border around client.
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#000';
+                ctx.strokeRect(this._clientGeometry.x, this._clientGeometry.y, this._clientGeometry.width, this._clientGeometry.height);
+
+                // Border around frame.
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = '#000';
                 ctx.strokeRect(0, 0, this._frameGeometry.width, this._frameGeometry.height);
@@ -442,28 +482,33 @@
                     ctx.save();
                     ctx.textAlign = 'center';
                     ctx.font = 'bold 12pt sans-serif';
-                    if (this._frameHasFocus) {
+                    if (this._frameHasFocus)
                         ctx.fillStyle = '#000';
-                        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-                        ctx.shadowBlur = 4;
-                    } else {
+                    else
                         ctx.fillStyle = '#666';
-                    }
                     ctx.fillText(title, this._frameGeometry.width / 2, 21);
                     ctx.restore();
+                }
+
+                // Close button.
+                if (this._closeButton.visible) {
+                    var closeButtonGeom = this._display.getGeometry({ drawableId: this._closeButton.windowId });
+                    if (this._closeButton.hover)
+                        ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
+                    else
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                    ctx.beginPath();
+                    ctx.arc(closeButtonGeom.x + closeButtonGeom.width / 2, closeButtonGeom.y + closeButtonGeom.height / 2, 4, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }.bind(this));
         },
         _frameExpose: function(event) {
             this._exposeHandler.handleExpose(event);
         },
-        _handleButtonEvent: function(event) {
-            if (event.windowId == this._closeWindowId && event.type == "ButtonRelease")
-                this.destroy();
-        },
         handleEvent: function(event) {
-            if (event.windowId == this._closeWindowId)
-                return this._handleButtonEvent(event);
+            if (event.windowId == this._closeButton.windowId)
+                return this._closeButton.handleEvent(event);
             if (event.windowId == this._frameWindowId)
                 return this._handleFrameEvent(event);
         },
@@ -513,7 +558,9 @@
                     this._display.allowEvents({ pointerMode: "Replay" });
                 break;
 
-                // These should only happen for frame windows.
+            // These should only happen for frame windows.
+            case "Enter":
+            case "Leave":
             case "ButtonRelease":
             case "Motion":
             case "Expose":
@@ -528,7 +575,7 @@
             // mapped, simply re-configure the window with whatever
             // it requested.
             if (!frame) {
-                this._display.configureWindow({ windowId: event.windowId, 
+                this._display.configureWindow({ windowId: event.windowId,
                                                 x: event.x, y: event.y,
                                                 width: event.width, height: event.height });
             } else {

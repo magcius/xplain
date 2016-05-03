@@ -62,13 +62,133 @@
         <section id="the-humble-dropdown menu">
         <h3>The humble dropdown menu</h3>
 
-        <div class="demo-server" data-demo="menu-example"></div>
+        <div class="demo-server" data-demo="example-kitten"></div>
         <p>
-            Here. I've placed a tiny image viewer widget in front of you. It's like the kitten windows
-            from the first set of articles, but it now has a few extra features &mdash; it allows you to
-            resize it with a grip at the bottom right, and it allows you to drag with the grip in the top
-            left, It also has a drop-down menu directly to the right of the move grip.
+            Here. I've placed a tiny image viewer app in front of you. It's like the kitten windows
+            from the first set of articles, but it now has a dropdown menu. I've also launched a window
+            manager so you can drag it around, and resize it using the borders. It even reacts pretty
+            gracefully to resizing.
         </p>
+        <p>
+            At first thought, a dropdown menu doesn't seem too difficult, does it? Just have a little
+            widget that that draws itself, and then when clicked, opens up a menu. We can even do it as
+            a subwindow. Simple, right? Let's try it out.
+        </p>
+        <div class="demo-server" data-demo="subwindow"></div>
+        <p>
+            Oops. Subwindows are <em>clipped</em> to their parents, so we can't simply use that if the
+            window can be too small for our purposes. We have to use a <em>separate toplevel window</em>.
+            That shouldn't be too difficult, right? Let's try that!
+        </p>
+        <div class="demo-server" data-demo="dumb-toplevel-attempt"></div>
+        <p>
+            Hm. It seems the <em>window manager</em> is putting a frame on our menu. While nifty, it's
+            not quite the effect we wanted. To determine how to work around it, we first have to learn
+            how a window manager knows how to put frames around our windows.
+        </p>
+        </section>
+
+        <section id="window-manager">
+        <h3>The window manager</h3>
+        <p>
+            As I've mentioned in the past, X11 has a concept of "mechanism, not policy". For anything
+            that seems like it's a user interface problem, or the domain of the desktop environment, X11
+            doesn't like to make assumptions or enforce a certain way of doing things. It leaves this
+            up to a special client known as a "window manager". We've talked about such a manager client
+            before when we talked about <a href="composite.html">the COMPOSITE extension</a>, which could
+            draw windows with transparency in the middle.
+        </p>
+        <p>
+            The window manager has a large range of responsibilities to client applications. Most
+            obviously, it serves as a graphical user interface allowing for moving around, resizing,
+            and restacking windows on the desktop. Less obviously, it manages a lot of pecularities
+            of modern window managers, like constraints to prevent windows from being resized too
+            small or too big, or accidentally being pushed under your taskbar or resting on a monitor
+            that has now been unplugged. And, although we won't get into the details in this article,
+            it serves as an API of sorts for other applications on the system that might want to
+            interact with the desktop.
+        </p>
+        <p>
+            This API, along with the general protocol that window managers are supposed to follow is
+            described in the
+            <a href="http://www.x.org/releases/current/doc/xorg-docs/icccm/icccm.html">Inter-Client Commmunications Conventions Manual</a>,
+            which goes over this sort of client-to-window-manager communication in extreme detail.
+            We won't be going over too much of the ICCCM today &mdash; it's a large, complex topic
+            with its own detailed and rich history. Today, we'll simply be going over the basics of
+            how a simple, non-ICCCM-compliant window manager works.
+        </p>
+        <p>
+            As a quick refresher, if you want to know when someone presses a button or clicks a key,
+            you can use
+            <a href="http://www.x.org/releases/current/doc/libX11/libX11/libX11.html#XSelectInput" class="code-literal">XSelectInput</a>
+            to "select" for these kinds of events on your window. These applications aren't simply
+            limited to input events, however. If you want to know when a window is mapped, you can
+            select for the <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#events:MapNotify" class="code-literal">MapNotify</a>
+            event. In fact, you don't even have to own the window in question &mdash; you can listen to
+            events on "someone else's" window just fine.
+        </p>
+        <p>
+            When the X11 developers added hooks so people could write window managers, they did so in
+            the form of a special event type you could select with <span class="code-literal">XSelectInput</span>.
+            Namely, they added a way of getting a notification when someone tries to create a new subwindow.
+            They called it <span class="code-literal">SubstructureNotify</span>. Whenever anyone tries to map
+            a new toplevel window, a <span class="code-literal">MapNotify</span> event will be sent to anybody
+            who has <span class="code-literal">SubstructureNotify</span> selected. A variety of these events
+            are sent out whenever someone tries to map, unmap, resize, or reparent windows, allowing interested
+            clients to monitor and perhaps even override behavior.
+        </p>
+        <p>
+            Given this primitive, I imagine it seems relatively straightforward to write a simple window
+            manager. When getting a <span class="code-literal">MapNotify</span> for a new window, create
+            a frame window, reparent the window into the frame. If you want to make a tiling window manager,
+            for instance, start moving all the frames around.
+        </p>
+        <p>
+            As one extra convenience, instead of simply being "notified" that new windows have showed up
+            or a window tried to move itself, you can in fact stop such behavior entirely. If you select
+            for the <span class="code-literal">SubstructureRedirect</span> event mask instead, you won't
+            get just <span class="code-literal">MapNotify</span> events, you'll get
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html#events:MapRequest" class="code-literal">MapRequest</a>
+            events. Now, whenever a new window tries to map itself, the X server stops, says "whoa, hold
+            on a minute", and <em>redirects</em> the request over to you, and you can decide the fate of
+            the window. You can decide whether to map it, or leave it invisible forever. The power is in
+            your hands.
+        </p>
+        <p>
+            The X11 developers did leave one tiny bit of wiggle room, though. They thought that perhaps
+            there might perchance be a case where the application <em>does</em> know better, and left an
+            escape hatch, in the form of an attribute called "override-redirect". If a window sets this,
+            it will <em>override</em> the <span class="code-literal">Substructure<em>Redirect</em></span>
+            behavior, and not allow the window manager to intercept its events.
+        </p>
+        <p>
+            Now, while that does mean that your window is free-spirited and independent from the shackles
+            of a window manager, it also means you don't get any of its help, either. You don't get a
+            frame where the user can move or resize your window. The window manager won't even restack
+            you when users click on other windows. Those fancy APIs I talked about earlier? If window
+            managers don't know about your window, because you nicely asked X11 not to tell the window
+            manager about it, then you don't get to use them. The ICCCM dictates that the window manager
+            shouldn't respond to any window it doesn't know about.
+        </p>
+        <p>
+            But for a window like a dropdown that 1. should always be on top anyway, 2. shouldn't be able
+            to be moved or resized anyway, 3. doesn't need any of those fancy APIs, the override-redirect
+            attribute is exactly what we want. So let's go ahead and set it.
+        </p>
+        <p>
+            And, as a quick aside, if you are ever unfortunate enough to run into an X11 window manager
+            developer, like me, we'll tell you that they know about your tricks anyway. While we don't
+            get the <span class="code-literal">MapRedirect</span>, we'll certainly get the <span class="code-literal">MapNotify</span>
+            event. In fact, since we're often writing a compositing manager that has to composite
+            <em>all of the windows</em>, we have plenty of code to detect override-redirect windows. We
+            have to be very careful with such "OR windows", since the rulebook says we really aren't supposed
+            to know about them. We make sure never to restack them, never ever to move or resize them,
+            and god forbid try putting a frame around them.
+        </p>
+        <p>
+            *ahem* sorry about that. Let's go ahead and set override-redirect on our dropdown menu, shall we?
+        </p>
+        <div class="demo-server" data-demo="dumb-or-attempt"></div>
         </section>
 
         <div class="nav-bottom"></div>
@@ -81,6 +201,7 @@
     <script src="../src/canvas-util.js"></script>
     <script src="../src/client-util.js"></script>
     <script src="../src/server/server.js"></script>
+    <script src="../src/clients/wm.js"></script>
     <script src="../src/inspector/inspector.js"></script>
     <script src="../src/article-demos/demos.js"></script>
     <script src="../src/article-demos/demo-common.js"></script>
