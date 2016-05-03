@@ -507,24 +507,49 @@
                 this._pixmapDisplay = null;
             }
 
-            var node = document.createElement('div');
-            node.classList.add('attribute');
+            var node, nameNode, valNode;
 
-            var nameNode = document.createElement('span');
+            node = document.createElement('div');
+            node.classList.add('attribute');
+            nameNode = document.createElement('span');
             nameNode.classList.add('name');
             nameNode.textContent = 'map-state';
             node.appendChild(nameNode);
-            var valNode = document.createElement('span');
+            valNode = document.createElement('span');
             valNode.classList.add('value');
             valNode.textContent = attribs.mapState;
             node.appendChild(valNode);
             this._attributes.content.appendChild(node);
 
+            node = document.createElement('div');
+            node.classList.add('attribute');
+            nameNode = document.createElement('span');
+            nameNode.classList.add('name');
+            nameNode.textContent = 'input-only';
+            node.appendChild(nameNode);
+            valNode = document.createElement('span');
+            valNode.classList.add('value');
+            valNode.textContent = attribs.inputOnly ? "InputOnly" : "InputOutput";
+            node.appendChild(valNode);
+            this._attributes.content.appendChild(node);
+
+            node = document.createElement('div');
+            node.classList.add('attribute');
+            nameNode = document.createElement('span');
+            nameNode.classList.add('name');
+            nameNode.textContent = 'override-redirect';
+            node.appendChild(nameNode);
+            valNode = document.createElement('span');
+            valNode.classList.add('value');
+            valNode.textContent = attribs.overrideRedirect ? "Yes" : "No";
+            node.appendChild(valNode);
+            this._attributes.content.appendChild(node);
+
             if (attribs.backgroundColor) {
-                var node = document.createElement('div');
+                node = document.createElement('div');
                 node.classList.add('attribute');
 
-                var nameNode = document.createElement('span');
+                nameNode = document.createElement('span');
                 nameNode.classList.add('name');
                 nameNode.textContent = 'background-pixel';
                 node.appendChild(nameNode);
@@ -533,10 +558,10 @@
             }
 
             if (attribs.backgroundPixmap) {
-                var node = document.createElement('div');
+                node = document.createElement('div');
                 node.classList.add('attribute');
 
-                var nameNode = document.createElement('span');
+                nameNode = document.createElement('span');
                 nameNode.classList.add('name');
                 nameNode.textContent = 'background-pixmap';
                 node.appendChild(nameNode);
