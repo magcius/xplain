@@ -1473,8 +1473,8 @@
             }
 
             if (!this._grabClient) {
-                var grabInfo;
-                if (event) {
+                if (event && event.windowId !== undefined) {
+                    var grabWindowXid = event.windowId;
                     var grabWindow = this.getServerWindow(null, event.windowId);
                     var grabInfo = checkGrabRecursively(grabWindow);
                     if (!grabInfo) {
@@ -1485,10 +1485,10 @@
                         if (firstClient)
                             grabInfo = firstClient.makeGrabInfo(event);
                     }
-                }
 
-                if (grabInfo)
-                    this._grabPointer(grabInfo, true);
+                    if (grabInfo)
+                        this._grabPointer(grabInfo, true);
+                }
 
                 // If nobody has selected for ButtonPress, nobody gets
                 // any grab, and we don't take one.
