@@ -324,7 +324,7 @@ function combineRegion(regionA, regionB, bandOperation) {
         var bandB = regionB.bands[iB];
 
         var top = Math.max(bandA.top, bandB.top);
-        var bottom = Math.min(bandA.bottom, bandA.bottom);
+        var bottom = Math.min(bandA.bottom, bandB.bottom);
 
         var walls = combineBands(bandA, band, bandOperation);
         newBands.push({ top: top, bottom: bottom, walls: walls });
