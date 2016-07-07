@@ -81,13 +81,16 @@
 
             // The passed in geometry is client geometry in root coordinates, which means
             // that the frame geometry is offset by the border...
-            if (valueUpdated(clientGeometry.x, this._frameGeometry.x)) {
-                this._frameGeometry.x = clientGeometry.x - border.left;
+            var newFrameX = clientGeometry.x - border.left;
+            var newFrameY = clientGeometry.y - border.top;
+
+            if (newFrameX !== this._frameGeometry.x) {
+                this._frameGeometry.x = newFrameX;
                 positionUpdated = true;
             }
 
-            if (valueUpdated(clientGeometry.y, this._frameGeometry.y)) {
-                this._frameGeometry.y = clientGeometry.y - border.top;
+            if (newFrameY !== this._frameGeometry.y) {
+                this._frameGeometry.y = newFrameY;
                 positionUpdated = true;
             }
 
@@ -213,9 +216,6 @@
         },
 
         construct: function() {
-            var geom = this._display.getGeometry({ drawableId: this._clientWindowId });
-            this._adjustForGravity(geom, this._getGravity());
-
             this._wm.register(this._clientWindowId, this);
             this._display.grabButton({ windowId: this._clientWindowId,
                                        button: 1,
@@ -224,7 +224,7 @@
                                        pointerMode: "Sync",
                                        cursor: "" });
 
-            this._frameWindowId = this._display.createWindow(geom);
+            this._frameWindowId = this._display.createWindow({ x: 0, y: 0, width: 1, height: 1 });
             this._wm.register(this._frameWindowId, this);
             this._display.selectInput({ windowId: this._frameWindowId,
                                         events: ["SubstructureRedirect", "SubstructureNotify", "Expose", "ButtonPress", "FocusIn", "FocusOut", "Motion"] });
@@ -245,9 +245,12 @@
 
             this._display.reparentWindow({ windowId: this._clientWindowId,
                                            newParentId: this._frameWindowId });
-            this._display.mapWindow({ windowId: this._frameWindowId });
 
+            var geom = this._display.getGeometry({ drawableId: this._clientWindowId });
+            this._adjustForGravity(geom, this._getGravity());
             this._updateGeometry(geom);
+
+            this._display.mapWindow({ windowId: this._frameWindowId });
         },
         _unregister: function() {
             this._wm.unregister(this._frameWindowId);

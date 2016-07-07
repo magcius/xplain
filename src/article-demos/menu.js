@@ -380,11 +380,11 @@
                 this._handleEvent(messageEvent.data);
             }.bind(this));
 
-            this.windowId = this._display.createWindow({ x: 190, y: 55, width: 400, height: 320 });
+            this.windowId = this._display.createWindow({ x: 0, y: 0, width: 400, height: 320 });
             this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ConfigureNotify"] });
             this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "kitten.jpg" });
             this._display.changeProperty({ windowId: this.windowId, name: 'WM_NORMAL_HINTS', value: {
-                minWidth: 100, minHeight: 100,
+                minWidth: 100, minHeight: 100, winGravity: "Center",
             } });
             // Hide the close button so the user can't accidentally click it.
             this._display.changeProperty({ windowId: this.windowId, name: '_XJS_ACTIONS', value: {
@@ -402,6 +402,8 @@
                 this._pixmapId = pixmapId;
                 this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this));
+
+            DemoCommon.centerWindow(this._display, this.windowId);
         },
         _configureNotify: function(event) {
             // Invalidate the entire window when we get resized, as we need
