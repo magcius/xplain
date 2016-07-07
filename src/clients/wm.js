@@ -79,13 +79,15 @@
             var positionUpdated = false;
             var sizeUpdated = false;
 
+            // The passed in geometry is client geometry in root coordinates, which means
+            // that the frame geometry is offset by the border...
             if (valueUpdated(clientGeometry.x, this._frameGeometry.x)) {
-                this._frameGeometry.x = clientGeometry.x;
+                this._frameGeometry.x = clientGeometry.x - border.left;
                 positionUpdated = true;
             }
 
             if (valueUpdated(clientGeometry.y, this._frameGeometry.y)) {
-                this._frameGeometry.y = clientGeometry.y;
+                this._frameGeometry.y = clientGeometry.y - border.top;
                 positionUpdated = true;
             }
 
@@ -158,10 +160,61 @@
             return this.destroy();
         },
 
+        _getGravity: function() {
+            var normalHints = this._display.getProperty({ windowId: this._clientWindowId, name: 'WM_NORMAL_HINTS' });
+            if (normalHints && normalHints.winGravity)
+                return normalHints.winGravity;
+            else
+                return "NorthWest";
+        },
+        _adjustForGravity: function(geom, gravity) {
+            // The input here is 
+            // We're trying to calculate the position of the client window, in *root* coordinates.
+            // This is exactly what StaticGravity is, so if we're asked to calculate StaticGravity,
+            // then switch away...
+            if (gravity === "Static")
+                return;
+
+            var borderX = FRAME_BORDER.left + FRAME_BORDER.right;
+            var borderY = FRAME_BORDER.top + FRAME_BORDER.bottom;
+
+            switch (gravity) {
+                case "North":
+                case "Center":
+                case "South":
+                    geom.x -= borderX / 2;
+                    break;
+                case "NorthEast":
+                case "East":
+                case "SouthEast":
+                    geom.x -= borderX;
+                default:
+                    break;
+            }
+
+            switch (gravity) {
+                case "West":
+                case "Center":
+                case "East":
+                    geom.y -= borderY / 2;
+                    break;
+                case "SouthWest":
+                case "South":
+                case "SouthEast":
+                    geom.y -= borderY;
+                default:
+                    break;
+            }
+
+            var childX = FRAME_BORDER.left;
+            var childY = FRAME_BORDER.top;
+            geom.x += childX;
+            geom.y += childY;
+        },
+
         construct: function() {
             var geom = this._display.getGeometry({ drawableId: this._clientWindowId });
-            geom.x -= FRAME_BORDER.left;
-            geom.y -= FRAME_BORDER.top;
+            this._adjustForGravity(geom, this._getGravity());
 
             this._wm.register(this._clientWindowId, this);
             this._display.grabButton({ windowId: this._clientWindowId,
@@ -225,13 +278,7 @@
                                             stackMode: event.detail });
         },
         configureRequest: function(event) {
-            // ICCCM 4.1.5
-
-            // The coordinate system of the ConfigureRequest is that of the root;
-            // that is, the X/Y in the ConfigureNotify are of the top-left of the
-            // outer frame window. Note that the width/height are of the client
-            // window.
-
+            this._adjustForGravity(event, this._getGravity());
             this._updateGeometry(event);
 
             if (event.detail !== undefined)
@@ -322,9 +369,12 @@
 
             this._origMousePos = { x: event.rootX, y: event.rootY };
 
-            var frameGeom = this._display.getGeometry({ drawableId: this._frameWindowId });
+            var clientRootPos = this._display.translateCoordinates({ srcWindowId: this._clientWindowId,
+                                                                     destWindowId: this._display.rootWindowId,
+                                                                     x: 0, y: 0 });
             var clientGeom = this._display.getGeometry({ drawableId: this._clientWindowId });
-            this._origWindowGeom = { x: frameGeom.x, y: frameGeom.y, width: clientGeom.width, height: clientGeom.height };
+
+            this._origWindowGeom = { x: clientRootPos.x, y: clientRootPos.y, width: clientGeom.width, height: clientGeom.height };
 
             var cursor;
             if (this._grabControl == "titlebar")

@@ -22,17 +22,24 @@
         <section id="intro">
         <h3>Tunnel vision</h3>
         <p>
-            Writing this series is difficult. I often grapple with trying to come up with compelling demos,
-            an understandable, linear story to tell, with understandable writing. I want to show people the
-            power of how the X11 protocol works in practice. And a lot of the time, I struggle to come up
-            with an topic I can make interesting in the first place.
+            Writing this series is fairly difficult. Not just with cool demos and code, that's actually
+            the easy bit. Picking my topics requires care, and to be quite honest, I've mostly covered
+            a lot of the stuff that can be written about, standalone, without a corresponding history
+            lesson and footnotes by the dozens.
         </p>
+        <p>
+            Some stories aren't linear; sometimes an architecture meshes together so well that all of
+            the pieces are required to understand it all, and that makes it difficult to explain any
+            one piece. Sometimes we decide that the future hasn't worked out the way we envisioned it,
+            and so what was initially a beautiful design starts crumbling down over time because our
+            core design assumptions just aren't true.
+        </p>  
         <p>
             For the last little while, I've wanted to build up to an article on window managers, and so I
             write a bunch of accurate JavaScript which implements a window manager, and I write xclock
             and xlogo and a panel for people to play around with. I talk about the ICCCM, and window
             reparenting, and grab semantics, but, well, it just never comes out good. It becomes a bunch
-            of tedious minutae more than an interesting premise.
+            of tedious minutae, because, honestly, it just kind of is.
         </p>
         <p>
             And so I switched gears, and talked about the region data structure, for instance. And I was
@@ -41,21 +48,22 @@
         </p>
         <p>
             I focused too heavily on "window managers", struggling to fit the pieces, that I forgot about
-            my goal for this series. I want to teach people about the different pieces of the X11 protocol,
-            why they exist, and how we've been able to build real-world applications with the sometimes
-            fairly unintitive primitives it provides.
+            my goal for this series; why I want to write this. I want to teach people about the hard problems
+            that exist when building any sort of complex windowing system, about the obscure pitfalls we've
+            encountered, the clever solutions we've designed together, and how we've been able to modernize
+            a protocol that has truly, not withstood the test of time.
         </p>
         <p>
             Today's article is not about window managers.
         </p>
         <p>
-            Today, we're going to learn about why building a seemingly simple widget, the humble dropdown
-            menu, is a lot harder than first appearances might lead you to believe. Together, we'll
-            learn a lot about grabs in the X11 input model, about why subwindows aren't at all useful,
-            and maybe, just maybe, learn a bit about Wayland as well.
+            Today, we're going to learn about building a dropdown menu. In X11. If that doesn't sound hard
+            to you, please, read on. Together, we'll learn a lot about grabs in the X11 input model, about
+            the one fatal flaw in the X11 subwindow model, and maybe, just maybe, learn a bit about Wayland
+            as well.
         </p>
         <p>
-            Sounds like fun? I hope so.
+            Sounds like fun? I sure hope so.
         </p>
         </section>
 
@@ -71,14 +79,18 @@
         </p>
         <p>
             At first thought, a dropdown menu doesn't seem too difficult, does it? Just have a little
-            widget that that draws itself, and then when clicked, opens up a menu. We can even do it as
-            a subwindow. Simple, right? Let's try it out.
+            widget that that draws itself, and then when clicked, opens up a menu. In
+            <a href="http://magcius.github.io/xplain/article/window-tree.html">Advanced Window Techniques</a>,
+            I even described that the window system is equipped with this idea of subwindows. We can
+            simply make our dropdown menu a subwindow. Simple, right? Let's try it out.
         </p>
         <div class="demo-server" data-demo="subwindow"></div>
         <p>
-            Oops. Subwindows are <em>clipped</em> to their parents, so we can't simply use that if the
-            window can be too small for our purposes. We have to use a <em>separate toplevel window</em>.
-            That shouldn't be too difficult, right? Let's try that!
+            Oops. Unfortunately for us, subwindows are <em>clipped</em> to their parents, so we can't
+            simply use that when the window is too small. Unfortunately, the X11 protocol doesn't have
+            a way of creating a subwindow like this that isn't clipped. Our workaround for this is to
+            use a <em>separate toplevel window</em>. We also have to make sure that this new toplevel
+            is positioned in the right spot.
         </p>
         <div class="demo-server" data-demo="dumb-toplevel-attempt"></div>
         <p>

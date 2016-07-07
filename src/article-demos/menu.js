@@ -490,9 +490,9 @@
                 this._handleEvent(messageEvent.data);
             }.bind(this));
 
-            this.windowId = this._display.createWindow({ x: 190, y: 55, width: 400, height: 100 });
+            this.windowId = this._display.createWindow({ x: 0, y: 0, width: 400, height: 80 });
             this._display.changeProperty({ windowId: this.windowId, name: 'WM_NORMAL_HINTS', value: {
-                minWidth: 100, minHeight: 100,
+                minWidth: 100, minHeight: 80,
             } });
             // Hide the close button so the user can't accidentally click it.
             this._display.changeProperty({ windowId: this.windowId, name: '_XJS_ACTIONS', value: {
@@ -504,6 +504,8 @@
             this._menuBar = new menubar(server, EXAMPLE_MENU_ITEMS);
             this._display.reparentWindow({ windowId: this._menuBar.windowId, newParentId: this.windowId });
             this._display.mapWindow({ windowId: this._menuBar.windowId });
+
+            DemoCommon.centerWindow(this._display, this.windowId);
         },
     });
 
