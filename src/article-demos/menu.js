@@ -494,7 +494,7 @@
 
             this.windowId = this._display.createWindow({ x: 0, y: 0, width: 400, height: 80 });
             this._display.changeProperty({ windowId: this.windowId, name: 'WM_NORMAL_HINTS', value: {
-                minWidth: 100, minHeight: 80,
+                minWidth: 100, minHeight: 80, winGravity: "Center",
             } });
             // Hide the close button so the user can't accidentally click it.
             this._display.changeProperty({ windowId: this.windowId, name: '_XJS_ACTIONS', value: {
