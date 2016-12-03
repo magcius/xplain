@@ -1,0 +1,284 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf8">
+    <link rel="stylesheet" href="article.css">
+    <link rel="stylesheet" href="../src/inspector/inspector.css">
+    <link rel="stylesheet" href="../src/server/server.css">
+    <link rel="shortcut icon" href="favicon.png">
+    <title>Xplain</title>
+</head>
+<body id="regions"><div class="main">
+    <header>
+        <a href="index.html">
+            <h1><span>Xplain</span></h1>
+            <span class="subtitle">Explaining X11 for the rest of us</span>
+        </a>
+    </header>
+
+    <article>
+        <h2></h2>
+
+        <section id="prologue">
+        <h3>Widening the horizon</h3>
+        <p>
+            While this article series is named "Xplain", and while I try to focus on concepts related to the
+            X11 window system and its architecture, I often want to write about other topics, ones that are
+            related, but maybe a bit more general than just X11-specific. The Regions article was an example
+            of that. Today, I'm going to talk about basic software rasterization of 2D graphics. While not
+            an X11-specific concept, I feel it will be interesting to the same audience, and I'll include it
+            in the Xplain series. Going forward, Xplain will probably not be just about X11.
+        </p>
+
+        <p>
+            Something I have been interested in for quite some time, and something I feel is not very
+            widely understood, are the basics of 2D graphics and 2D graphics rasterization. I often see
+            comments like "oh, if only SVG was implemented with WebGL, then it would be fast", and realize
+            that people do not quite understand the challenges and complications of 2D graphics rendering.
+        </p>
+
+        <p>
+            Today, we will be exploring 2D graphics by writing a software rasterizer of our own. All of the
+            code was written for this article, and is open source on the GitHub repo. I've tried to comment
+            it well as a source to learn from. I encourage you to study it.
+        </p>
+        </section>
+
+        <section id="pixel-grid">
+        <h3>The Pixel Grid</h3>
+        <p>
+            The X11 articles take place in a hand-written X11 server. Regional Geometry took place, well,
+            in the land of geometry. Today's article takes place...
+        </p> 
+
+        <div class="demo-canvas" data-demo="rast1-grid-demo"></div>
+
+        <p>
+            ... on the pixel grid. By the end of this article series, hopefully you will be able
+            to, if not write something of this complexity, at least understand what is going on and how
+            it works.
+        </p>
+        <p>
+            I've magnified each pixel so it is easier to see. Specifically, each "demo pixel" here
+            is 8 "real pixels" wide, and the same tall. The grid itself is composed of 128 of these
+            "demo pixels" horizontally, and 64 of them vertically.
+        </p>
+        <p>
+            It might hurt your head to think about "demo pixels" and "real pixels". Graphics programming
+            often takes place in lots of different "spaces" like this. After quite a long time of doing it,
+            I still get confused; it's just part of the job description. If you are having trouble, what
+            helps me is to just turn off the monitor, grab a pen and paper, or a whiteboard, and just draw
+            the different things out.
+        </p>
+        <p>
+            When your head hurts for far too long and you start getting confused, you will just start
+            peppering <code>x*8</code> and <code>(y+15)/8</code> into your code in a vain attempt to just
+            get everything to match up correctly. You will start fiddling with your plus and minus signs,
+            wildly reversing your translations and rotations at random in a desperate attempt to get
+            things to just line up, dammit. It is not a good place to be.
+        </p>
+        </section>
+
+        <section id="coordinates">
+        <h3>Coordinates</h3>
+        <p>
+            While I'm sure everyone here doesn't need a refresher, let's over some notation and basic math
+            for how to address pixels in this grid. We often treat pixel buffers as large arrays in memory,
+            and we usually leave them one-dimensional, and do the math ourselves to find a specific index
+            for a given position.
+        </p>
+        <p>
+            Buffer layouts in the real world have a lot of subtleties &mdash; whether that's stride alignment,
+            endianness issues or pixel formats. If you don't know what any of those things are, don't worry,
+            I'll talk about them later. In this article series, we'll be using the convention established by
+            HTML5's <a class="code-literal" href="https://developer.mozilla.org/en-US/docs/Web/API/ImageData">ImageData</a>
+            API. We see this pixel grid as a giant, one-dimensional array of bytes, with each pixel taking four
+            bytes: red, green, blue, alpha, in that order.
+        </p>
+
+        <div class="demo-canvas" data-demo="rast1-imagedata-pixel-format"></div>
+
+        <p>
+            We can find the index of the first byte of a pixel, and vice versa, with some very simple math:
+        </p>
+
+<pre><code class="javascript">var BYTES_PER_PIXEL = 4;
+
+function indexForPixelLocation(imageData, x, y) {
+    return (y * imageData.width + x) * BYTES_PER_PIXEL;   
+}
+
+function pixelLocationForIndex(imageData, idx) {
+    var pixelIdx = Math.floor(idx / BYTES_PER_PIXEL);
+    var y = Math.floor(pixelIdx / imageData.width);
+    var x = pixelIdx % imageData.width;
+    return { x: x, y: y };
+}
+</pre></code>
+
+        <p>
+            Familiarize yourselves with what these functions do &mdash; they convert from the x and y
+            coordinates of pixels on the grid to their index into the array of pixels.
+        </p>
+        </section>
+
+        <section id="draw-rectangle">
+        <h3>Let's Draw a Rectangle</h3>
+        <p>
+            Now that we've established ourselves with the format of the pixel grid, let's try drawing
+            a rectangle. For simplicity's sake, let's just fill it with black for now.
+        </p>
+
+<pre><code class="javascript">function fillPixel(imageData, x, y) {
+    var idx = indexForPixelLocation(imageData, x, y);
+    imageData.data[idx + 0] = 0; // Red
+    imageData.data[idx + 1] = 0; // Green
+    imageData.data[idx + 2] = 0; // Blue
+    imageData.data[idx + 3] = 255; // Alpha
+}
+
+function fillRectangle(imageData, x1, y1, width, height) {
+    for (var y = y1; y < y1 + height; y++)
+        for (var x = x1; x < x1 + width; x++)
+            fillPixel(imageData, x, y);
+}
+</pre></code>
+
+        <p>
+            And let's set it in motion!
+        </p>
+
+        <div class="demo-canvas" data-demo="rast1-fillrect-basic"></div>
+
+        <p>
+            This should be pretty straightforward, but there are a few pecularities I do want to go over.
+            First, it might strike some of you as add to iterate over the "y" first. It does not make any
+            difference in this case, but graphics programmers often thing about things in vertical rows.
+            This is a holdover from early computer graphics, and it's for performance reasons &mdash;
+            if you think about the memory layout of our pixel grid, you'll notice that iterating over the
+            indexes in order. While RAM does stand for "random access memory", CPUs cheat and have things
+            called "caches". Just know that it is cheaper to write to indexes in order than it is to jump
+            around at random.
+        </p>
+        <p>
+            While it does not matter too much in our example, you should be aware that iterating over the
+            rows of a pixel grid first is common convention. This will become more apparent when we start
+            going over more complex topics.
+        </p>
+        <p>
+            It should also hopefully be pretty clear how to replace this "black" with another color, so I
+            won't bother explaining that. I will, however, up the ante. Let's try filling this rectangle
+            with some gradients.
+        </p>
+        </section>
+
+        <section id="gradients">
+        <h3>Styling our Rectangle</h3>
+        <p></p>
+        <div class="demo-canvas" data-demo="rast1-gradients"></div>
+
+        <p>
+            A gradient allows us to fill a shape with more than one color, by blending a bunch of different
+            colors together. The simplest gradient is the Radial gradient, which makes a "ball" of colors.
+            A simple radial gradient has four properties: a center position from where the ball will expand
+            from, the color at that center position, a radius which tells us where the ball stops, and the
+            color at that radius.  
+        </p>
+        <p>
+            For each pixel in our rectangle, we can compute its distance to the center point, and that tells
+            us how much of each color to use.
+        </p>
+        <p>
+            Our updated code here looks like:
+        </p>
+
+<pre><code class="javascript">function newRGB(r, g, b) {
+    return { r: r, g: g, b: b };
+}
+
+// Mix colors "color1" and "color2" together at time value "t",
+// where 0 is "color1" and 1 is "color2".
+function mixRGB(color1, color2, t) {
+    var newR = (color1.r * (1.0 - t)) + (color2.r * t);
+    var newG = (color1.g * (1.0 - t)) + (color2.g * t);
+    var newB = (color1.b * (1.0 - t)) + (color2.b * t);
+    return newRGB(newR, newG, newB);
+}
+
+function newRadialGradient(centerX, centerY, radius, centerRGB, edgeRGB) {
+    return function(x, y) {
+        // Calculate distance from the center point.
+        var distX = x - centerX, distY = y - centerY;
+        var distance = Math.sqrt(distX*distX + distY*distY);
+
+        // If we're outside the circle, then just return the color at the edge.
+        // This is a choice -- we could instead choose to repeat or ping-pong
+        // between the colors.
+        if (distance >= radius)
+            return edgeRGB;
+
+        // Translate the [0, radius] ranged value to a [0, 1] ranged value
+        // so we can mix the colors.
+        var t = distance / radius;
+        return mixRGB(centerRGB, edgeRGB, t);
+    };
+}
+
+// The same code as above, but slightly adapted to handle fill styles
+// and custom colors.
+
+function fillPixel(imageData, x, y, rgb) {
+    var idx = indexForPixelLocation(imageData, x, y);
+    imageData.data[idx + 0] = rgb.r;
+    imageData.data[idx + 1] = rgb.g;
+    imageData.data[idx + 2] = rgb.b;
+    imageData.data[idx + 3] = 255; // Alpha
+}
+
+function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
+    for (var y = y1; y < y1 + height; y++) {
+        for (var x = x1; x < x1 + width; x++) {
+            var rgb = fillStyle(x, y);
+            fillPixel(imageData, x, y, rgb);
+        }
+    }
+}
+</pre></code>
+        <div class="nav-bottom"></div>
+    </article>
+
+    <script src="article.js"></script>
+
+    <script src="../src/region.js"></script>
+    <script src="../src/class.js"></script>
+    <script src="../src/canvas-util.js"></script>
+    <script src="../src/article-demos/demos.js"></script>
+    <script src="../src/article-demos/rast1.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/railscasts.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/highlight.min.js"></script>
+
+    <script>
+        (function() {
+            "use strict";
+
+            window.addEventListener("load", function() {
+                Article.generateNavButtons();
+                Article.generateSectionLinks();
+                ArticleDemos.runAllDemos();
+            });
+
+            hljs.initHighlightingOnLoad();
+        })();
+    </script>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-35480078-2', 'magcius.github.io');
+      ga('send', 'pageview');
+    </script>
+</div></body>
+</html>

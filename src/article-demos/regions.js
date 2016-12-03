@@ -3,41 +3,7 @@
 (function(exports) {
     "use strict";
 
-    // A helper function that only requests animation frames when the element
-    // is visible.
-    function visibleRAF(elem, func) {
-        function isElemVisible(elem) {
-            var rect = elem.getBoundingClientRect();
-            if (rect.bottom < 0 || rect.top > window.innerHeight)
-                return false;
-            return true;
-        }
-
-        function update(t) {
-            func(t);
-
-            if (isRunning)
-                window.requestAnimationFrame(update);
-        }
-
-        function scrollHandler() {
-            setRunning(isElemVisible(elem));
-        }
-
-        var isRunning = false;
-        function setRunning(running) {
-            if (isRunning == running)
-                return;
-
-            isRunning = running;
-
-            if (isRunning)
-                window.requestAnimationFrame(update);
-        }
-
-        document.addEventListener('scroll', scrollHandler);
-        scrollHandler();
-    }
+    var visibleRAF = CanvasUtil.visibleRAF;
 
     // Given a region, draw a perimeter around the region as a stroke. This
     // is trickier than it might imagine. It's possible I'm overcomplicating

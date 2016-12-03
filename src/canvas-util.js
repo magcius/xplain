@@ -70,6 +70,40 @@
         ctx.drawImage(ctx.canvas, srcX, srcY, w, h, destX, destY, w, h);
     };
 
+    CanvasUtil.visibleRAF = function(elem, func) {
+        function isElemVisible(elem) {
+            var rect = elem.getBoundingClientRect();
+            if (rect.bottom < 0 || rect.top > window.innerHeight)
+                return false;
+            return true;
+        }
+
+        function update(t) {
+            func(t);
+
+            if (isRunning)
+                window.requestAnimationFrame(update);
+        }
+
+        function scrollHandler() {
+            setRunning(isElemVisible(elem));
+        }
+
+        var isRunning = false;
+        function setRunning(running) {
+            if (isRunning == running)
+                return;
+
+            isRunning = running;
+
+            if (isRunning)
+                window.requestAnimationFrame(update);
+        }
+
+        document.addEventListener('scroll', scrollHandler);
+        scrollHandler();
+    };
+
     exports.CanvasUtil = CanvasUtil;
 
 })(window);
