@@ -152,7 +152,7 @@ function fillRectangle(imageData, x1, y1, width, height) {
 
         <p>
             This should be pretty straightforward, but there are a few pecularities I do want to go over.
-            First, it might strike some of you as add to iterate over the "y" first. It does not make any
+            First, it may strike some of you as odd to iterate over the "y" first. It does not make any
             difference in this case, but graphics programmers often thing about things in vertical rows.
             This is a holdover from early computer graphics, and it's for performance reasons &mdash;
             if you think about the memory layout of our pixel grid, you'll notice that iterating over the
@@ -244,6 +244,132 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
     }
 }
 </pre></code>
+        <p>
+            OK. There's a lot in here to go through. First off, let's go over our method of representing
+            colors. Much like <span class="code-literal">ImageData</span>, we use values spanning from 0
+            to 255 to represent each channel, and I put these values in an object with "r", "g", and "b"
+            slots. We also need the ability to <a href="https://www.opengl.org/sdk/docs/man/html/mix.xhtml">mix</a>
+            between two colors, which gives us a nice smooth transition. We can easily do this by
+            <a href="https://en.wikipedia.org/wiki/Linear_interpolation">linear interpolating</a> each of
+            the two channels. Linear interpolation is one of the most important techniques in computer graphics.
+            So important, that we even give it a short name: <span class="definition">lerp</span>. A lerp lets us transition
+            between two values. The position in this transition is often called <span class="definition">time</span>, variable
+            name <span class="code-literal">t</span>, and is a value between 0 and 1, which tells us which of the
+            two values we should be "closer to".
+        </p>
+        <p>
+            After we have this ability to mix, or lerp, between two different colors, the rest of the
+            algorithm is dedicated to figuring out which time "t" we should be using. In the case of a radial
+            gradient, it's actually just the distance from the center point, normalized against the radius.
+        </p>
+        <p>
+            As an exercise, try working out, using this base, how to have arbitrary gradient stops at different
+            time values, rather than just two colors at the starts and ends.
+        </p>
+        </section>
+
+        <section id="circles">
+        <h3>Drawing Other Shapes</h3>
+        <p>
+            Now that we've become familiarized with the concepts of rendering boxes and fills, let's try our
+            hand at something a tad bit more fancy &mdash; rendering other shapes. To start with, we'll actually
+            just draw the shape we just taught ourselves how to draw above: circles. We just learned above how
+            to calculate the time "t" of a point x,y against any circle, and you can visualize that a real circle
+            is simply a bunch of those points where we're inside the radius. So we can just run over our pixel
+            grid, test when we're "inside" the circle, and if so, choose to fill in the pixel.
+        </p>
+        <p>
+            The only complication here is that we have to pick some start and end bounds for where we start
+            iterating. We could use our <em>entire</em> pixel grid, but we know a bunch of pixels will never be
+            filled in. We need a tight set of pixels. Thankfully, for a circle, it's quite easy to compute: it has
+            a width of twice the radius, and "pokes out" to the left an amount of the radius.
+        </p>
+<pre><code class="javascript">function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
+    var x1 = centerX - radius, y1 = centerY - radius;
+    var x2 = centerX + radius, y2 = centerY + radius;
+    for (var y = y1; y < y2; y++) {
+        for (var x = x1; x < x2; x++) {
+            var distX = (x - centerX), distY = (y - centerY);
+            var distance = Math.sqrt(distX*distX + distY*distY);
+            if (distance <= radius) {
+                var rgb = fillStyle(x, y);
+                fillPixel(imageData, x, y, rgb);
+            }
+        }
+    }
+}
+</pre></code>
+        <div class="demo-canvas" data-demo="rast1-circle"></div>
+        <p>
+            Oof. What happened here? This doesn't look very... circular. At this point, it might be tempting
+            to just try to brute force your way through the code: changing the <span class="code-literal">&lt;=</span>
+            above to a single <span class="code-literal">&lt;</span>, adding various <span class="code-literal">+ 1</span>
+            and <span class="code-literal">-1</span>s throughout.
+        </p>
+        <p>
+            There is actually nothing wrong with the above code in the abstract. The issue here is actually a
+            fundamental and conceptual one. You might also have spotted it above in the radial gradient example:
+            the gradient isn't centered, it's sort of down and to the right. These are both related problems.
+        </p>
+        <p>
+        </section>
+
+        <section id="sampling">
+        <h3>Sample Location</h3>
+        <p>
+            When we do something like the above when we draw &mdash; iterate over a bunch of pixels, and then test
+            whether a pixel should be in or out, we're making use of a concept known as <span class="definition">sampling</span>.
+            Basically, we have some functional concept of a shape, like a circle, and we can give it different x and y
+            values and it tells us whether they are inside or outside of the circle. But what do these points mean?
+        </p>
+        <p>
+            Well, I mean, we know that in our pixel grid, each one of these numbers corresponds to a pixel. But what
+            about the <em>abstract space</em> where these circle descriptions live? We're talking about a circle
+            centered at, let's say, 5, 5, with a radius of 10. We have to have some concept of mapping this abstract
+            space to the pixel grid. Up until now, we haven't thought about this and have been hacking it together
+            based on what makes sense. But we need to establish what this looks like.
+        </p>
+        <p>
+            I'm going to cheat, and for my next figure, show you what this abstract space circle looks like, laid on
+            top of the pixel grid.
+        </p>
+        <div class="demo-canvas" data-demo="rast1-circle-overlay"></div>
+        <p>
+            Maybe the revelation is clear now about what's actually going on. If not, don't worry. Right now, when
+            we test each pixel against the abstract space circle, we've been testing whether the <em>top left</em>
+            of the square is inside the abstract circle. When you think about it, that doesn't quite make sense.
+            Really, what our sampling method is trying to ask is "is more than 50% of the square inside the circle".
+            Using something smarter like the pixel's center would make more sense.
+        </p>
+        <p>
+            We can do this by adjusting our <span class="code-literal">fillCircle</span> function to test distance
+            against the pixel's <em>center</em> in the abstract space. Since pixel centers are halfway between pixels,
+            all we need to do is add <span class="code-literal">0.5</span> to both dimensions before calculating the
+            distance.
+        </p>
+<pre><code class="javascript">function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
+    var x1 = centerX - radius, y1 = centerY - radius;
+    var x2 = centerX + radius, y2 = centerY + radius;
+    for (var y = y1; y < y2; y++) {
+        for (var x = x1; x < x2; x++) {
+            var distX = (x - centerX<strong> + 0.5</strong>), distY = (y - centerY<strong> + 0.5</strong>);
+            var distance = Math.sqrt(distX*distX + distY*distY);
+            if (distance <= radius) {
+                var rgb = fillStyle(x, y);
+                fillPixel(imageData, x, y, rgb);
+            }
+        }
+    }
+}
+</pre></code>
+        <div class="demo-canvas" data-demo="rast1-circle-overlay-fixed"></div>
+        <p>
+            Ah, there we go. This also explains the bizarre gradient bug we were seeing earlier. When we were comparing
+            distances in the gradients, we were also comparing distances with the top left of the pixel, rather than
+            the pixel's center. I'll leave it as an exercise to the reader to fix that one.
+        </p>
+        </section>
+
         <div class="nav-bottom"></div>
     </article>
 

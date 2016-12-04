@@ -157,7 +157,7 @@ function fillRectangle(imageData, x1, y1, width, height) {
 }
         // >> EMBEDDED IN ARTICLE !!
 
-        function draw(t) {
+        function update(t) {
             var x = 20 + Math.floor(Math.cos(t / 500) * 16);
             var y = 1;
 
@@ -166,17 +166,11 @@ function fillRectangle(imageData, x1, y1, width, height) {
             rastDemoDraw(ctx, imageData);
         }
 
-        function update(t) {
-            draw(t);
-        }
         visibleRAF(canvas, update);
     });
 
-    ArticleDemos.registerDemo("rast1-gradients", STYLE, function(res) {
-        var canvas = res.canvas;
-        var ctx = canvas.getContext('2d');
-
-        // !! EMBEDDED IN ARTICLE <<
+(function() {
+// !! EMBEDDED IN ARTICLE <<
 function newRGB(r, g, b) {
     return { r: r, g: g, b: b };
 }
@@ -227,7 +221,32 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
         }
     }
 }
-        // >> EMBEDDED IN ARTICLE !!
+
+function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
+    var x1 = centerX - radius, y1 = centerY - radius;
+    var x2 = centerX + radius, y2 = centerY + radius;
+    for (var y = y1; y < y2; y++) {
+        for (var x = x1; x < x2; x++) {
+            var distX = (x - centerX), distY = (y - centerY);
+            var distance = Math.sqrt(distX*distX + distY*distY);
+            if (distance <= radius) {
+                var rgb = fillStyle(x, y);
+                fillPixel(imageData, x, y, rgb);
+            }
+        }
+    }
+}
+// >> EMBEDDED IN ARTICLE !!
+
+    function newSolidFill(rgb) {
+        return function(x, y) {
+            return rgb;
+        };
+    }
+
+    ArticleDemos.registerDemo("rast1-gradients", STYLE, function(res) {
+        var canvas = res.canvas;
+        var ctx = canvas.getContext('2d');
 
         function draw(t) {
             var x = 20 + Math.floor(Math.cos(t / 500) * 16);
@@ -239,11 +258,135 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
             rastDemoDraw(ctx, imageData);
         }
 
-        function update(t) {
-            draw(t);
-        }
-        visibleRAF(canvas, update);
-        // draw(1);
+        visibleRAF(canvas, draw);
     });
+
+    ArticleDemos.registerDemo("rast1-circle", STYLE, function(res) {
+        var canvas = res.canvas;
+        var ctx = canvas.getContext('2d');
+
+        function draw(t) {
+            var x = 23 + Math.floor(Math.cos(t / 500) * 16);
+            var y = 5;
+
+            var green = newSolidFill(newRGB(0, 180, 0));
+            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
+            fillCircle(imageData, green, x, y, 4);
+            rastDemoDraw(ctx, imageData);
+        }
+
+        visibleRAF(canvas, draw);
+    });
+
+    function scanAndDrawSamples(ctx, imageData, x1, y1, x2, y2, pixOffs) {
+        ctx.save();
+
+        ctx.lineWidth = 1;
+        for (var y = y1; y < y2; y++) {
+            for (var x = x1; x < x2; x++) {
+                var idx = indexForPixelLocation(imageData, x, y);
+                var hasContents = (imageData.data[idx + 0] < 255 &&
+                                   imageData.data[idx + 1] < 255 && 
+                                   imageData.data[idx + 2] < 255);
+
+                var ctxX = DISPLAY_XPAD + ((x + pixOffs) * CELL_SIZE) + 0.5;
+                var ctxY = DISPLAY_YPAD + ((y + pixOffs) * CELL_SIZE) + 0.5;
+
+                ctx.beginPath();
+                ctx.arc(ctxX, ctxY, 2, 0, Math.PI * 2);
+
+                if (hasContents) {
+                    ctx.fillStyle = 'rgba(255, 200, 0, 1)';
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                    ctx.fill();
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.fill();
+                    ctx.stroke();
+                }
+            }
+        }
+
+        ctx.restore();
+    }
+
+    ArticleDemos.registerDemo("rast1-circle-overlay", STYLE, function(res) {
+        var canvas = res.canvas;
+        var ctx = canvas.getContext('2d');
+
+        function draw(t) {
+            var x = 23 + Math.floor(Math.cos(t / 500) * 16);
+            var y = 5;
+
+            var green = newSolidFill(newRGB(0, 180, 0));
+            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
+            fillCircle(imageData, green, x, y, 4);
+            rastDemoDraw(ctx, imageData);
+
+            scanAndDrawSamples(ctx, imageData, 1, 1, imageData.width, imageData.height, 0);
+
+            ctx.save();
+            var ctxX = DISPLAY_XPAD + x * CELL_SIZE; 
+            var ctxY = DISPLAY_YPAD + y * CELL_SIZE; 
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(ctxX, ctxY, 4 * CELL_SIZE, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        visibleRAF(canvas, draw);
+    });
+
+    function fillCircleFixed(imageData, fillStyle, centerX, centerY, radius) {
+        var x1 = centerX - radius, y1 = centerY - radius;
+        var x2 = centerX + radius, y2 = centerY + radius;
+        for (var y = y1; y < y2; y++) {
+            for (var x = x1; x < x2; x++) {
+                var distX = (x - centerX + 0.5), distY = (y - centerY + 0.5);
+                var distance = Math.sqrt(distX*distX + distY*distY);
+                if (distance <= radius) {
+                    var rgb = fillStyle(x, y);
+                    fillPixel(imageData, x, y, rgb);
+                }
+            }
+        }
+    }
+
+    ArticleDemos.registerDemo("rast1-circle-overlay-fixed", STYLE, function(res) {
+        var canvas = res.canvas;
+        var ctx = canvas.getContext('2d');
+
+        function draw(t) {
+            var x = 23 + Math.floor(Math.cos(t / 500) * 16);
+            var y = 5;
+
+            var green = newSolidFill(newRGB(0, 180, 0));
+            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
+            fillCircleFixed(imageData, green, x, y, 4);
+            rastDemoDraw(ctx, imageData);
+
+            scanAndDrawSamples(ctx, imageData, 0, 0, imageData.width, imageData.height, 0.5);
+
+            ctx.save();
+            var ctxX = DISPLAY_XPAD + x * CELL_SIZE; 
+            var ctxY = DISPLAY_YPAD + y * CELL_SIZE; 
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(ctxX, ctxY, 4 * CELL_SIZE, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        visibleRAF(canvas, draw);
+    });
+
+})();
 
 })(window);
