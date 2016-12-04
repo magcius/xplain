@@ -153,9 +153,9 @@ function fillRectangle(imageData, x1, y1, width, height) {
         <p>
             This should be pretty straightforward, but there are a few pecularities I do want to go over.
             First, it may strike some of you as odd to iterate over the "y" first. It does not make any
-            difference in this case, but graphics programmers often thing about things in vertical rows.
+            difference in this case, but graphics programmers often think about things in vertical rows.
             This is a holdover from early computer graphics, and it's for performance reasons &mdash;
-            if you think about the memory layout of our pixel grid, you'll notice that iterating over the
+            if you think about the memory layout of our pixel grid, you'll notice that I'm iterating over the
             indexes in order. While RAM does stand for "random access memory", CPUs cheat and have things
             called "caches". Just know that it is cheaper to write to indexes in order than it is to jump
             around at random.
