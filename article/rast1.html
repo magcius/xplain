@@ -153,7 +153,7 @@ function fillRectangle(imageData, x1, y1, width, height) {
         <p>
             This should be pretty straightforward, but there are a few pecularities I do want to go over.
             First, it may strike some of you as odd to iterate over the "y" first. It does not make any
-            difference in this case, but graphics programmers often think about things in vertical rows.
+            difference in this case, but graphics programmers often think about things in rows.
             This is a holdover from early computer graphics, and it's for performance reasons &mdash;
             if you think about the memory layout of our pixel grid, you'll notice that I'm iterating over the
             indexes in order. While RAM does stand for "random access memory", CPUs cheat and have things
@@ -251,7 +251,7 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
             slots. We also need the ability to <a href="https://www.opengl.org/sdk/docs/man/html/mix.xhtml">mix</a>
             between two colors, which gives us a nice smooth transition. We can easily do this by
             <a href="https://en.wikipedia.org/wiki/Linear_interpolation">linear interpolating</a> each of
-            the two channels. Linear interpolation is one of the most important techniques in computer graphics.
+            the two colors. Linear interpolation is one of the most important techniques in computer graphics.
             So important, that we even give it a short name: <span class="definition">lerp</span>. A lerp lets us transition
             between two values. The position in this transition is often called <span class="definition">time</span>, variable
             name <span class="code-literal">t</span>, and is a value between 0 and 1, which tells us which of the
