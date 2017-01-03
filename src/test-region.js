@@ -109,4 +109,18 @@
         assert.equal(rt.extentsString(), "0,0 - 100,100");
     });
 
+    QUnit.test("subtract big", function(assert) {
+        var r1 = new Region();
+        r1.init_rect(0, 0, 100, 100);
+
+        var r2 = new Region();
+        r2.init_rect(40, 40, 2000, 2000);
+
+        var rt = new Region();
+        rt.subtract(r1, r2);
+
+        assert.equal(rt.toString(), "[+0+0x100x40, +0+40x40x60]");
+        assert.equal(rt.extentsString(), "0,0 - 100,100");
+    });
+
 })(window);

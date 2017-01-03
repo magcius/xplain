@@ -313,7 +313,7 @@
         // without actually looking at the resulting bands.
 
         var extents;
-        if (op & (OperationComponents.IN_1 | OperationComponents.IN_2))
+        if ((op & (OperationComponents.IN_1 | OperationComponents.IN_2)) == (OperationComponents.IN_1 | OperationComponents.IN_2))
             extents = extentsUnion(src1.extents, src2.extents);
         else if (op & OperationComponents.IN_1)
             extents = src1.extents;
