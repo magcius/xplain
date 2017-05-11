@@ -127,7 +127,7 @@ function pixelLocationForIndex(imageData, idx) {
     var x = pixelIdx % imageData.width;
     return { x: x, y: y };
 }
-</pre></code>
+</code></pre>
 
         <p>
             Familiarize yourselves with what these functions do &mdash; they convert from the x and y
@@ -155,7 +155,7 @@ function fillRectangle(imageData, x1, y1, width, height) {
         for (var x = x1; x < x1 + width; x++)
             fillPixel(imageData, x, y);
 }
-</pre></code>
+</code></pre>
 
         <p>
             And let's set it in motion!
@@ -256,7 +256,7 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
         }
     }
 }
-</pre></code>
+</code></pre>
         <p>
             OK. There's a lot in here to go through. First off, let's go over our method of representing
             colors. Much like <span class="code-literal">ImageData</span>, we use values spanning from 0
@@ -313,7 +313,7 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
         }
     }
 }
-</pre></code>
+</code></pre>
         <div class="demo-canvas" data-demo="rast1-circle"></div>
         <p>
             Oof. What happened here? This doesn't look very... circular. At this point, it might be tempting
@@ -379,7 +379,7 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
         }
     }
 }
-</pre></code>
+</code></pre>
         <div class="demo-canvas" data-demo="rast1-circle-overlay-fixed"></div>
         <p>
             That looks a lot better. This also explains the bizarre gradient bug we were seeing earlier.
