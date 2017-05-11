@@ -27,7 +27,18 @@
             related, but maybe a bit more general than just X11-specific. The Regions article was an example
             of that. Today, I'm going to talk about basic software rasterization of 2D graphics. While not
             an X11-specific concept, I feel it will be interesting to the same audience, and I'll include it
-            in the Xplain series. Going forward, Xplain will probably not be just about X11.
+            in the Xplain series. In fact, going forward, the hastily named "Xplain" will probably not be just
+            about X11. If people like my "interactive demo" format for other topics, I might just rename
+            the whole series to something like "Jasper's Cool Explaining Demo Articles" and talk about other
+            stuff (3D graphics! Sound!). Let me know what you think.
+        </p>
+
+        <p>
+            <em><strong>*cough*</strong></em>
+        </p>
+
+        <p>
+            ... Excuse me. Now let's start the article, proper.
         </p>
 
         <p>
@@ -255,9 +266,11 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
             <a href="https://en.wikipedia.org/wiki/Linear_interpolation">linear interpolating</a> each of
             the two colors. Linear interpolation is one of the most important techniques in computer graphics.
             So important, that we even give it a short name: <span class="definition">lerp</span>. A lerp lets us transition
-            between two values. The position in this transition is often called <span class="definition">time</span>, variable
-            name <span class="code-literal">t</span>, and is a value between 0 and 1, which tells us which of the
-            two values we should be "closer to".
+            between two values. The position in this transition is often called either <span class="definition">time</span>
+            or <span class="definition">alpha</span>, but here we'll be using <span class="definition">time</span>, variable
+            name <span class="code-literal">t</span>, to avoid confusion with the unrelated concept of the
+            <span class="definition">alpha channel</span>. This <span class="definition">t</span> is value between 0 and 1,
+            and it tells us which of the two values we should be "closer to".
         </p>
         <p>
             After we have this ability to mix, or lerp, between two different colors, the rest of the
@@ -309,9 +322,11 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
             and <span class="code-literal">-1</span>s throughout.
         </p>
         <p>
-            There is actually nothing wrong with the above code in the abstract. The issue here is actually a
-            fundamental and conceptual one. You might also have spotted it above in the radial gradient example:
-            the gradient isn't centered, it's sort of down and to the right. These are both related problems.
+            There is actually nothing wrong with the above code in the abstract. Instead of this being a simple
+            implementation detail change, the issue with this algorithm is actually a more fundamental and
+            conceptual one, one that causes us to rethink a bit about how we're viewing the pixel grid.
+            You might also have spotted it above in the radial gradient example: the gradient isn't centered,
+            it's sort of down and to the right. These are both related problems.
         </p>
         <p>
         </section>
@@ -329,19 +344,20 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
             about the <em>abstract space</em> where these circle descriptions live? We're talking about a circle
             centered at, let's say, 5, 5, with a radius of 10. We have to have some concept of mapping this abstract
             space to the pixel grid. Up until now, we haven't thought about this and have been hacking it together
-            based on what makes sense. But we need to establish what this looks like.
+            based on what makes sense. But to get this right, we need to think more closely about the relationship
+            between the two.
         </p>
         <p>
-            I'm going to cheat, and for my next figure, show you what this abstract space circle looks like, laid on
-            top of the pixel grid.
+            I'm going to cheat, and for my next figure, show you what this abstract space circle looks like we've been
+            using so far, laid on top of the pixel grid.
         </p>
         <div class="demo-canvas" data-demo="rast1-circle-overlay"></div>
         <p>
             Maybe the revelation is clear now about what's actually going on. If not, don't worry. Right now, when
             we test each pixel against the abstract space circle, we've been testing whether the <em>top left</em>
-            of the square is inside the abstract circle. When you think about it, that doesn't quite make sense.
-            Really, what our sampling method is trying to ask is "is more than 50% of the square inside the circle".
-            Using something smarter like the pixel's center would make more sense.
+            of the square is inside the abstract circle. When you think about it, though, that doesn't quite make sense.
+            Really, what we're trying to ask is "is more than 50% of the pixel square inside the circle".
+            Using something like the pixel's center would more accurately answer that question.
         </p>
         <p>
             We can do this by adjusting our <span class="code-literal">fillCircle</span> function to test distance
@@ -366,9 +382,228 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
 </pre></code>
         <div class="demo-canvas" data-demo="rast1-circle-overlay-fixed"></div>
         <p>
-            Ah, there we go. This also explains the bizarre gradient bug we were seeing earlier. When we were comparing
-            distances in the gradients, we were also comparing distances with the top left of the pixel, rather than
-            the pixel's center. I'll leave it as an exercise to the reader to fix that one.
+            That looks a lot better. This also explains the bizarre gradient bug we were seeing earlier.
+            When we were comparing distances in the gradients, we were also comparing distances with the
+            top left of the pixel, rather than the pixel's center. I'll leave it as an exercise to the
+            reader to fix that one.
+        </p>
+        <p>
+            You might have noticed that some graphics APIs, like HTML5 &lt;canvas&gt;, require you to add
+            these 0.5 increments yourselves, especially to lines, to make the resulting line look sharp.
+            This is because a line is basically a "thin" rectangle which is <em>lineWidth</em> wide, and
+            <em>centered</em> upon the position you give it. HTML5 &lt;canvas&gt; also uses this "pixel center"
+            sampling strategy. Giving it a bit of thought (imagine a vertical rectangle "growing" in width
+            from a pixel's center), and it should be obvious why this is the case.
+        </p>
+
+        <section id="transparency-and-blending">
+        <h3>Transparency and Blending</h3>
+        <p>
+            OK, so now we have basic shapes, and basic fills. What would be really cool is to try to blend
+            multiple shapes together. This is actually easier than you think, at least for a toy implementation.
+            But first, the theory. As a term stolen from
+            <a href="https://en.wikipedia.org/wiki/Compositing">the visual effects industry</a>, blending multiple
+            transparent shapes together is formally called
+            "<a href="https://en.wikipedia.org/wiki/Alpha_compositing">alpha compositing</a>", though I don't like that term very
+            much, for reasons that will become clearer as the rest of the article goes on. I prefer "blending".
+        </p>
+        <p>
+            For our toy implementation, we'll make some simplifications. Our resulting pixel grid is designed
+            to be displayed directly on my monitor. Since my monitor isn't transparent (at least<a href="https://www.theverge.com/2016/1/7/10733626/panasonic-transparent-screen-display-ces-2016">not yet!</a>),
+            we won't bother changing its storage, and just assume it's full opaque. However, we'll add a new
+            parameter to our fill color: <span class="definition">alpha</span>, or the "A" in "RGBA".
+            Alpha is commonly taken to be identical with "transparency", though this isn't fully theoretically
+            accurate as we'll see later.
+        </p>
+        <p>
+            We'll also be a bit more formal about our fill parameters. We'll call the fill pattern the
+            "source image", and we'll call the pixel grid that's being filled the "destination image". To blend
+            an RGBA "source image" into the opaque "destination image", instead of just setting the values like
+            the old <code>fillPixel</code> did... we lerp them!
+        </p>
+        <pre><code class="javascript">function newRGBA(r, g, b, a) {
+    return { r: r, g: g, b: b, a: a };
+}
+
+function blendPixel(imageData, x, y, rgba) {
+    var idx = indexForPixelLocation(imageData, x, y);
+    // Construct an RGB of the pixel grid ("destination") for our lerp.
+    var data = imageData.data;
+    var dst = newRGB(data[idx + 0], data[idx + 1], data[idx + 2]);
+    // Lerp using the src's alpha to blend.
+    var blended = mixRGB(dst, src, rgba.a);
+    fillPixel(imageData, x, y, blended);
+}
+</code></pre>
+        <div class="demo-canvas" data-demo="rast1-circle-simple-alpha"></div>
+        <p>
+            It's a bit clunky, but it works fine. If you think about it, it makes sense too: at 0% alpha, you
+            want the untouched pixel grid (the destination), and at 100% alpha, you want the source fully filled
+            in between, and at 50%, you want half of one, half of the other.
+        </p>
+        <p>
+            This is also a simplification. To blend an RGBA image into another RGBA image,
+            <a href="https://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending">you have to take both alpha values into account</a> (e.g. 30% of one, 50% of the other) and the resulting image also has a new
+            alpha, and the formula gets messy, and we graphics guys invented <a href="https://blogs.msdn.microsoft.com/shawnhar/2009/11/06/premultiplied-alpha/">a trick to make it faster and cleaner</a>.
+            But for the simple case I gave you, I intentionally chose it to keep it nice and simple. It's a lerp!
+        </p>
+        </section>
+
+        <section id="antialiasing">
+        <h3>Anti-aliasing</h3>
+        <p>
+            So, this is looking a lot better. We have shapes, we have colors and gradients. But it still doesn't
+            look great. The edges are all "jaggies", like you might see out of the Pencil tool in Photoshop
+            or something made entirely in MS Paint. Looking at the zoomed in pixel grid vs. the abstract one,
+            it should be obvious what the problem is: the pixel grid is much, much coarser than the abstract grid!
+            In signal processing terms, we're <a href="https://en.wikipedia.org/wiki/Aliasing" class="definition">aliased</a>:
+            to construct our pixel grid, we're sampling from a much <span definition="definition">higher frequency</span> space, the abstract grid,
+            and that results in aliasing artifacts.
+        </p>
+        <p>
+            ... OK. If that made no sense, here's a quick signal processing intro:
+            the word "frequency" just means "how fast things change". Our abstract circle changes from "inside"
+            to "outside" much "faster" than how often the grid can change, or, at a "higher frequency".
+        </p>
+        <p>
+            Imagine a rectangle in our abstract grid that changes rapidly from black to white over and over again.
+            Sampling this in our extremely course pixel grid will have a seemingly random pattern of sometimes white
+            pixels and sometimes black pixels. This is known as a <a href="https://en.wikipedia.org/wiki/Moir%C3%A9_pattern" class="definition">moire pattern</a>,
+            and it happens when we can't sample fast enough or fine enough for the source.
+        </p>
+
+        <p>
+            Signal processing theory tells us that in order to prevent artifacts like this, we have two options:
+            sample faster, or remove the high frequencies. Computer graphics implementations, conceputally, do the
+            former, and <em>then</em> downsample using a special filter that blends the pixels to avoid artifacts.
+        </p>
+
+        <p>
+            ... OK. That might have been a bit technical. Let's back to code. The easiest way to sample at a high
+            frequency is to literally just sample more. This is an approach known as <a href="https://en.wikipedia.org/wiki/Supersampling">supersampling</a>,
+            since we're sampling at a higher, or "more super", frequency. Before we do it though, we're going to need to
+            refactor our code a bit and introduce a bit of infrastructure so we can sample at arbitrary points.
+            The first thing we're going to do is take that if statement testing if the point is inside the circle,
+            and move it out into a new function.
+        </p>
+        <pre><code class="javascript">function insideCircle(centerX, centerY, radius, sampleX, sampleY) {
+    var distX = (sampleX - centerX), distY = (sampleY - centerY);
+    var distance = Math.sqrt(distX*distX + distY*distY);
+    return (distance <= radius);
+}
+</code></pre>
+        <p>
+            We also remove the "center pixel" 0.5 bias, because this will be part of our passed in sample point.
+            This gives us a nice functional sampling test. Now, for each pixel, we're going to sample it 16
+            different times, and collect the results. Watch closely. The code is going to be a bit hairy, but
+            I'll explain it afterwards.
+        </p>
+        <pre><code class="javascript">function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
+    var numSubpixelsX = 4;
+    var numSubpixelsY = 4;
+
+    var x1 = Math.floor(centerX - radius), y1 = Math.floor(centerY - radius);
+    var x2 = Math.ceil(centerX + radius), y2 = Math.ceil(centerY + radius);
+    for (var y = y1; y < y2; y++) {
+        for (var x = x1; x < x2; x++) {
+            // Compute the coverage by sampling the circle at "subpixel"
+            // locations and counting the number of subpixels turned on.
+            var coverage = 0;
+            for (var subpixelY = 0; subpixelY < numSubpixelsY; subpixelY++) {
+                for (var subpixelX = 0; subpixelX < numSubpixelsX; subpixelX++) {
+                    // Sample the center of the subpixel.
+                    var sampleX = x + (subpixelX + 0.5) / numSubpixelsX;
+                    var sampleY = y + (subpixelY + 0.5) / numSubpixelsY;
+                    if (insideCircle(centerX, centerY, radius, sampleX, sampleY))
+                        coverage += 1;
+                }
+            }
+            coverage /= numSubpixelsX * numSubpixelsY;
+
+            // Quick optimization: if we're fully outside the circle,
+            // we don't need to compute the fill.
+            if (coverage === 0)
+                continue;
+
+            var rgba = fillStyle(x, y);
+            // Apply coverage to the alpha.
+            rgba = newRGBA(rgba.r, rgba.g, rgba.b, rgba.a * coverage);
+            blendPixel(imageData, x, y, rgba);
+        }
+    }
+}
+</code></pre>
+        <div class="demo-canvas" data-demo="rast1-circle-aa"></div>
+        <p>
+            There's quite a lot to go through here, but the core important idea is that for each pixel,
+            we're sampling the abstract grid 16 times, and then using that as an average to figure out
+            "how solid" this pixel should be. In essence, we're faking a more compact pixel grid by adding
+            a bit of fuzziness to the edges. There's a few more important conceptual details here: first, we
+            can't represent all colors with these "fuzzed edges". We are trading color depth for the
+            appearance of more space. This is why it's hard to "un-anti-alias" pictures in Photoshop if
+            you've ever tried to remove a background or similar: because some of the original color was lost!
+        </p>
+        <p>
+            Secondly, note the use of the word <span class="definition">coverage</span>, which tells
+            you how much of the concrete pixel was covered by the abstract shape. Note that we also put this
+            coverage value into the alpha of our source, even though it's conceptually <em>not</em> a
+            transparent image. This is important: the alpha channel of an image isn't only just for
+            transparency, it's also used for pixel coverage, though they do end up blending the same, and so
+            we tend to combine the two into one channel.
+        </p>
+        <p>
+            One other thing: You might notice that I'm not computing the fill style at every subsample,
+            only the shape's coverage. This is an optimization known in the 3D graphics world as
+            <a href="https://www.khronos.org/opengl/wiki/Multisampling">multisampling</a>. The hope is that
+            the fill color of just the pixel's center really doesn't change from an average of all possible
+            sample points, but the coverage does.
+        </p>
+        <p>
+            You might also notice that the animation still seems a bit "jerky". This is because I'm drawing
+            the circle locked to the pixel grid with a <code>Math.floor</code>. Now that we can represent
+            arbitrary sample points thanks to proper antialiasing. Let's remove that restriction now.
+        </p>
+        <div class="demo-canvas" data-demo="rast1-circle-aa-smooth"></div>
+        <p>
+            Note the subtle additions of <code>Math.floor</code> and <code>Math.ceil</code> for when I compute
+            the bounding box to help accommodate this: otherwise, the X and Y values we pass to <code>blendImage</code>
+            would be fractional, and we can't really index an <code>ImageData</code> with a fractional index.
+        </p>
+        <p>
+            Super- or multisampling are not the only approaches to doing antialasing. Another approach here is
+            to use analytic methods to figure out how much area the shape actually covers. The common algorithm
+            for this is commonly attributed to Raph Levien in the <a href="http://www.levien.com/libart/">libart
+            rendering library</a>. I might do an interactive article for this some other day, but for now,
+            I'll link to Sean Barrett, who has <a href="http://nothings.org/gamedev/rasterize/">an excellent whiteboard explanation</a>
+            up on his website.
+        </p>
+        </section>
+
+        <section id="next-time">
+        <h3>Coming up next...</h3>
+        <p></p>
+        <div class="demo-canvas" data-demo="rast1-demo"></div>
+        <p>
+            This was probably already a huge article to read through. Thank you for making it to the bottom! You're
+            a real trooper! As always, this is only the starting point of a much deeper subject. I welcome all
+            comments and questions, including ideas for additional demos to help make hard-to-understand concepts
+            either. Email me, open a GitHub issue, play around with the code and see what you can make happen. The
+            code for every single demo seen today is open-source, with extra comments about what's going on. It's
+            also a bit more complete and refactored than what you see in the article itself. Perhaps you can take
+            some inspiration from that!
+        </p>
+        <p>
+            My plan is that next time, we'll expand on graphics further with fun things like linear transformations,
+            more shapes, like complex filled polygons, bezier curves, and maybe a bit of extra fun stuff with
+            perspective-textured triangles. That said, these plans aren't finalized, and if you would like me to
+            cover something extra, ideas are always welcome!
+        </p>
+        <p>
+            Thank you to everyone that left comments on the last article I made. This article has been a long time
+            coming. Since my last one was written, I've made a personal decision to leave the Linux, X11, and
+            Wayland worlds mostly behind. However, I'm still at a job where I interact with graphics every day,
+            and I, of course, will never tire of teaching people stuff. Even if it takes me a year to actually
+            finish an article. I'm hoping the expanded focus will help a lot with my motivation, though.
         </p>
         </section>
 
