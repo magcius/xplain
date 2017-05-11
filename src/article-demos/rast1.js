@@ -38,13 +38,16 @@
         return { r: r, g: g, b: b, a: a };
     }
 
-    // Mix colors "color1" and "color2" together at time value "t",
-    // where 0 is "color1" and 1 is "color2".
-    function mixRGBA(color1, color2, t) {
-        var newR = (color1.r * (1.0 - t)) + (color2.r * t);
-        var newG = (color1.g * (1.0 - t)) + (color2.g * t);
-        var newB = (color1.b * (1.0 - t)) + (color2.b * t);
-        var newA = (color1.a * (1.0 - t)) + (color2.a * t);
+    function lerp(a, b, t) {
+        return (a * (1.0 - t)) + (b * t);
+    }
+
+    // Lerps between colors "color1" and "color2".
+    function lerpRGBA(color1, color2, t) {
+        var newR = lerp(color1.r, color2.r, t);
+        var newG = lerp(color1.g, color2.g, t);
+        var newB = lerp(color1.b, color2.b, t);
+        var newA = lerp(color1.a, color2.a, t);
         return newRGBA(newR, newG, newB, newA);
     }
 
@@ -53,7 +56,7 @@
         // Construct an RGB of the pixel grid ("destination") for our lerp.
         var dst = newRGB(imageData.data[idx + 0], imageData.data[idx + 1], imageData.data[idx + 2]);
         // Lerp using the src's alpha to blend.
-        var blended = mixRGBA(dst, src, src.a);
+        var blended = lerpRGBA(dst, src, src.a);
         fillPixel(imageData, x, y, blended);
     }
 
@@ -100,7 +103,7 @@
             // between those two colors at the time T between the two positions. 
             if (pos >= stopA.position && pos <= stopB.position) {
                 var t = findt(stopA.position, stopB.position, pos);
-                return mixRGBA(stopA.rgba, stopB.rgba, t);
+                return lerpRGBA(stopA.rgba, stopB.rgba, t);
             }
         }
 
@@ -138,9 +141,9 @@
                 return edgeRGB;
 
             // Translate the [0, radius] ranged value to a [0, 1] ranged value
-            // so we can mix the colors.
+            // so we can lerp the colors.
             var t = distance / radius;
-            return mixRGBA(centerRGB, edgeRGB, t);
+            return lerpRGBA(centerRGB, edgeRGB, t);
         };
     }
 
@@ -509,6 +512,158 @@
         }
 
         visibleRAF(canvas, update);
+    });
+
+    ArticleDemos.registerDemo("rast1-fillrect-lerp", STYLE, function(res) {
+        var canvas = res.canvas;
+        var ctx = canvas.getContext('2d');
+
+        function fillPixel(imageData, x, y) {
+            var idx = indexForPixelLocation(imageData, x, y);
+            imageData.data[idx + 0] = 0; // Red
+            imageData.data[idx + 1] = 0; // Green
+            imageData.data[idx + 2] = 0; // Blue
+            imageData.data[idx + 3] = 255; // Alpha
+        }
+
+        function fillRectangle(imageData, x1, y1, width, height) {
+            for (var y = y1; y < y1 + height; y++)
+                for (var x = x1; x < x1 + width; x++)
+                    fillPixel(imageData, x, y);
+        }
+
+        // !! EMBEDDED IN ARTICLE <<
+function lerp(a, b, t) {
+    return (a * (1.0 - t)) + (b * t);
+}
+
+function draw(imageData, secs) {
+    var startX = 1;
+    var endX = 38;
+    var x = Math.floor(lerp(startX, endX, secs));
+    var y = 1;
+    fillRectangle(imageData, x, y, 8, 8);
+}
+        // >> EMBEDDED IN ARTICLE !!
+
+        function update(t) {
+            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
+            draw(imageData, (t / 1000) % 1);
+            rastDemoDraw(ctx, imageData);
+        }
+        visibleRAF(canvas, update);
+    });
+
+    ArticleDemos.registerDemo("rast1-fillrect-lerp-smoothstep", STYLE, function(res) {
+        var canvas = res.canvas;
+        var ctx = canvas.getContext('2d');
+
+        function fillPixel(imageData, x, y) {
+            var idx = indexForPixelLocation(imageData, x, y);
+            imageData.data[idx + 0] = 0; // Red
+            imageData.data[idx + 1] = 0; // Green
+            imageData.data[idx + 2] = 0; // Blue
+            imageData.data[idx + 3] = 255; // Alpha
+        }
+
+        function fillRectangle(imageData, x1, y1, width, height) {
+            for (var y = y1; y < y1 + height; y++)
+                for (var x = x1; x < x1 + width; x++)
+                    fillPixel(imageData, x, y);
+        }
+
+        // !! EMBEDDED IN ARTICLE <<
+function lerp(a, b, t) {
+    return (a * (1.0 - t)) + (b * t);
+}
+
+function smoothstep(t) {
+    return t*t*(3 - t*2);
+}
+
+function draw(imageData, secs) {
+    var startX = 1;
+    var endX = 38;
+    var smoothSecs = smoothstep(secs);
+    var x = Math.floor(lerp(startX, endX, smoothSecs));
+    var y = 1;
+    fillRectangle(imageData, x, y, 8, 8);
+}
+        // >> EMBEDDED IN ARTICLE !!
+
+        function update(t) {
+            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
+            draw(imageData, (t / 2000) % 1);
+            rastDemoDraw(ctx, imageData);
+        }
+        visibleRAF(canvas, update);
+    });
+
+    ArticleDemos.registerDemo("rast1-lerp-gradient", STYLE, function(res) {
+        var canvas = res.canvas;
+        var ctx = canvas.getContext('2d');
+
+        function fillPixel(imageData, x, y) {
+            var idx = indexForPixelLocation(imageData, x, y);
+            imageData.data[idx + 0] = 0; // Red
+            imageData.data[idx + 1] = 0; // Green
+            imageData.data[idx + 2] = 0; // Blue
+            imageData.data[idx + 3] = 255; // Alpha
+        }
+
+        function fillRectangle(imageData, x1, y1, width, height) {
+            for (var y = y1; y < y1 + height; y++)
+                for (var x = x1; x < x1 + width; x++)
+                    fillPixel(imageData, x, y);
+        }
+
+        function lerp(a, b, t) {
+            return (a * (1.0 - t)) + (b * t);
+        }
+
+        function newRGB(r, g, b) {
+            return { r: r, g: g, b: b };
+        }
+
+        function lerpRGB(color1, color2, t) {
+            var newR = lerp(color1.r, color2.r, t);
+            var newG = lerp(color1.g, color2.g, t);
+            var newB = lerp(color1.b, color2.b, t);
+            return newRGB(newR, newG, newB);
+        }
+
+        // !! EMBEDDED IN ARTICLE <<
+function fillPixel(imageData, x, y, rgb) {
+    var idx = indexForPixelLocation(imageData, x, y);
+    imageData.data[idx + 0] = rgb.r;
+    imageData.data[idx + 1] = rgb.g;
+    imageData.data[idx + 2] = rgb.b;
+    imageData.data[idx + 3] = 255; // Alpha
+}
+
+function fillRectangle(imageData, rgb, x1, y1, width, height) {
+    for (var y = y1; y < y1 + height; y++)
+        for (var x = x1; x < x1 + width; x++)
+            fillPixel(imageData, x, y, rgb);
+}
+
+function draw(imageData) {
+    var startX = 1;
+    var endX = BUFFER_WIDTH - 1;
+
+    var red = newRGB(255, 0, 0);
+    var blue = newRGB(0, 0, 255);
+    for (var x = startX; x < endX; x++) {
+        var t = (x - startX) / (endX - startX);
+        var rgb = lerpRGB(red, blue, t);
+        fillRectangle(imageData, rgb, x, 1, 1, BUFFER_HEIGHT - 2);
+    }
+}
+        // >> EMBEDDED IN ARTICLE !!
+
+        var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
+        draw(imageData);
+        rastDemoDraw(ctx, imageData);
     });
 
     ArticleDemos.registerDemo("rast1-gradients", STYLE, function(res) {

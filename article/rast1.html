@@ -131,7 +131,10 @@ function pixelLocationForIndex(imageData, idx) {
 
         <p>
             Familiarize yourselves with what these functions do &mdash; they convert from the x and y
-            coordinates of pixels on the grid to their index into the array of pixels.
+            coordinates of pixels on the grid to their index into the array of pixels. Pixels go from
+             top left to bottom right, first in the X direction, then in the Y direction. The top left of
+             the pixel grid is at <span class="definition">0, 0</span> at index 0. The next pixel in the
+             array, which starts at index 4, is located directly to the right.
         </p>
         </section>
 
@@ -158,7 +161,7 @@ function fillRectangle(imageData, x1, y1, width, height) {
 </code></pre>
 
         <p>
-            And let's set it in motion!
+            And let's try it out!
         </p>
 
         <div class="demo-canvas" data-demo="rast1-fillrect-basic"></div>
@@ -185,18 +188,123 @@ function fillRectangle(imageData, x1, y1, width, height) {
         </p>
         </section>
 
+        <section id="lerp">
+        <h3>Space and Time</h3>
+        <p>
+
+            It might not seem related, but I'm going to try to explain gradients by first trying to animate
+            this rectangle through time, and I'm going to do it with a technique called
+            <span class="definition">linear interpolation</span>. The position in this transition is often
+            called either <span class="definition">time</span> or <span class="definition">alpha</span>, but
+            here we'll be using <span class="definition">time</span>, variable name <span class="code-literal">t</span>,
+            to avoid confusion with the unrelated concept of the <span class="definition">alpha channel</span>.
+            This <span class="code-literal">t</span> is a value between 0 and 1, which tells us which
+            of the two values we should be "closer to". Let's use a "lerp" here to animate the rectangle
+            across the grid.
+        </p>
+
+        <div class="demo-canvas" data-demo="rast1-fillrect-lerp"></div>
+<pre><code class="javascript">function lerp(a, b, t) {
+    return (a * (1.0 - t)) + (b * t);
+}
+
+function draw(imageData, secs) {
+    var startX = 1;
+    var endX = 38;
+    var x = Math.floor(lerp(startX, endX, secs));
+    var y = 1;
+    fillRectangle(imageData, x, y, 8, 8);
+}
+</code></pre>
+        <p>
+            The lerp is actually a really simple and cool piece of math that can be used in a lot of
+            different scenarios. I won't go into a full description,
+            since <a href="https://en.wikipedia.org/wiki/Linear_interpolation">Wikipedia already has you
+            mostly covered</a>, but I will show you a somewhat cool thing you can do here. The last
+            parameter, "t", is a value between 0 and 1. In this case, we derive it from how many seconds have
+            passed in the animation, but we can warp it a bit. We can do the obvious scaling, but we can also
+            use more complicated warping. For instance, to make it slow down near the end, we can warp "t" by
+            passing it through a famous easing curve known
+            as "<a href="https://en.wikipedia.org/wiki/Smoothstep">smoothstep</a>":
+        </p>
+
+        <div class="demo-canvas" data-demo="rast1-fillrect-lerp-smoothstep"></div>
+<pre><code class="javascript">function lerp(a, b, t) {
+    return (a * (1.0 - t)) + (b * t);
+}
+
+function smoothstep(t) {
+    return t*t*(3 - t*2);
+}
+
+function draw(imageData, secs) {
+    var startX = 1;
+    var endX = 38;
+    var smoothSecs = smoothstep(secs);
+    var x = Math.floor(lerp(startX, endX, smoothSecs));
+    var y = 1;
+    fillRectangle(imageData, x, y, 8, 8);
+}
+</code></pre>
+
+        <p>
+            ... which looks a bit easier on the eyes. Even though "t" stems from the word "time", as in the
+            math-y "f(t)" sense of the word, it's important to realize that we can use it for more than just
+            time, and we can lerp more than just the rectangle's position. For instance, we can lerp between
+            two colors with just a bit more code.
+        </p>
+<pre><code class="javascript">function newRGB(r, g, b) {
+    return { r: r, g: g, b: b };
+}
+
+function lerpRGB(color1, color2, t) {
+    var newR = lerp(color1.r, color2.r, t);
+    var newG = lerp(color1.g, color2.g, t);
+    var newB = lerp(color1.b, color2.b, t);
+    return newRGB(newR, newG, newB);
+}
+</code></pre>
+        <p>
+            This isn't doing anything more fancy than just doing a lerp across all three components in a
+            color, and if we draw a ton of 1px-wide rectangles that all use this:
+        </p>
+<pre><code class="javascript">function fillPixel(imageData, x, y, rgb) {
+    var idx = indexForPixelLocation(imageData, x, y);
+    imageData.data[idx + 0] = rgb.r;
+    imageData.data[idx + 1] = rgb.g;
+    imageData.data[idx + 2] = rgb.b;
+    imageData.data[idx + 3] = 255; // Alpha
+}
+
+function fillRectangle(imageData, rgb, x1, y1, width, height) {
+    for (var y = y1; y < y1 + height; y++)
+        for (var x = x1; x < x1 + width; x++)
+            fillPixel(imageData, x, y, rgb);
+}
+
+function draw(imageData) {
+    var startX = 1;
+    var endX = BUFFER_WIDTH - 1;
+
+    var red = newRGB(255, 0, 0);
+    var blue = newRGB(0, 0, 255);
+    for (var x = startX; x < endX; x++) {
+        var t = (x - startX) / (endX - startX);
+        var rgb = lerpRGB(red, blue, t);
+        fillRectangle(imageData, rgb, x, 1, 1, BUFFER_HEIGHT - 2);
+    }
+}
+</code></pre>
+        <div class="demo-canvas" data-demo="rast1-lerp-gradient"></div>
+        <p>
+            ... we end up with a smooth transition between the colors, also known as a "gradient". This
+        </p>
+        </section>
+
         <section id="gradients">
         <h3>Styling our Rectangle</h3>
         <p></p>
         <div class="demo-canvas" data-demo="rast1-gradients"></div>
-
-        <p>
-            A gradient allows us to fill a shape with more than one color, by blending a bunch of different
-            colors together. The simplest gradient is the Radial gradient, which makes a "ball" of colors.
-            A simple radial gradient has four properties: a center position from where the ball will expand
-            from, the color at that center position, a radius which tells us where the ball stops, and the
-            color at that radius.  
-        </p>
         <p>
             For each pixel in our rectangle, we can compute its distance to the center point, and that tells
             us how much of each color to use.
@@ -211,7 +319,7 @@ function fillRectangle(imageData, x1, y1, width, height) {
 
 // Mix colors "color1" and "color2" together at time value "t",
 // where 0 is "color1" and 1 is "color2".
-function mixRGB(color1, color2, t) {
+function lerpRGB(color1, color2, t) {
     var newR = (color1.r * (1.0 - t)) + (color2.r * t);
     var newG = (color1.g * (1.0 - t)) + (color2.g * t);
     var newB = (color1.b * (1.0 - t)) + (color2.b * t);
@@ -233,7 +341,7 @@ function newRadialGradient(centerX, centerY, radius, centerRGB, edgeRGB) {
         // Translate the [0, radius] ranged value to a [0, 1] ranged value
         // so we can mix the colors.
         var t = distance / radius;
-        return mixRGB(centerRGB, edgeRGB, t);
+        return lerpRGB(centerRGB, edgeRGB, t);
     };
 }
 
@@ -264,13 +372,7 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
             slots. We also need the ability to <a href="https://www.opengl.org/sdk/docs/man/html/mix.xhtml">mix</a>
             between two colors, which gives us a nice smooth transition. We can easily do this by
             <a href="https://en.wikipedia.org/wiki/Linear_interpolation">linear interpolating</a> each of
-            the two colors. Linear interpolation is one of the most important techniques in computer graphics.
-            So important, that we even give it a short name: <span class="definition">lerp</span>. A lerp lets us transition
-            between two values. The position in this transition is often called either <span class="definition">time</span>
-            or <span class="definition">alpha</span>, but here we'll be using <span class="definition">time</span>, variable
-            name <span class="code-literal">t</span>, to avoid confusion with the unrelated concept of the
-            <span class="definition">alpha channel</span>. This <span class="definition">t</span> is value between 0 and 1,
-            and it tells us which of the two values we should be "closer to".
+            the two colors.
         </p>
         <p>
             After we have this ability to mix, or lerp, between two different colors, the rest of the
