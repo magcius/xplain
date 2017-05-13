@@ -38,6 +38,16 @@
         return { r: r, g: g, b: b, a: a };
     }
 
+    // "trick" HSL which is based on YUV space.
+    // http://www.quasimondo.com/archives/000696.php
+    function newHSL(hue, sat, lum) {
+        var u = Math.cos(hue) * sat, v = Math.sin(hue) * sat;
+        var r = lum + 1.139837 * v;
+        var g = lum - 0.394651 * u - 0.580598 * v;
+        var b = lum + 2.032110 * u;
+        return newRGB(r * 255, g * 255, b * 255);
+    }
+
     function lerp(a, b, t) {
         return (a * (1.0 - t)) + (b * t);
     }
@@ -51,10 +61,26 @@
         return newRGBA(newR, newG, newB, newA);
     }
 
-    function blendPixel(imageData, x, y, src) {
+    // "Inverse lerp".
+    // Given bounds [a, b], tell me the "time" of value "v"
+    // between those two values, where 0 is a, and 1 is b. 
+    function inverseLerp(a, b, v) {
+        return (v - a) / (b - a);
+    }
+
+    // https://en.wikipedia.org/wiki/Smoothstep
+    function smoothstep(t) {
+        return t*t*(3 - t*2);
+    }
+
+    function getPixel(imageData, x, y) {
         var idx = indexForPixelLocation(imageData, x, y);
+        return newRGB(imageData.data[idx + 0], imageData.data[idx + 1], imageData.data[idx + 2]);
+    }
+
+    function blendPixel(imageData, x, y, src) {
         // Construct an RGB of the pixel grid ("destination") for our lerp.
-        var dst = newRGB(imageData.data[idx + 0], imageData.data[idx + 1], imageData.data[idx + 2]);
+        var dst = getPixel(imageData, x, y);
         // Lerp using the src's alpha to blend.
         var blended = lerpRGBA(dst, src, src.a);
         fillPixel(imageData, x, y, blended);
@@ -64,13 +90,6 @@
         return function(x, y) {
             return rgba;
         }
-    }
-
-    // "Reverse lerp".
-    // Given bounds [a, b], tell me the "time" of value "v"
-    // between those two values, where 0 is a, and 1 is b. 
-    function findt(a, b, v) {
-        return (v - a) / (b - a);
     }
 
     // Complete gradient code featuring multiple stops. Will be expanded on in the next article.
@@ -89,7 +108,7 @@
 
         // If we're to the "left" of the first stop, then simply use its
         // color. If we're to the right, use the last color. In this way,
-        // the colors at the ends of the gradient extend to the rest of space.
+        // the colors at the ends of the gradient extend to all of [0, 1].
         if (pos <= stops[0].position)
             return stops[0].rgba;
         if (pos >= stops[stops.length - 1].position)
@@ -102,7 +121,7 @@
             // If we're between these two stops, then linearly blend
             // between those two colors at the time T between the two positions. 
             if (pos >= stopA.position && pos <= stopB.position) {
-                var t = findt(stopA.position, stopB.position, pos);
+                var t = inverseLerp(stopA.position, stopB.position, pos);
                 return lerpRGBA(stopA.rgba, stopB.rgba, t);
             }
         }
@@ -120,7 +139,7 @@
             var dy = y - yc;
             var dist = Math.sqrt(dx*dx + dy*dy);
             // How far along is the distance into the range 0-radius?
-            var pos = findt(0, radius, dist);
+            var pos = inverseLerp(0, radius, dist);
             // Now look up the position against the gradient stops to get a final color.
             var rgba = evaluateStopsAtPos(stops, pos);
             return rgba;
@@ -175,7 +194,7 @@
             // Now project using the dot product.
             var magnitude = gradX*bufX + gradY*bufY;
             // How far along is magnitude in the range 0-gradLength?
-            var pos = findt(0, gradLength, magnitude);
+            var pos = inverseLerp(0, gradLength, magnitude);
             var rgba = evaluateStopsAtPos(stops, pos);
             return rgba;
         };
@@ -240,9 +259,9 @@
     function fillCoverage(imageData, fillStyle, x, y, coverage) {
         // Quick optimization to prevent us from computing the fillStyle.
         if (coverage === 0)
-            return;
+           return;
 
-        var rgba = fillStyle(x, y);
+        var rgba = fillStyle(x, y, coverage);
         rgba = newRGBA(rgba.r, rgba.g, rgba.b, rgba.a * coverage);
         blendPixel(imageData, x, y, rgba);
     }
@@ -266,7 +285,7 @@
         }
 
         iterBoundingBox(x1, y1, x2, y2, function(x, y) {
-            var coverage = collectCoverage(x, y, rectangleCoverage, aa ? 8 : 1);
+            var coverage = collectCoverage(x, y, rectangleCoverage, aa ? 4 : 1);
             return fillCoverage(imageData, fillStyle, x, y, coverage);
         });
     }
@@ -281,7 +300,7 @@
         var x1 = centerX - radius, y1 = centerY - radius;
         var x2 = centerX + radius, y2 = centerY + radius;
         iterBoundingBox(x1, y1, x2, y2, function(x, y) {
-            var coverage = collectCoverage(x, y, circleCoverage, aa ? 8 : 1, bias);
+            var coverage = collectCoverage(x, y, circleCoverage, aa ? 4 : 1, bias);
             return fillCoverage(imageData, fillStyle, x, y, coverage);
         });
     }
@@ -344,37 +363,53 @@
     // in it gets a giant 16x16 "cell" for demonstration purposes.
     var CELL_SIZE = 16;
 
+    var DISPLAY_YPAD = 2;
+
     // As such, the final size of the buffer, rendered on the canvas, is:
     var DISPLAY_WIDTH = BUFFER_WIDTH * CELL_SIZE;
-    var DISPLAY_HEIGHT = BUFFER_HEIGHT * CELL_SIZE;
+    var DISPLAY_HEIGHT = BUFFER_HEIGHT * CELL_SIZE + DISPLAY_YPAD * 2;
 
     // The size of our "demo slot" is 800px, which means we need some padding
     // on the left and right sides.
     var DISPLAY_XPAD = (800 - DISPLAY_WIDTH) / 2;
-    // We have no padding on top/bottom.
-    var DISPLAY_YPAD = 0;
 
     var STYLE = "height: " + (DISPLAY_HEIGHT + 1) + "px";
 
     // -- Demo Utilities --
 
+    function bufferToDisplay(p) {
+        p.x = p.x * CELL_SIZE + DISPLAY_XPAD;
+        p.y = p.y * CELL_SIZE + DISPLAY_YPAD;
+    }
+
+    function displayToBuffer(p) {
+        p.x = (p.x - DISPLAY_XPAD) / CELL_SIZE;
+        p.y = (p.y - DISPLAY_YPAD) / CELL_SIZE;
+    }
+
     // Path out a grid of strokes drawing a grid.
-    function gridPath(ctx) {
-        for (var x = DISPLAY_XPAD; x <= DISPLAY_XPAD + DISPLAY_WIDTH; x += CELL_SIZE) {
-            // See article for why these 0.5 lines are here!
-            ctx.moveTo(x + 0.5, DISPLAY_YPAD);
-            ctx.lineTo(x + 0.5, DISPLAY_YPAD + DISPLAY_HEIGHT);
+    function gridPath(ctx, width, height) {
+        for (var x = 0; x <= width; x++) {
+            var start = { x: x, y: 0 }, end = { x: x, y: height };
+            bufferToDisplay(start); bufferToDisplay(end);
+            // See article for why these 0.5s are here!
+            ctx.moveTo(start.x + 0.5, start.y);
+            ctx.lineTo(end.x + 0.5, end.y);
         }
 
-        for (var y = DISPLAY_YPAD; y <= DISPLAY_YPAD + DISPLAY_HEIGHT; y += CELL_SIZE) {
-            ctx.moveTo(DISPLAY_XPAD, y + 0.5);
-            ctx.lineTo(DISPLAY_XPAD + DISPLAY_WIDTH, y + 0.5);
+        for (var y = 0; y <= height; y++) {
+            var start = { x: 0, y: y }, end = { x: width, y: y };
+            bufferToDisplay(start); bufferToDisplay(end);
+            ctx.moveTo(start.x, start.y + 0.5);
+            ctx.lineTo(end.x, end.y + 0.5);
         }
     }
 
-    function drawGrid(ctx) {
+    function drawGrid(ctx, width, height) {
+        width = width !== undefined ? width : BUFFER_WIDTH;
+        height = height !== undefined ? height : BUFFER_HEIGHT;
         ctx.beginPath();
-        gridPath(ctx);
+        gridPath(ctx, width, height);
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.stroke();
     }
@@ -395,11 +430,10 @@
                 var b = imageData.data[i + 2];
                 i += 4;
 
-                var dpyX = DISPLAY_XPAD + (bufX * CELL_SIZE); 
-                var dpyY = DISPLAY_YPAD + (bufY * CELL_SIZE); 
-
+                var pos = { x: bufX, y: bufY };
+                bufferToDisplay(pos);
                 ctx.fillStyle = colorStyle(r, g, b);
-                ctx.fillRect(dpyX, dpyY, CELL_SIZE, CELL_SIZE);
+                ctx.fillRect(pos.x, pos.y, CELL_SIZE, CELL_SIZE);
             }
         }
 
@@ -454,6 +488,28 @@
         }
     }
 
+    function drawCoverageBlankGrid(ctx, x1, y1, x2, y2, pixOffs) {
+        for (var y = y1; y < y2; y++) {
+            for (var x = x1; x < x2; x++) {
+                var pX = x + (pixOffs ? 0.5 : 0);
+                var pY = y + (pixOffs ? 0.5 : 0);
+                drawSamplePoint(ctx, pX, pY, false);
+            }
+        }
+    }
+
+    function drawCoverageSamplesFillStyle(ctx, pixOffs) {
+        return function(x, y, coverage) {
+            if (coverage === 0)
+                return;
+
+            var pX = x + (pixOffs ? 0.5 : 0);
+            var pY = y + (pixOffs ? 0.5 : 0);
+            drawSamplePoint(ctx, pX, pY, true);
+            return newRGBA(0, 0, 0, 0);
+        };
+    }
+
     // XXX: Should not be called when I'm done here!
     function demoMissing(ctx) {
         var canvas = ctx.canvas;
@@ -470,16 +526,226 @@
 
     // -- Demos! --
 
-    ArticleDemos.registerDemo("rast1-grid-demo", STYLE, function(res) {
+    ArticleDemos.registerDemo("rast1-demo", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
-        demoMissing(ctx);
+
+        function draw(t) {
+            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
+
+            var TAU = Math.PI * 2;
+            var tcx = 7, tcy = 5 + Math.cos(t / 1600) * 2;
+            var tsz = Math.cos(t / 600) * 2 + 8;
+            var t1x = Math.cos((t / 600) - 0/3 * TAU) * tsz + tcx;
+            var t1y = Math.sin((t / 600) - 0/3 * TAU) * tsz + tcy;
+            var t2x = Math.cos((t / 600) - 1/3 * TAU) * tsz + tcx;
+            var t2y = Math.sin((t / 600) - 1/3 * TAU) * tsz + tcy;
+            var t3x = Math.cos((t / 600) - 2/3 * TAU) * tsz + tcx;
+            var t3y = Math.sin((t / 600) - 2/3 * TAU) * tsz + tcy;
+            var tricolor = newSolidFill(newHSL(t / 1000, .3, .4));
+            fillTri(imageData, tricolor, t1x, t1y, t2x, t2y, t3x, t3y);
+
+            var cx = 23 + Math.cos(t / 700) * 20;
+            var cy = 5;
+            var sz = Math.cos(t / 430) * 2 + 5;
+            var grad1 = newRadialGradient(cx - 0.5, cy - 0.5, sz, newRGBA(0, 0, 255, 0), newRGBA(0, 0, 255, 1));
+            fillCircle(imageData, grad1, cx, cy, sz, true, true);
+
+            var grad2t = -(t / 100) % 30;
+            var grad2 = newLinearGradient(1, grad2t - 30, 2, grad2t, [
+                newGradientStop(0.0, newRGBA(255, 0, 0, 0.8)),
+                newGradientStop(0.2, newRGBA(255, 255, 0, 0.8)),
+                newGradientStop(0.4, newRGBA(0, 255, 0, 0.8)),
+                newGradientStop(0.6, newRGBA(0, 255, 255, 0.8)),
+                newGradientStop(0.8, newRGBA(0, 0, 255, 0.8)),
+                newGradientStop(0.9, newRGBA(255, 0, 255, 0.8)),
+                newGradientStop(1.0, newRGBA(255, 0, 0, 0.8)),
+            ]);
+            var rx = 22 + Math.cos(t / 1200) * 3;
+            var rw = 12 + Math.sin(t / 800) * 8;
+            fillRectangle(imageData, grad2, rx, 1, rw, 8, true);
+
+            rastDemoDraw(ctx, imageData);
+        }
+
+        visibleRAF(canvas, draw);
+    });
+
+    var SamplerControl = new Class({
+        initialize: function(canvas, boxSize, width, height) {
+            this._boxSize = boxSize;
+            this._width = width;
+            this._height = height;
+            this._canvas = canvas;
+            this._canvas.addEventListener('mousemove', this._onCanvasMouseMove.bind(this));
+            this._canvas.addEventListener('mouseout', this._onCanvasMouseOut.bind(this));
+            this._canvas.addEventListener('click', this._onCanvasClick.bind(this));
+
+            this._selectedBox = null;
+            this._hoverBox = null;
+        },
+
+        getActiveBox: function() {
+            return this._selectedBox !== null ? this._selectedBox : this._hoverBox;
+        },
+
+        _onCanvasMouseMove: function(e) {
+            var pos = { x: e.offsetX, y: e.offsetY };
+            displayToBuffer(pos);
+
+            var boxSize = this._boxSize;
+            var x1 = Math.round(Math.min(Math.max(pos.x - boxSize / 2, 0), this._width - boxSize));
+            var y1 = Math.round(Math.min(Math.max(pos.y - boxSize / 2, 0), this._height - boxSize));
+
+            this._hoverBox = { x1: x1, y1: y1, x2: x1 + boxSize, y2: y1 + boxSize };
+        },
+
+        _onCanvasMouseOut: function(e) {
+            this._hoverBox = null;
+        },
+
+        _onCanvasClick: function(e) {
+            e.preventDefault();
+
+            if (this._selectedBox && this._hoverBox.x1 === this._selectedBox.x1 && this._hoverBox.y1 === this._selectedBox.y1) {
+                this._selectedBox = null;
+            } else {
+                this._selectedBox = this._hoverBox;
+            }
+        },
+
+        draw: function() {
+            var ctx = this._canvas.getContext('2d');
+            ctx.save();
+
+            function transformBox(box) {
+                var boxSize = box.size;
+                var tl = { x: box.x1, y: box.y1 };
+                var br = { x: box.x2, y: box.y2 };
+                bufferToDisplay(tl);
+                bufferToDisplay(br);
+                return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y };
+            }
+
+            if (this._hoverBox) {
+                ctx.strokeStyle = this._selectedBox ? '#666666' : '#000000';
+                ctx.lineWidth = 2;
+                var h = transformBox(this._hoverBox);
+                ctx.strokeRect(h.x + 1, h.y + 1, h.w - 1, h.h - 1);
+            }
+
+            if (this._selectedBox) {
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                var s = transformBox(this._selectedBox);
+                ctx.strokeRect(s.x - 1, s.y - 1, s.w + 3, s.h + 3);
+            }
+
+            ctx.restore();
+        },
     });
 
     ArticleDemos.registerDemo("rast1-imagedata-pixel-format", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
-        demoMissing(ctx);
+
+        var samplerControl = new SamplerControl(canvas, 2, 10, 10);
+
+        function draw(t) {
+            var imageData = newImageData(10, 10);
+
+            var fillStyle = newSolidFill(newHSL(t / 1000, 0.7, 0.5));
+            fillRectangle(imageData, fillStyle, 1, 1, 8, 8);
+
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+            drawImageData(ctx, imageData);
+            drawGrid(ctx, 10, 10);
+
+            samplerControl.draw();
+
+            function drawPixelDetail(x, y, rgb) {
+                var w = CELL_SIZE;
+                var h = CELL_SIZE * 2;
+                var pad = 2;
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+
+                var dx = x;
+                ctx.beginPath();
+                ctx.fillStyle = 'rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ')';
+                ctx.rect(dx + 0.5, y + 0.5, h, h);
+                ctx.fill();
+                ctx.stroke();
+                dx += h + w;
+
+                ctx.beginPath();
+                ctx.fillStyle = 'rgb(' + rgb.r + ', 0, 0)';
+                ctx.rect(dx + 0.5, y + 0.5, w, h);
+                ctx.fill();
+                ctx.stroke();
+                dx += w + pad;
+
+                ctx.beginPath();
+                ctx.fillStyle = 'rgb(0, ' + rgb.g + ', 0)';
+                ctx.rect(dx + 0.5, y + 0.5, w, h);
+                ctx.fill();
+                ctx.stroke();
+                dx += w + pad;
+
+                ctx.beginPath();
+                ctx.fillStyle = 'rgb(0, 0, ' + rgb.b + ')';
+                ctx.rect(dx + 0.5, y + 0.5, w, h);
+                ctx.fill();
+                ctx.stroke();
+                dx += w + pad;
+            }
+
+            // Axes.
+            var axesX = imageData.width * CELL_SIZE + DISPLAY_XPAD * 2;
+            var axesY = DISPLAY_YPAD;
+            var axesWidth = 400;
+            var axesHeight = imageData.height * CELL_SIZE;
+
+            ctx.beginPath();
+            ctx.lineTo(axesX + 0.5, axesY + axesHeight - 3);
+            ctx.lineTo(axesX + 0.5, axesY + 0.5);
+            ctx.lineTo(axesX + axesWidth - 3, axesY + 0.5);
+            ctx.strokeStyle = '#aaaaaa';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Axes arrows.
+            // Y
+            ctx.fillStyle = '#aaaaaa';
+
+            var arrowWidth = 3, arrowHeight = 10;
+            ctx.beginPath();
+            ctx.lineTo(axesX + 0.5, axesY + axesHeight);
+            ctx.lineTo(axesX + 0.5 - arrowWidth, axesY + axesHeight - arrowHeight);
+            ctx.lineTo(axesX + 0.5 + arrowWidth, axesY + axesHeight - arrowHeight);
+            ctx.fill();
+
+            // X
+            ctx.beginPath();
+            ctx.lineTo(axesX + axesWidth,               axesY + 0.5);
+            ctx.lineTo(axesX + axesWidth - arrowHeight, axesY + 0.5 + arrowWidth);
+            ctx.lineTo(axesX + axesWidth - arrowHeight, axesY + 0.5 - arrowWidth);
+            ctx.fill();
+
+            var box = samplerControl.getActiveBox();
+            if (box) {
+                for (var y = box.y1; y < box.y2; y++) {
+                    for (var x = box.x1; x < box.x2; x++) {
+                        var rgb = getPixel(imageData, x, y);
+                        var dy = y - box.y1, dx = x - box.x1;
+                        drawPixelDetail(axesX + (dx * 180) + 32, axesY + (dy * 80) + 24, rgb);
+                    }
+                }
+            }
+        }
+
+        visibleRAF(canvas, draw);
     });
 
     ArticleDemos.registerDemo("rast1-fillrect-basic", STYLE, function(res) {
@@ -518,33 +784,14 @@
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
-        function fillPixel(imageData, x, y) {
-            var idx = indexForPixelLocation(imageData, x, y);
-            imageData.data[idx + 0] = 0; // Red
-            imageData.data[idx + 1] = 0; // Green
-            imageData.data[idx + 2] = 0; // Blue
-            imageData.data[idx + 3] = 255; // Alpha
+        function draw(imageData, secs) {
+            var startX = 1;
+            var endX = 38;
+            var x = Math.floor(lerp(startX, endX, secs));
+            var y = 1;
+            var black = newSolidFill(newRGB(0, 0, 0));
+            fillRectangle(imageData, black, x, y, 8, 8);
         }
-
-        function fillRectangle(imageData, x1, y1, width, height) {
-            for (var y = y1; y < y1 + height; y++)
-                for (var x = x1; x < x1 + width; x++)
-                    fillPixel(imageData, x, y);
-        }
-
-        // !! EMBEDDED IN ARTICLE <<
-function lerp(a, b, t) {
-    return (a * (1.0 - t)) + (b * t);
-}
-
-function draw(imageData, secs) {
-    var startX = 1;
-    var endX = 38;
-    var x = Math.floor(lerp(startX, endX, secs));
-    var y = 1;
-    fillRectangle(imageData, x, y, 8, 8);
-}
-        // >> EMBEDDED IN ARTICLE !!
 
         function update(t) {
             var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
@@ -558,38 +805,15 @@ function draw(imageData, secs) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
-        function fillPixel(imageData, x, y) {
-            var idx = indexForPixelLocation(imageData, x, y);
-            imageData.data[idx + 0] = 0; // Red
-            imageData.data[idx + 1] = 0; // Green
-            imageData.data[idx + 2] = 0; // Blue
-            imageData.data[idx + 3] = 255; // Alpha
+        function draw(imageData, secs) {
+            var startX = 1;
+            var endX = 38;
+            var smoothSecs = smoothstep(secs);
+            var x = Math.floor(lerp(startX, endX, smoothSecs));
+            var y = 1;
+            var black = newSolidFill(newRGB(0, 0, 0));
+            fillRectangle(imageData, black, x, y, 8, 8);
         }
-
-        function fillRectangle(imageData, x1, y1, width, height) {
-            for (var y = y1; y < y1 + height; y++)
-                for (var x = x1; x < x1 + width; x++)
-                    fillPixel(imageData, x, y);
-        }
-
-        // !! EMBEDDED IN ARTICLE <<
-function lerp(a, b, t) {
-    return (a * (1.0 - t)) + (b * t);
-}
-
-function smoothstep(t) {
-    return t*t*(3 - t*2);
-}
-
-function draw(imageData, secs) {
-    var startX = 1;
-    var endX = 38;
-    var smoothSecs = smoothstep(secs);
-    var x = Math.floor(lerp(startX, endX, smoothSecs));
-    var y = 1;
-    fillRectangle(imageData, x, y, 8, 8);
-}
-        // >> EMBEDDED IN ARTICLE !!
 
         function update(t) {
             var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
@@ -603,63 +827,18 @@ function draw(imageData, secs) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
-        function fillPixel(imageData, x, y) {
-            var idx = indexForPixelLocation(imageData, x, y);
-            imageData.data[idx + 0] = 0; // Red
-            imageData.data[idx + 1] = 0; // Green
-            imageData.data[idx + 2] = 0; // Blue
-            imageData.data[idx + 3] = 255; // Alpha
+        function draw(imageData) {
+            var startX = 1;
+            var endX = BUFFER_WIDTH - 1;
+
+            var red = newRGB(255, 0, 0);
+            var blue = newRGB(0, 0, 255);
+            for (var x = startX; x < endX; x++) {
+                var t = (x - startX) / (endX - startX);
+                var rgb = newSolidFill(lerpRGBA(red, blue, t));
+                fillRectangle(imageData, rgb, x, 1, 1, BUFFER_HEIGHT - 2);
+            }
         }
-
-        function fillRectangle(imageData, x1, y1, width, height) {
-            for (var y = y1; y < y1 + height; y++)
-                for (var x = x1; x < x1 + width; x++)
-                    fillPixel(imageData, x, y);
-        }
-
-        function lerp(a, b, t) {
-            return (a * (1.0 - t)) + (b * t);
-        }
-
-        function newRGB(r, g, b) {
-            return { r: r, g: g, b: b };
-        }
-
-        function lerpRGB(color1, color2, t) {
-            var newR = lerp(color1.r, color2.r, t);
-            var newG = lerp(color1.g, color2.g, t);
-            var newB = lerp(color1.b, color2.b, t);
-            return newRGB(newR, newG, newB);
-        }
-
-        // !! EMBEDDED IN ARTICLE <<
-function fillPixel(imageData, x, y, rgb) {
-    var idx = indexForPixelLocation(imageData, x, y);
-    imageData.data[idx + 0] = rgb.r;
-    imageData.data[idx + 1] = rgb.g;
-    imageData.data[idx + 2] = rgb.b;
-    imageData.data[idx + 3] = 255; // Alpha
-}
-
-function fillRectangle(imageData, rgb, x1, y1, width, height) {
-    for (var y = y1; y < y1 + height; y++)
-        for (var x = x1; x < x1 + width; x++)
-            fillPixel(imageData, x, y, rgb);
-}
-
-function draw(imageData) {
-    var startX = 1;
-    var endX = BUFFER_WIDTH - 1;
-
-    var red = newRGB(255, 0, 0);
-    var blue = newRGB(0, 0, 255);
-    for (var x = startX; x < endX; x++) {
-        var t = (x - startX) / (endX - startX);
-        var rgb = lerpRGB(red, blue, t);
-        fillRectangle(imageData, rgb, x, 1, 1, BUFFER_HEIGHT - 2);
-    }
-}
-        // >> EMBEDDED IN ARTICLE !!
 
         var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
         draw(imageData);
@@ -716,8 +895,10 @@ function draw(imageData) {
 
             rastDemoDraw(ctx, imageData);
 
-            // Draw sample points visualization.
-            scanAndDrawSamples(ctx, imageData, 1, 1, imageData.width, imageData.height, 0);
+            // Draw coverage visualization.
+            drawCoverageBlankGrid(ctx, 1, 1, imageData.width, imageData.height, false);
+            var coverageStyle = drawCoverageSamplesFillStyle(ctx, false);
+            fillCircle(imageData, coverageStyle, x, y, 4, false, false);
 
             // Draw the circle over it.
             ctx.save();
@@ -749,7 +930,10 @@ function draw(imageData) {
             fillCircle(imageData, green, x, y, 4, false, true);
 
             rastDemoDraw(ctx, imageData);
-            scanAndDrawSamples(ctx, imageData, 0, 0, imageData.width, imageData.height, 0.5);
+
+            drawCoverageBlankGrid(ctx, 0, 0, imageData.width, imageData.height, true);
+            var coverageStyle = drawCoverageSamplesFillStyle(ctx, true);
+            fillCircle(imageData, coverageStyle, x, y, 4, false, false);
 
             ctx.save();
             var ctxX = DISPLAY_XPAD + x * CELL_SIZE; 
@@ -811,6 +995,8 @@ function draw(imageData) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
+        var viz = new SamplerControl(canvas);
+
         function draw(t) {
             var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
 
@@ -820,48 +1006,9 @@ function draw(imageData) {
             var green = newSolidFill(newRGBA(0, 180, 0, 1));
             fillCircle(imageData, green, x, y, 4, true, true);
             rastDemoDraw(ctx, imageData);
-        }
 
-        visibleRAF(canvas, draw);
-    });
-
-    ArticleDemos.registerDemo("rast1-demo", STYLE, function(res) {
-        var canvas = res.canvas;
-        var ctx = canvas.getContext('2d');
-
-        function draw(t) {
-            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
-
-            var TAU = Math.PI * 2;
-            var tcx = 7, tcy = 5;
-            var t1x = Math.cos((t / 600) - 0/3 * TAU) * 8 + tcx;
-            var t1y = Math.sin((t / 600) - 0/3 * TAU) * 8 + tcy;
-            var t2x = Math.cos((t / 600) - 1/3 * TAU) * 8 + tcx;
-            var t2y = Math.sin((t / 600) - 1/3 * TAU) * 8 + tcy;
-            var t3x = Math.cos((t / 600) - 2/3 * TAU) * 8 + tcx;
-            var t3y = Math.sin((t / 600) - 2/3 * TAU) * 8 + tcy;
-            var green = newSolidFill(newRGBA(0, 180, 0, .8));
-            fillTri(imageData, green, t1x, t1y, t2x, t2y, t3x, t3y);
-
-            var cx = 23 + Math.cos(t / 700) * 20;
-            var cy = 5;
-            var sz = Math.cos(t / 430) * 2 + 5;
-            var grad1 = newRadialGradient(cx - 0.5, cy - 0.5, sz, newRGBA(255, 0, 0, 1), newRGBA(0, 0, 255, 1));
-            fillCircle(imageData, grad1, cx, cy, sz, true, true);
-
-            var grad2t = -(t / 100) % 30;
-            var grad2 = newLinearGradient(1, grad2t - 30, 2, grad2t, [
-                newGradientStop(0.0, newRGBA(255, 0, 0, 0.8)),
-                newGradientStop(0.2, newRGBA(255, 255, 0, 0.8)),
-                newGradientStop(0.4, newRGBA(0, 255, 0, 0.8)),
-                newGradientStop(0.6, newRGBA(0, 255, 255, 0.8)),
-                newGradientStop(0.8, newRGBA(0, 0, 255, 0.8)),
-                newGradientStop(0.9, newRGBA(255, 0, 255, 0.8)),
-                newGradientStop(1.0, newRGBA(255, 0, 0, 0.8)),
-            ]);
-            fillRectangle(imageData, grad2, 34, 1, 10, 8);
-
-            rastDemoDraw(ctx, imageData);
+            viz.setBuffer(imageData);
+            viz.draw();
         }
 
         visibleRAF(canvas, draw);

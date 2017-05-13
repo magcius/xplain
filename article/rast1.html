@@ -62,33 +62,44 @@
             in the land of geometry. Today's article takes place...
         </p> 
 
-        <div class="demo-canvas" data-demo="rast1-grid-demo"></div>
+        <div class="demo-canvas" data-demo="rast1-demo"></div>
 
         <p>
-            ... on the pixel grid. By the end of this article series, hopefully you will be able
-            to, if not write something of this complexity, at least understand what is going on and how
-            it works.
+            ... on the pixel grid. If you can peel your eyes away from the absolute graphical marvel I've
+            created enough to read on, hopefully you (yes, you!) can learn how to create one of these of
+            your very own. If not, I hope you have a better appreciation for the concepts underlying 2D
+            graphics rasterization.
         </p>
         <p>
-            I've magnified each pixel so it is easier to see. Specifically, each "demo pixel" here
-            is 8 "real pixels" wide, and the same tall. The grid itself is composed of 128 of these
-            "demo pixels" horizontally, and 64 of them vertically.
+            This series will go on for multiple parts. Today, we're going to start with the basics of 2D
+            graphics: the graphics buffer and its layout, abstract shapes, a basic introduction to sampling
+            theory, lerping and blending colors, transparency, and end it off by adding a bit of antialiasing!
+        </p>
+        <p>
+            A bit of note about the interactive demos on display in here today. First, I'm presenting a
+            "zoomed in" buffer so you can see the pixels easier. Specifically, each "demo pixel" here
+            is 16 "real pixels" wide, and the same tall. The grid itself is composed of 34 of these
+            "demo pixels" horizontally, and 10 of them vertically, which are basically a few arbitrary
+            constants I chose to make it fit nicely inside these margins, which are 800 "real pixels" wide.
         </p>
         <p>
             It might hurt your head to think about "demo pixels" and "real pixels". Graphics programming
-            often takes place in lots of different "spaces" like this. After quite a long time of doing it,
-            I still get confused; it's just part of the job description. If you are having trouble, what
-            helps me is to just turn off the monitor, grab a pen and paper, or a whiteboard, and just draw
-            the different things out.
+            often takes place in lots of different coordinate spaces like this. After quite a long time of
+            doing it, I still get confused; it's just part of the job description. If you are having trouble,
+            what helps me is to just turn off the monitor, grab a pen and paper, or a whiteboard, and just
+            draw the different things out.
         </p>
         <p>
-            When your head hurts for far too long and you start getting confused, you will just start
-            peppering <code>x*8</code> and <code>(y+15)/8</code> into your code in a vain attempt to just
-            get everything to match up correctly. You will start fiddling with your plus and minus signs,
-            wildly reversing your translations and rotations at random in a desperate attempt to get
-            things to just line up, dammit. You might find yourself even getting close, but later on,
+            If you're serious about graphics programming, you will eventually just get so tired and confused
+            that you will start peppering <code>x*8</code> and <code>(y+15)/8</code> into your code in a vain
+            attempt to just get everything to match up correctly. You will start fiddling with your plus and
+            minus signs, wildly reversing your translations and rotations at random in a desperate attempt
+            to get things to just line up, dammit. You might find yourself even getting close, but later on,
             finding that it breaks something else. It's OK, and we've all been there. Just take a break,
             come back, and try to figure out what's really going on.
+        </p>
+        <p>
+            To prevent any confusion like this, let's start at the beginning.
         </p>
         </section>
 
@@ -103,7 +114,7 @@
         <p>
             Buffer layouts in the real world have a lot of subtleties &mdash; whether that's stride alignment,
             endianness issues or pixel formats. If you don't know what any of those things are, don't worry,
-            I'll talk about them later. In this article series, we'll be using the convention established by
+            I'll explain them later. In this article series, we'll be using the convention established by
             HTML5's <a class="code-literal" href="https://developer.mozilla.org/en-US/docs/Web/API/ImageData">ImageData</a>
             API. We see this pixel grid as a giant, one-dimensional array of bytes, with each pixel taking four
             bytes: red, green, blue, alpha, in that order.
@@ -284,20 +295,22 @@ function fillRectangle(imageData, rgb, x1, y1, width, height) {
 
 function draw(imageData) {
     var startX = 1;
-    var endX = BUFFER_WIDTH - 1;
+    var endX = 45;
+    var y = 1, height = 8;
 
     var red = newRGB(255, 0, 0);
     var blue = newRGB(0, 0, 255);
     for (var x = startX; x < endX; x++) {
         var t = (x - startX) / (endX - startX);
         var rgb = lerpRGB(red, blue, t);
-        fillRectangle(imageData, rgb, x, 1, 1, BUFFER_HEIGHT - 2);
+        var width = 1;
+        fillRectangle(imageData, rgb, x, y, width, height);
     }
 }
 </code></pre>
         <div class="demo-canvas" data-demo="rast1-lerp-gradient"></div>
         <p>
-            ... we end up with a smooth transition between the colors, also known as a "gradient". This
+            ... we end up with a smooth transition between the colors, also known as a "gradient".
         </p>
         </section>
 
@@ -683,8 +696,6 @@ function blendPixel(imageData, x, y, rgba) {
 
         <section id="next-time">
         <h3>Coming up next...</h3>
-        <p></p>
-        <div class="demo-canvas" data-demo="rast1-demo"></div>
         <p>
             This was probably already a huge article to read through. Thank you for making it to the bottom! You're
             a real trooper! As always, this is only the starting point of a much deeper subject. I welcome all
