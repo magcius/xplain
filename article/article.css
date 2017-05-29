@@ -13,7 +13,7 @@ html, body {
 	margin: 0 auto;
 }
 
-h1, .subtitle, h2, h3, .nav-bottom {
+h1, .subtitle, h2, h3, .nav-bottom, .comments-link {
 	display: block;
 	font-family: "EB Garamond", serif;
 	text-align: center;
@@ -207,6 +207,13 @@ pre > code {
 	top: 0px;
 	left: 0px;
 	pointer-events: none;
+}
+
+.comments-link {
+	background-color: white;
+	height: 48pt;
+	line-height: 48pt;
+	font-size: 16pt;
 }
 
 /* Special rules for the walkthrough in regions.html */

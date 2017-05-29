@@ -127,7 +127,7 @@
             bytes: red, green, blue, alpha, in that order.
         </p>
 
-        <div class="demo-canvas" data-demo="rast1-imagedata-pixel-format"></div>
+        <!-- <div class="demo-canvas" data-demo="rast1-imagedata-pixel-format"></div> -->
 
         <p>
             We can find the index of the first byte of a pixel, and vice versa, with some very simple math:
@@ -225,7 +225,8 @@ function fillRectangle(imageData, x1, y1, width, height) {
 
     // It's also sometimes written as:
     // return a + ((b - a) * t);
-    // Which might be easier to read for some people. The two are mathematically equivalent.
+    // ... which might be easier to read for some people.
+    // The two are mathematically equivalent.
 }
 
 function draw(imageData, secs) {
@@ -336,8 +337,7 @@ function draw(imageData) {
             introduce a new concept, known as the "fill style". We pass the fill style our position, and it
             returns a color for that position.
         </p>
-<pre><code class="javascript">
-// Basic fill style.
+<pre><code class="javascript">// Basic fill style.
 function newSolidFill(rgb) {
     return function(x, y) {
         // A solid fill returns the same color, no matter the position.
@@ -534,7 +534,9 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
 
 function getPixel(imageData, x, y) {
     var idx = indexForPixelLocation(imageData, x, y);
-    return newRGB(imageData.data[idx + 0], imageData.data[idx + 1], imageData.data[idx + 2]);
+    return newRGB(imageData.data[idx + 0],
+                  imageData.data[idx + 1],
+                  imageData.data[idx + 2]);
 }
 
 function blendPixel(imageData, x, y, src) {
@@ -583,11 +585,6 @@ function blendPixel(imageData, x, y, src) {
             <a href="https://en.wikipedia.org/wiki/Moir%C3%A9_pattern" class="definition">moire pattern</a>,
             and it happens when we can't sample fast enough or fine enough for the source.
         </p>
-        <p>
-            ... Actually, you don't have to imagine it, I can show you.
-        </p>
-
-        <div class="demo-canvas" data-demo="rast1-sampling-moire"></div>
 
         <p>
             Signal processing theory tells us that in order to prevent artifacts like this, we have two options:
@@ -617,8 +614,8 @@ function blendPixel(imageData, x, y, src) {
             I'll explain it afterwards.
         </p>
         <pre><code class="javascript">function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
-    var numSubpixelsX = 4;
-    var numSubpixelsY = 4;
+    var nSubpixelsX = 4;
+    var nSubpixelsY = 4;
 
     var x1 = Math.floor(centerX - radius), y1 = Math.floor(centerY - radius);
     var x2 = Math.ceil(centerX + radius), y2 = Math.ceil(centerY + radius);
@@ -627,16 +624,16 @@ function blendPixel(imageData, x, y, src) {
             // Compute the coverage by sampling the circle at "subpixel"
             // locations and counting the number of subpixels turned on.
             var coverage = 0;
-            for (var subpixelY = 0; subpixelY < numSubpixelsY; subpixelY++) {
-                for (var subpixelX = 0; subpixelX < numSubpixelsX; subpixelX++) {
+            for (var subpixelY = 0; subpixelY < nSubpixelsY; subpixelY++) {
+                for (var subpixelX = 0; subpixelX < nSubpixelsX; subpixelX++) {
                     // Sample the center of the subpixel.
-                    var sampleX = x + (subpixelX + 0.5) / numSubpixelsX;
-                    var sampleY = y + (subpixelY + 0.5) / numSubpixelsY;
-                    if (insideCircle(centerX, centerY, radius, sampleX, sampleY))
+                    var sampX = x + ((subpixelX + 0.5) / nSubpixelsX);
+                    var sampY = y + ((subpixelY + 0.5) / nSubpixelsY);
+                    if (insideCircle(centerX, centerY, radius, sampX, sampY))
                         coverage += 1;
                 }
             }
-            coverage /= numSubpixelsX * numSubpixelsY;
+            coverage /= nSubpixelsY * nSubpixelsY;
 
             // Quick optimization: if we're fully outside the circle,
             // we don't need to compute the fill.
@@ -684,9 +681,15 @@ function blendPixel(imageData, x, y, src) {
         </p>
         <div class="demo-canvas" data-demo="rast1-circle-aa-smooth"></div>
         <p>
-            Note the subtle additions of <code>Math.floor</code> and <code>Math.ceil</code> for when I compute
-            the bounding box to help accommodate this: otherwise, the X and Y values we pass to <code>blendImage</code>
-            would be fractional, and we can't really index an <code>ImageData</code> with a fractional index.
+            I've also slowed down time and given you a visualizer tool to see the subpixel sampling in action.
+            Just hover over a pixel to see the details of it.
+        </p>
+        <p>
+            Also, now that we can draw shapes starting at any pixel, we have to be a bit more careful computing
+            the boundign box to help accomodate this. Note the additions of <code>Math.floor</code> and
+            <code>Math.ceil</code> above; I sneakily put those in there, but they are required for this to work
+            correctly. Otherwise, the X and Y values we pass to <code>blendImage</code> would be fractional,
+            and our attempts at setting the memory array would fail on fractional indexes.
         </p>
         <p>
             And last, I should mention. Super- or multisampling are not the only approaches to doing antialasing.
@@ -724,12 +727,9 @@ function blendPixel(imageData, x, y, src) {
             and I, of course, will never tire of teaching people stuff. Even if it takes me a year to actually
             finish an article. I'm hoping the expanded focus will help a lot with my motivation, though.
         </p>
-        <p>
-            Also, if you have comments, suggestions, whatever, you can leave your comments on GitHub. <br>
-            <a href="https://github.com/magcius/xplain/issues/28">Comments</a>
-        </p>
         </section>
 
+        <a class="comments-link" href="https://github.com/magcius/xplain/issues/28">Comments</a>
         <div class="nav-bottom"></div>
     </article>
 

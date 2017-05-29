@@ -438,7 +438,7 @@
         height = height !== undefined ? height : BUFFER_HEIGHT;
         ctx.beginPath();
         gridPath(ctx, width, height);
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.stroke();
     }
 
@@ -958,8 +958,8 @@
 
             var x = 23 + Math.floor(Math.cos(t / 500) * 16);
             var y = 5;
-            var green = newSolidFill(newRGB(0, 180, 0));
-            fillCircle(imageData, green, x, y, 4, { aa: false, bias: false });
+            var charcoal = newSolidFill(newRGBA(50, 60, 78, 1));
+            fillCircle(imageData, charcoal, x, y, 4, { aa: false, bias: false });
 
             rastDemoDraw(ctx, imageData);
         }
@@ -977,8 +977,8 @@
 
             var x = 23 + Math.floor(Math.cos(t / 500) * 16);
             var y = 5;
-            var green = newSolidFill(newRGB(0, 180, 0));
-            fillCircle(imageData, green, x, y, 4, { aa: false, bias: false });
+            var charcoal = newSolidFill(newRGBA(50, 60, 78, 1));
+            fillCircle(imageData, charcoal, x, y, 4, { aa: false, bias: false });
 
             rastDemoDraw(ctx, imageData);
 
@@ -986,7 +986,7 @@
             ctx.save();
             var ctxX = x * DISPLAY_CELL_SIZE; 
             var ctxY = y * DISPLAY_CELL_SIZE; 
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.strokeStyle = 'rgba(100, 110, 130, 0.8)';
             ctx.lineWidth = 4;
             ctx.beginPath();
             ctx.arc(ctxX, ctxY, 4 * DISPLAY_CELL_SIZE, 0, Math.PI * 2);
@@ -1014,15 +1014,15 @@
 
             var x = 23 + Math.floor(Math.cos(t / 500) * 16);
             var y = 5;
-            var green = newSolidFill(newRGB(0, 180, 0));
-            fillCircle(imageData, green, x, y, 4, { aa: false });
+            var charcoal = newSolidFill(newRGBA(50, 60, 78, 1));
+            fillCircle(imageData, charcoal, x, y, 4, { aa: false });
 
             rastDemoDraw(ctx, imageData);
 
             ctx.save();
             var ctxX = x * DISPLAY_CELL_SIZE; 
             var ctxY = y * DISPLAY_CELL_SIZE; 
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.strokeStyle = 'rgba(100, 110, 130, 0.8)';
             ctx.lineWidth = 4;
             ctx.beginPath();
             ctx.arc(ctxX, ctxY, 4 * DISPLAY_CELL_SIZE, 0, Math.PI * 2);
@@ -1073,8 +1073,8 @@
             var x = 23 + Math.floor(Math.cos(t / 500) * 16);
             var y = 5;
 
-            var green = newSolidFill(newRGBA(0, 180, 0, 1));
-            fillCircle(imageData, green, x, y, 4);
+            var charcoal = newSolidFill(newRGBA(50, 60, 78, 1));
+            fillCircle(imageData, charcoal, x, y, 4);
             rastDemoDraw(ctx, imageData);
         }
 
@@ -1094,8 +1094,8 @@
             var circleY = 5;
             var circleRad = 4;
 
-            var green = newSolidFill(newRGBA(0, 180, 0, 1));
-            fillCircle(imageData, green, circleX, circleY, circleRad);
+            var charcoal = newSolidFill(newRGBA(50, 60, 78, 1));
+            fillCircle(imageData, charcoal, circleX, circleY, circleRad);
 
             ctx.save();
             ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
@@ -1141,7 +1141,7 @@
             }
 
             // Small lines.
-            ctx.strokeStyle = '#aaa';
+            ctx.strokeStyle = 'black';
             ctx.beginPath();
             for (var x = 0; x <= 8; x++) {
                 var nx = x * DISPLAY_CELL_SIZE;
