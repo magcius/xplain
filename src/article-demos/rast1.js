@@ -3,6 +3,12 @@
 (function(exports) {
     "use strict";
 
+    // Hi there! This code is quite a bit different from what I had in the article,
+    // since maintaining numerous "forks" as the article got updated got exhausting.
+    // I also wanted to pull various tricks with the visualization and sometimes the
+    // simplified code got in the way. That said, every line of code in the article
+    // *should* work. Please let me know if it doesn't.
+
     // -- Rasterizer Engine --
 
     var BYTES_PER_PIXEL = 4;
@@ -652,6 +658,45 @@
         var samplerControl = new SamplerControl(canvas, 2, 10, 10);
 
         function draw(t) {
+            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
+
+            var TAU = Math.PI * 2;
+            var tcx = 7, tcy = 5 + Math.cos(t / 1600) * 2;
+            var tsz = Math.cos(t / 600) * 2 + 8;
+            var t1x = Math.cos((t / 600) - 0/3 * TAU) * tsz + tcx;
+            var t1y = Math.sin((t / 600) - 0/3 * TAU) * tsz + tcy;
+            var t2x = Math.cos((t / 600) - 1/3 * TAU) * tsz + tcx;
+            var t2y = Math.sin((t / 600) - 1/3 * TAU) * tsz + tcy;
+            var t3x = Math.cos((t / 600) - 2/3 * TAU) * tsz + tcx;
+            var t3y = Math.sin((t / 600) - 2/3 * TAU) * tsz + tcy;
+            var tricolor = newSolidFill(newHSL(t / 1000, .3, .4));
+            fillTri(imageData, tricolor, t1x, t1y, t2x, t2y, t3x, t3y);
+
+            var cx = 23 + Math.cos(t / 700) * 20;
+            var cy = 5;
+            var sz = Math.cos(t / 430) * 2 + 5;
+            var grad1 = newRadialGradient(cx - 0.5, cy - 0.5, sz, newRGBA(0, 0, 255, 0), newRGBA(0, 0, 255, 1));
+            fillCircle(imageData, grad1, cx, cy, sz, true, true);
+
+            var grad2t = -(t / 100) % 30;
+            var grad2 = newLinearGradient(1, grad2t - 30, 2, grad2t, [
+                newGradientStop(0.0, newRGBA(255, 0, 0, 0.8)),
+                newGradientStop(0.2, newRGBA(255, 255, 0, 0.8)),
+                newGradientStop(0.4, newRGBA(0, 255, 0, 0.8)),
+                newGradientStop(0.6, newRGBA(0, 255, 255, 0.8)),
+                newGradientStop(0.8, newRGBA(0, 0, 255, 0.8)),
+                newGradientStop(0.9, newRGBA(255, 0, 255, 0.8)),
+                newGradientStop(1.0, newRGBA(255, 0, 0, 0.8)),
+            ]);
+            var rx = 22 + Math.cos(t / 1200) * 3;
+            var rw = 12 + Math.sin(t / 800) * 8;
+            fillRectangle(imageData, grad2, rx, 1, rw, 8, true);
+
+            rastDemoDraw(ctx, imageData);
+        }
+
+        /*
+        function draw(t) {
             var imageData = newImageData(10, 10);
 
             var fillStyle = newSolidFill(newHSL(t / 1000, 0.7, 0.5));
@@ -744,6 +789,7 @@
                 }
             }
         }
+        */
 
         visibleRAF(canvas, draw);
     });

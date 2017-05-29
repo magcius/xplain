@@ -14,6 +14,7 @@
         { id: "window-tree", title: "Advanced Window Techniques" },
         { id: "composite", title: "Adding Transparency" },
         { id: "regions", title: "Regional Geometry "},
+        { id: "rasterization", title: "Basic 2D Rasterization" },
     ];
 
     function findTOCEntryIndex(id) {

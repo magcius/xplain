@@ -8,7 +8,7 @@
     <link rel="shortcut icon" href="favicon.png">
     <title>Xplain</title>
 </head>
-<body id="regions"><div class="main">
+<body id="rasterization"><div class="main">
     <header>
         <a href="index.html">
             <h1><span>Xplain</span></h1>
@@ -30,7 +30,9 @@
             in the Xplain series. In fact, going forward, the hastily named "Xplain" will probably not be just
             about X11. If people like my "interactive demo" format for other topics, I might just rename
             the whole series to something like "Jasper's Cool Explaining Demo Articles" and talk about other
-            stuff (3D graphics! Sound!). Let me know what you think.
+            stuff (3D graphics! Sound! Physics! Compression algorithms! Game design!). I often have lots of
+            articles I want to write that I often don't, just because starting up a new "brand" for articles
+            sounds time-consuming. Let me know what you think.
         </p>
 
         <p>
@@ -49,9 +51,13 @@
         </p>
 
         <p>
-            Today, we will be exploring 2D graphics by writing a software rasterizer of our own. All of the
-            code was written for this article, and is open source on the GitHub repo. I've tried to comment
-            it well as a source to learn from. I encourage you to study it.
+            Despite it going against your intuition, fast, good looking 2D graphics are actually
+            <em>harder and more computationally expensive</em> to accomplish than 3D graphics, at least
+            on traditional consumer GPUs. I hope explain <em>why</em>, but unfortunately that won't come
+            today. Today, we will be exploring the basics of 2D graphics by writing a software rasterizer
+            of our very own, from the ground up. All of the code you see here was written for this article,
+            from nothing more than basic principles and ideas. It's open source on GitHub, and I've tried
+            to comment it well as a source to learn from. I encourage you to study it.
         </p>
         </section>
 
@@ -86,36 +92,37 @@
             It might hurt your head to think about "demo pixels" and "real pixels". Graphics programming
             often takes place in lots of different coordinate spaces like this. After quite a long time of
             doing it, I still get confused; it's just part of the job description. If you are having trouble,
-            what helps me is to just turn off the monitor, grab a pen and paper, or a whiteboard, and just
-            draw the different things out.
+            what helps me is to just turn off the monitor, grab some physical pen and paper, and just draw
+            it out. Often times, just drawing and labelling the parts often shows me my confusion.
         </p>
         <p>
-            If you're serious about graphics programming, you will eventually just get so tired and confused
-            that you will start peppering <code>x*8</code> and <code>(y+15)/8</code> into your code in a vain
-            attempt to just get everything to match up correctly. You will start fiddling with your plus and
-            minus signs, wildly reversing your translations and rotations at random in a desperate attempt
-            to get things to just line up, dammit. You might find yourself even getting close, but later on,
-            finding that it breaks something else. It's OK, and we've all been there. Just take a break,
-            come back, and try to figure out what's really going on.
+            What doesn't help is blind trial and error. If you are serious about graphics programming, you
+            will eventually reach a point when things go wrong, and you'll start peppering <code>x*8</code>
+            and <code>(y+15)/8</code> into your code in a vain attempt to just get everything to match up
+            correctly. You will start fiddling with your plus and minus signs, wildly reversing your
+            translations and rotations at random in desperation. You might find yourself even getting close,
+            but later on, finding that it breaks something else. It's OK, and we've all been there. I did it
+            multiple times writing this article. Just take a break, come back, and try to figure out what's
+            really going on.
         </p>
         <p>
-            To prevent any confusion like this, let's start at the beginning.
+            ... To prevent any confusion like this, let's start at the beginning.
         </p>
         </section>
 
         <section id="coordinates">
         <h3>Coordinates</h3>
         <p>
-            While I'm sure everyone here doesn't need a refresher, let's over some notation and basic math
+            While I'm sure everyone here doesn't need this refresher, let's over some notation and basic math
             for how to address pixels in this grid. We often treat pixel buffers as large arrays in memory,
             and we usually leave them one-dimensional, and do the math ourselves to find a specific index
             for a given position.
         </p>
         <p>
-            Buffer layouts in the real world have a lot of subtleties &mdash; whether that's stride alignment,
-            endianness issues or pixel formats. If you don't know what any of those things are, don't worry,
-            I'll explain them later. In this article series, we'll be using the convention established by
-            HTML5's <a class="code-literal" href="https://developer.mozilla.org/en-US/docs/Web/API/ImageData">ImageData</a>
+            Buffer layouts in the real world have a lot of subtleties: stride alignment, endianness, pixel formats.
+            If you don't know what any of those things are, don't worry, I'll explain them later. In this article series,
+            we'll be using the convention established by HTML5's
+            <a class="code-literal" href="https://developer.mozilla.org/en-US/docs/Web/API/ImageData">ImageData</a>
             API. We see this pixel grid as a giant, one-dimensional array of bytes, with each pixel taking four
             bytes: red, green, blue, alpha, in that order.
         </p>
@@ -143,9 +150,9 @@ function pixelLocationForIndex(imageData, idx) {
         <p>
             Familiarize yourselves with what these functions do &mdash; they convert from the x and y
             coordinates of pixels on the grid to their index into the array of pixels. Pixels go from
-             top left to bottom right, first in the X direction, then in the Y direction. The top left of
-             the pixel grid is at <span class="definition">0, 0</span> at index 0. The next pixel in the
-             array, which starts at index 4, is located directly to the right.
+            top left to bottom right, first in the X direction, then in the Y direction. The top left of
+            the pixel grid is at <span class="definition">0, 0</span> at index 0. The next pixel in the
+            array, which starts at index 4, is located directly to the right.
         </p>
         </section>
 
@@ -179,44 +186,46 @@ function fillRectangle(imageData, x1, y1, width, height) {
 
         <p>
             This should be pretty straightforward, but there are a few pecularities I do want to go over.
-            First, it may strike some of you as odd to iterate over the "y" first. It does not make any
-            difference in this case, but graphics programmers often think about things in rows.
-            This is a holdover from early computer graphics, and it's for performance reasons &mdash;
-            if you think about the memory layout of our pixel grid, you'll notice that I'm iterating over the
-            indexes in order. While RAM does stand for "random access memory", CPUs cheat and have things
-            called "caches". Just know that it is cheaper to write to indexes in order than it is to jump
-            around at random.
+            First, it may strike some of you as odd to iterate over the "y" first. Graphics programmers
+            often think about things in rows. This is a holdover from early computer graphics, and it's
+            for performance reasons &mdash; if you think about the memory layout of our pixel grid, you'll
+            notice that I'm iterating over the indexes in order. While RAM does stand for "random access memory",
+            CPUs cheat and have things called "caches". Just know that it is cheaper to write to indexes
+            in order than it is to actually access randomly.
         </p>
         <p>
-            While it does not matter too much in our example, you should be aware that iterating over the
-            rows of a pixel grid first is common convention. This will become more apparent when we start
-            going over more complex topics.
+            You will often see this pattern, iterating over the rows, rather than the columns, come up in
+            graphics algorithms, even for things that aren't pixel grids or such. This will become more
+            apparent when we start going over more complex topics.
         </p>
         <p>
             It should also hopefully be pretty clear how to replace this "black" with another color, so I
             won't bother explaining that. I will, however, up the ante. Let's try filling this rectangle
-            with some gradients.
+            with something a bit more fancy. ... Let's try a gradient.
         </p>
         </section>
 
         <section id="lerp">
         <h3>Space and Time</h3>
         <p>
-
-            It might not seem related, but I'm going to try to explain gradients by first trying to animate
-            this rectangle through time, and I'm going to do it with a technique called
-            <span class="definition">linear interpolation</span>. The position in this transition is often
-            called either <span class="definition">time</span> or <span class="definition">alpha</span>, but
-            here we'll be using <span class="definition">time</span>, variable name <span class="code-literal">t</span>,
-            to avoid confusion with the unrelated concept of the <span class="definition">alpha channel</span>.
-            This <span class="code-literal">t</span> is a value between 0 and 1, which tells us which
-            of the two values we should be "closer to". Let's use a "lerp" here to animate the rectangle
-            across the grid.
+            Gradients aren't actually that tricky, but we do need some basic grounding in one of the most
+            fundamental concepts of computer graphics: <span class="definition">linear interpolation</span>,
+            or, the "lerp" for short. Yes, lerping is that important that we give it a special abbreviation,
+            which can even be used as a verb.
+        </p>
+        <p>
+            It's actually a simple concept. A lerp takes two values, a position parameter, often called
+            <span class="definition">time</span>, and returns something in between. A time of 0 gives you
+            the first value. 1 gives you the second value. 0.5 gives you the value halfway in between both.
         </p>
 
         <div class="demo-canvas" data-demo="rast1-fillrect-lerp"></div>
 <pre><code class="javascript">function lerp(a, b, t) {
     return (a * (1.0 - t)) + (b * t);
+
+    // It's also sometimes written as:
+    // return a + ((b - a) * t);
+    // Which might be easier to read for some people. The two are mathematically equivalent.
 }
 
 function draw(imageData, secs) {
@@ -228,15 +237,17 @@ function draw(imageData, secs) {
 }
 </code></pre>
         <p>
-            The lerp is actually a really simple and cool piece of math that can be used in a lot of
-            different scenarios. I won't go into a full description,
-            since <a href="https://en.wikipedia.org/wiki/Linear_interpolation">Wikipedia already has you
-            mostly covered</a>, but I will show you a somewhat cool thing you can do here. The last
-            parameter, "t", is a value between 0 and 1. In this case, we derive it from how many seconds have
-            passed in the animation, but we can warp it a bit. We can do the obvious scaling, but we can also
-            use more complicated warping. For instance, to make it slow down near the end, we can warp "t" by
-            passing it through a famous easing curve known
-            as "<a href="https://en.wikipedia.org/wiki/Smoothstep">smoothstep</a>":
+            A few more notes. This time variable is often called "t", but I've also seen "position" or "pos",
+            and "alpha". I don't like "position" because I use that to mean a point on our pixel grid,
+            and I don't like "alpha" since it's confusing when we already have an "alpha channel", which is
+            completely unrelated to the lerp here.
+        </p>
+        <p>
+            The time parameter, "t", is between 0 and 1. In this case, we derive it from the number of seconds
+            that have passed in the animation, so it is quite literally "time". One obvious thing we can do is
+            to warp time. We can multiply to speed it up, divide it to slow it down, but we can also warp it 
+            in more fancy ways. For instance, to make it slow down near the ends, we can warp "t" by passing it
+            through a famous easing curve known as "<a href="https://en.wikipedia.org/wiki/Smoothstep">smoothstep</a>":
         </p>
 
         <div class="demo-canvas" data-demo="rast1-fillrect-lerp-smoothstep"></div>
@@ -268,6 +279,7 @@ function draw(imageData, secs) {
     return { r: r, g: g, b: b };
 }
 
+// Lerp between colors "color1" and "color2".
 function lerpRGB(color1, color2, t) {
     var newR = lerp(color1.r, color2.r, t);
     var newG = lerp(color1.g, color2.g, t);
@@ -310,7 +322,7 @@ function draw(imageData) {
 </code></pre>
         <div class="demo-canvas" data-demo="rast1-lerp-gradient"></div>
         <p>
-            ... we end up with a smooth transition between the colors, also known as a "gradient".
+            ... we end up with a smooth transition between the colors, also known as a "linear gradient".
         </p>
         </section>
 
@@ -319,29 +331,23 @@ function draw(imageData) {
         <p></p>
         <div class="demo-canvas" data-demo="rast1-gradients"></div>
         <p>
-            For each pixel in our rectangle, we can compute its distance to the center point, and that tells
-            us how much of each color to use.
+            Let's try applying this knowledge to our rectangle drawing code. The biggest change here is that
+            we'll need to modify what colors we draw based on the position in the image. To help us out, let's
+            introduce a new concept, known as the "fill style". We pass the fill style our position, and it
+            returns a color for that position.
         </p>
-        <p>
-            Our updated code here looks like:
-        </p>
-
-<pre><code class="javascript">function newRGB(r, g, b) {
-    return { r: r, g: g, b: b };
-}
-
-// Mix colors "color1" and "color2" together at time value "t",
-// where 0 is "color1" and 1 is "color2".
-function lerpRGB(color1, color2, t) {
-    var newR = (color1.r * (1.0 - t)) + (color2.r * t);
-    var newG = (color1.g * (1.0 - t)) + (color2.g * t);
-    var newB = (color1.b * (1.0 - t)) + (color2.b * t);
-    return newRGB(newR, newG, newB);
+<pre><code class="javascript">
+// Basic fill style.
+function newSolidFill(rgb) {
+    return function(x, y) {
+        // A solid fill returns the same color, no matter the position.
+        return rgb;
+    };
 }
 
 function newRadialGradient(centerX, centerY, radius, centerRGB, edgeRGB) {
     return function(x, y) {
-        // Calculate distance from the center point.
+        // Calculate distance from the center point. Basic Pythagoras.
         var distX = x - centerX, distY = y - centerY;
         var distance = Math.sqrt(distX*distX + distY*distY);
 
@@ -352,7 +358,7 @@ function newRadialGradient(centerX, centerY, radius, centerRGB, edgeRGB) {
             return edgeRGB;
 
         // Translate the [0, radius] ranged value to a [0, 1] ranged value
-        // so we can mix the colors.
+        // so we can lerp the colors.
         var t = distance / radius;
         return lerpRGB(centerRGB, edgeRGB, t);
     };
@@ -360,14 +366,6 @@ function newRadialGradient(centerX, centerY, radius, centerRGB, edgeRGB) {
 
 // The same code as above, but slightly adapted to handle fill styles
 // and custom colors.
-
-function fillPixel(imageData, x, y, rgb) {
-    var idx = indexForPixelLocation(imageData, x, y);
-    imageData.data[idx + 0] = rgb.r;
-    imageData.data[idx + 1] = rgb.g;
-    imageData.data[idx + 2] = rgb.b;
-    imageData.data[idx + 3] = 255; // Alpha
-}
 
 function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
     for (var y = y1; y < y1 + height; y++) {
@@ -379,18 +377,9 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
 }
 </code></pre>
         <p>
-            OK. There's a lot in here to go through. First off, let's go over our method of representing
-            colors. Much like <span class="code-literal">ImageData</span>, we use values spanning from 0
-            to 255 to represent each channel, and I put these values in an object with "r", "g", and "b"
-            slots. We also need the ability to <a href="https://www.opengl.org/sdk/docs/man/html/mix.xhtml">mix</a>
-            between two colors, which gives us a nice smooth transition. We can easily do this by
-            <a href="https://en.wikipedia.org/wiki/Linear_interpolation">linear interpolating</a> each of
-            the two colors.
-        </p>
-        <p>
-            After we have this ability to mix, or lerp, between two different colors, the rest of the
-            algorithm is dedicated to figuring out which time "t" we should be using. In the case of a radial
-            gradient, it's actually just the distance from the center point, normalized against the radius.
+            After we have this ability to lerp between two different colors, the rest of the complexity here is
+            dedicated to figuring out which time "t" we should be using. In the case of a radial gradient,
+            it's actually just the distance from the center point, normalized against the radius.
         </p>
         <p>
             As an exercise, try working out, using this base, how to have arbitrary gradient stops at different
@@ -404,7 +393,7 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
             Now that we've become familiarized with the concepts of rendering boxes and fills, let's try our
             hand at something a tad bit more fancy &mdash; rendering other shapes. To start with, we'll actually
             just draw the shape we just taught ourselves how to draw above: circles. We just learned above how
-            to calculate the time "t" of a point x,y against any circle, and you can visualize that a real circle
+            to calculate the time "t" of a point x, y against any circle, and you can visualize that a real circle
             is simply a bunch of those points where we're inside the radius. So we can just run over our pixel
             grid, test when we're "inside" the circle, and if so, choose to fill in the pixel.
         </p>
@@ -412,7 +401,7 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
             The only complication here is that we have to pick some start and end bounds for where we start
             iterating. We could use our <em>entire</em> pixel grid, but we know a bunch of pixels will never be
             filled in. We need a tight set of pixels. Thankfully, for a circle, it's quite easy to compute: it has
-            a width of twice the radius, and "pokes out" to the left an amount of the radius.
+            a width and height of twice the radius.
         </p>
 <pre><code class="javascript">function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
     var x1 = centerX - radius, y1 = centerY - radius;
@@ -452,10 +441,10 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
             When we do something like the above when we draw &mdash; iterate over a bunch of pixels, and then test
             whether a pixel should be in or out, we're making use of a concept known as <span class="definition">sampling</span>.
             Basically, we have some functional concept of a shape, like a circle, and we can give it different x and y
-            values and it tells us whether they are inside or outside of the circle. But what do these points mean?
+            points and it tells us whether they are inside or outside of the circle. But what do these points actually mean?
         </p>
         <p>
-            Well, I mean, we know that in our pixel grid, each one of these numbers corresponds to a pixel. But what
+            Well, we know that in our pixel grid, each one of these numbers corresponds to a pixel. But have we thought
             about the <em>abstract space</em> where these circle descriptions live? We're talking about a circle
             centered at, let's say, 5, 5, with a radius of 10. We have to have some concept of mapping this abstract
             space to the pixel grid. Up until now, we haven't thought about this and have been hacking it together
@@ -503,32 +492,35 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
             reader to fix that one.
         </p>
         <p>
-            You might have noticed that some graphics APIs, like HTML5 &lt;canvas&gt;, require you to add
-            these 0.5 increments yourselves, especially to lines, to make the resulting line look sharp.
+            If you've worked with graphics APIs before, like HTML5 &lt;canvas&gt;, you might have had to add
+            these 0.5 increments yourselves, e.g. to lines, to make the resulting line look sharp.
             This is because a line is basically a "thin" rectangle which is <em>lineWidth</em> wide, and
             <em>centered</em> upon the position you give it. HTML5 &lt;canvas&gt; also uses this "pixel center"
             sampling strategy. Giving it a bit of thought (imagine a vertical rectangle "growing" in width
-            from a pixel's center), and it should be obvious why this is the case.
+            from a pixel's center), and it should be obvious why you need to add 0.5 offsets yourself, and
+            why using a <span class="code">lineWidth</span> on offsets without the 0.5 looked acceptable.
         </p>
+        </section>
 
         <section id="transparency-and-blending">
         <h3>Transparency and Blending</h3>
         <p>
-            OK, so now we have basic shapes, and basic fills. What would be really cool is to try to blend
-            multiple shapes together. This is actually easier than you think, at least for a toy implementation.
-            But first, the theory. As a term stolen from
+            OK, so now we have basic shapes, and basic fills. What would be really cool is to try to add
+            transparency, and to blend multiple shapes together. This is actually easier than you think, at least
+            for a toy implementation. But first, the theory. As a term stolen from
             <a href="https://en.wikipedia.org/wiki/Compositing">the visual effects industry</a>, blending multiple
             transparent shapes together is formally called
-            "<a href="https://en.wikipedia.org/wiki/Alpha_compositing">alpha compositing</a>", though I don't like that term very
-            much, for reasons that will become clearer as the rest of the article goes on. I prefer "blending".
+            "<a href="https://en.wikipedia.org/wiki/Alpha_compositing">alpha compositing</a>", though I don't like
+            that term very much, for reasons that will become clearer as the rest of the article goes on.
+            I prefer "blending".
         </p>
         <p>
             For our toy implementation, we'll make some simplifications. Our resulting pixel grid is designed
-            to be displayed directly on my monitor. Since my monitor isn't transparent (at least<a href="https://www.theverge.com/2016/1/7/10733626/panasonic-transparent-screen-display-ces-2016">not yet!</a>),
+            to be displayed directly on my monitor. Since my monitor isn't transparent (at least <a href="https://www.theverge.com/2016/1/7/10733626/panasonic-transparent-screen-display-ces-2016">not yet!</a>),
             we won't bother changing its storage, and just assume it's full opaque. However, we'll add a new
             parameter to our fill color: <span class="definition">alpha</span>, or the "A" in "RGBA".
-            Alpha is commonly taken to be identical with "transparency", though this isn't fully theoretically
-            accurate as we'll see later.
+            Alpha is commonly taken to be identical with "transparency", though this isn't fully accurate,
+            as we'll see later (and one of my personal pet peeves)!
         </p>
         <p>
             We'll also be a bit more formal about our fill parameters. We'll call the fill pattern the
@@ -560,7 +552,7 @@ function blendPixel(imageData, x, y, rgba) {
             This is also a simplification. To blend an RGBA image into another RGBA image,
             <a href="https://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending">you have to take both alpha values into account</a> (e.g. 30% of one, 50% of the other) and the resulting image also has a new
             alpha, and the formula gets messy, and we graphics guys invented <a href="https://blogs.msdn.microsoft.com/shawnhar/2009/11/06/premultiplied-alpha/">a trick to make it faster and cleaner</a>.
-            But for the simple case I gave you, I intentionally chose it to keep it nice and simple. It's a lerp!
+            But for the simple case I gave you, I intentionally chose it to keep it nice and simple, so it's a lerp!
         </p>
         </section>
 
@@ -577,20 +569,29 @@ function blendPixel(imageData, x, y, rgba) {
         </p>
         <p>
             ... OK. If that made no sense, here's a quick signal processing intro:
-            the word "frequency" just means "how fast things change". Our abstract circle changes from "inside"
-            to "outside" much "faster" than how often the grid can change, or, at a "higher frequency".
+            the word "frequency" just means "how fast things change". In our case, these "changes" are basically
+            "how fast" our circle is changing, in the abstract grid case, and how fast our pixels
+            are allowed to change, in the concrete grid case. Our abstract circle changes from "being inside" to
+            "being outside" much faster than how often the grid can change, or, at a "higher frequency".
         </p>
         <p>
-            Imagine a rectangle in our abstract grid that changes rapidly from black to white over and over again.
-            Sampling this in our extremely course pixel grid will have a seemingly random pattern of sometimes white
-            pixels and sometimes black pixels. This is known as a <a href="https://en.wikipedia.org/wiki/Moir%C3%A9_pattern" class="definition">moire pattern</a>,
+            ... Erm, that might have made no sense. Imagine a rectangle in our abstract grid that changes rapidly
+            from black to white over and over again. Sampling this in our extremely course pixel grid will have a
+            seemingly random pattern of sometimes white pixels and sometimes black pixels. This is known as a
+            <a href="https://en.wikipedia.org/wiki/Moir%C3%A9_pattern" class="definition">moire pattern</a>,
             and it happens when we can't sample fast enough or fine enough for the source.
         </p>
+        <p>
+            ... Actually, you don't have to imagine it, I can show you.
+        </p>
+
+        <div class="demo-canvas" data-demo="rast1-sampling-moire"></div>
 
         <p>
             Signal processing theory tells us that in order to prevent artifacts like this, we have two options:
-            sample faster, or remove the high frequencies. Computer graphics implementations, conceputally, do the
-            former, and <em>then</em> downsample using a special filter that blends the pixels to avoid artifacts.
+            sample faster, or just remove the high frequencies altogether. Computer graphics implementations,
+            conceputally, do the former, and <em>then</em> downsample using a special filter that blends the pixels
+            to avoid artifacts.
         </p>
 
         <p>
@@ -671,12 +672,13 @@ function blendPixel(imageData, x, y, rgba) {
             only the shape's coverage. This is an optimization known in the 3D graphics world as
             <a href="https://www.khronos.org/opengl/wiki/Multisampling">multisampling</a>. The hope is that
             the fill color of just the pixel's center really doesn't change from an average of all possible
-            sample points, but the coverage does.
+            sample points, but the coverage does. When you go into a game's advanced settings and turn on
+            "MSAAx16", this is exactly the algorithm that runs there.
         </p>
         <p>
             You might also notice that the animation still seems a bit "jerky". This is because I'm drawing
-            the circle locked to the pixel grid with a <code>Math.floor</code>. Now that we can represent
-            arbitrary sample points thanks to proper antialiasing. Let's remove that restriction now.
+            the circle locked to the pixel grid with a <code>Math.floor</code>. But now we can represent
+            arbitrary sample points thanks to proper antialiasing. Let's just remove that restriction.
         </p>
         <div class="demo-canvas" data-demo="rast1-circle-aa-smooth"></div>
         <p>
@@ -685,12 +687,14 @@ function blendPixel(imageData, x, y, rgba) {
             would be fractional, and we can't really index an <code>ImageData</code> with a fractional index.
         </p>
         <p>
-            Super- or multisampling are not the only approaches to doing antialasing. Another approach here is
-            to use analytic methods to figure out how much area the shape actually covers. The common algorithm
-            for this is commonly attributed to Raph Levien in the <a href="http://www.levien.com/libart/">libart
-            rendering library</a>. I might do an interactive article for this some other day, but for now,
-            I'll link to Sean Barrett, who has <a href="http://nothings.org/gamedev/rasterize/">an excellent whiteboard explanation</a>
-            up on his website.
+            And last, I should mention. Super- or multisampling are not the only approaches to doing antialasing.
+            Another approach here is to use analytic methods to figure out how much area the shape actually covers.
+            The common algorithm for this is commonly attributed to Raph Levien in the
+            <a href="http://www.levien.com/libart/">libart rendering library</a>. I might do an interactive article
+            for this some other day, but for now, I'll link to Sean Barrett, who has
+            <a href="http://nothings.org/gamedev/rasterize/">an excellent whiteboard explanation</a> up on his website.
+            The sampling approaches are easier to understand, much more visualizable and obvious to the theory, and
+            give us pretty great results.
         </p>
         </section>
 
@@ -717,6 +721,10 @@ function blendPixel(imageData, x, y, rgba) {
             Wayland worlds mostly behind. However, I'm still at a job where I interact with graphics every day,
             and I, of course, will never tire of teaching people stuff. Even if it takes me a year to actually
             finish an article. I'm hoping the expanded focus will help a lot with my motivation, though.
+        </p>
+        <p>
+            Also, if you have comments, suggestions, whatever, you can leave your comments on GitHub. <br>
+            <a href="https://github.com/magcius/xplain/issues/28">Comments</a>
         </p>
         </section>
 
@@ -752,7 +760,7 @@ function blendPixel(imageData, x, y, rgba) {
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
       m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
       ga('create', 'UA-35480078-2', 'magcius.github.io');
       ga('send', 'pageview');
     </script>
