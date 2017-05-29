@@ -27,6 +27,7 @@
     }
 
     function fillPixel(imageData, x, y, rgb) {
+        // Guard against out-of-bound writes.
         if (x < 0 || x >= imageData.width || y < 0 || y >= imageData.height)
             return;
 
@@ -102,7 +103,7 @@
     // Complete gradient code featuring multiple stops.
     function newGradientStop(position, rgba) {
         return { position: position, rgba: rgba };
-    };
+    }
 
     // Given a set of stops, and a position "pos" between 0 and 1,
     // evaluate the color at the position using the list of stops.
@@ -131,7 +132,7 @@
             var stopB = stops[i];
 
             // If we're between these two stops, then linearly blend
-            // between those two colors at the time T between the two positions. 
+            // between those two colors at the time t between the two positions. 
             if (pos >= stopA.position && pos <= stopB.position) {
                 var t = inverseLerp(stopA.position, stopB.position, pos);
                 return lerpRGBA(stopA.rgba, stopB.rgba, t);
@@ -157,7 +158,7 @@
             var rgba = evaluateStopsAtPos(stops, t);
             return rgba;
         };
-    };
+    }
 
     // Simple form that appears in the article, which only takes two colors.
     function newRadialGradient(centerX, centerY, radius, centerRGBA, edgeRGBA) {
@@ -216,7 +217,7 @@
             var rgba = evaluateStopsAtPos(stops, t);
             return rgba;
         };
-    };
+    }
 
     // The actual code's shape drawing is a lot less "scatterbrained". The code in
     // the article should work 100% (an earlier version of this code was copied directly)
@@ -600,235 +601,6 @@
         visibleRAF(canvas, draw);
     });
 
-    var SamplerControl = new Class({
-        initialize: function(canvas, boxSize, width, height) {
-            this._boxSize = boxSize;
-            this._width = width;
-            this._height = height;
-            this._canvas = canvas;
-            this._canvas.addEventListener('mousemove', this._onCanvasMouseMove.bind(this));
-            this._canvas.addEventListener('mouseout', this._onCanvasMouseOut.bind(this));
-            this._canvas.addEventListener('mousedown', this._onCanvasMouseDown.bind(this));
-            this._canvas.addEventListener('click', this._onCanvasClick.bind(this));
-
-            this._selectedBox = null;
-            this._hoverBox = null;
-        },
-
-        getActiveBox: function() {
-            return this._selectedBox !== null ? this._selectedBox : this._hoverBox;
-        },
-
-        _onCanvasMouseMove: function(e) {
-            var pos = { x: e.offsetX, y: e.offsetY };
-            pos.x -= DISPLAY_XPAD;
-            pos.y -= DISPLAY_YPAD;
-            displayToBuffer(pos);
-
-            var boxSize = this._boxSize;
-            var x1 = Math.round(Math.min(Math.max(pos.x - boxSize / 2, 0), this._width - boxSize));
-            var y1 = Math.round(Math.min(Math.max(pos.y - boxSize / 2, 0), this._height - boxSize));
-
-            this._hoverBox = { x1: x1, y1: y1, x2: x1 + boxSize, y2: y1 + boxSize };
-        },
-
-        _onCanvasMouseOut: function(e) {
-            this._hoverBox = null;
-        },
-
-        _onCanvasMouseDown: function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        },
-
-        _onCanvasClick: function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            if (this._selectedBox && this._hoverBox.x1 === this._selectedBox.x1 && this._hoverBox.y1 === this._selectedBox.y1) {
-                this._selectedBox = null;
-            } else {
-                this._selectedBox = this._hoverBox;
-            }
-        },
-
-        draw: function() {
-            var ctx = this._canvas.getContext('2d');
-            ctx.save();
-
-            function transformBox(box) {
-                var boxSize = box.size;
-                var tl = { x: box.x1, y: box.y1 };
-                var br = { x: box.x2, y: box.y2 };
-                bufferToDisplay(tl);
-                bufferToDisplay(br);
-                return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y };
-            }
-
-            if (this._hoverBox) {
-                ctx.strokeStyle = this._selectedBox ? '#666666' : '#000000';
-                ctx.lineWidth = 2;
-                var h = transformBox(this._hoverBox);
-                ctx.strokeRect(h.x + 1, h.y + 1, h.w - 1, h.h - 1);
-            }
-
-            if (this._selectedBox) {
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 2;
-                var s = transformBox(this._selectedBox);
-                ctx.strokeRect(s.x - 1, s.y - 1, s.w + 3, s.h + 3);
-            }
-
-            ctx.restore();
-        },
-    });
-
-    ArticleDemos.registerDemo("rast1-imagedata-pixel-format", "height: 300px", function(res) {
-        var canvas = res.canvas;
-        var ctx = canvas.getContext('2d');
-
-        var samplerControl = new SamplerControl(canvas, 2, BUFFER_WIDTH, BUFFER_HEIGHT);
-
-        function draw(t) {
-            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
-
-            var TAU = Math.PI * 2;
-            var tcx = 7, tcy = 5 + Math.cos(t / 1600) * 2;
-            var tsz = Math.cos(t / 600) * 2 + 8;
-            var t1x = Math.cos((t / 600) - 0/3 * TAU) * tsz + tcx;
-            var t1y = Math.sin((t / 600) - 0/3 * TAU) * tsz + tcy;
-            var t2x = Math.cos((t / 600) - 1/3 * TAU) * tsz + tcx;
-            var t2y = Math.sin((t / 600) - 1/3 * TAU) * tsz + tcy;
-            var t3x = Math.cos((t / 600) - 2/3 * TAU) * tsz + tcx;
-            var t3y = Math.sin((t / 600) - 2/3 * TAU) * tsz + tcy;
-            var tricolor = newSolidFill(newHSL(t / 1000, .3, .4));
-            fillTri(imageData, tricolor, t1x, t1y, t2x, t2y, t3x, t3y);
-
-            var cx = 23 + Math.cos(t / 700) * 20;
-            var cy = 5;
-            var sz = Math.cos(t / 430) * 2 + 5;
-            var grad1 = newRadialGradient(cx - 0.5, cy - 0.5, sz, newRGBA(0, 0, 255, 0), newRGBA(0, 0, 255, 1));
-            fillCircle(imageData, grad1, cx, cy, sz, true, true);
-
-            var grad2t = -(t / 100) % 30;
-            var grad2 = newLinearGradient(1, grad2t - 30, 2, grad2t, [
-                newGradientStop(0.0, newRGBA(255, 0, 0, 0.8)),
-                newGradientStop(0.2, newRGBA(255, 255, 0, 0.8)),
-                newGradientStop(0.4, newRGBA(0, 255, 0, 0.8)),
-                newGradientStop(0.6, newRGBA(0, 255, 255, 0.8)),
-                newGradientStop(0.8, newRGBA(0, 0, 255, 0.8)),
-                newGradientStop(0.9, newRGBA(255, 0, 255, 0.8)),
-                newGradientStop(1.0, newRGBA(255, 0, 0, 0.8)),
-            ]);
-            var rx = 22 + Math.cos(t / 1200) * 3;
-            var rw = 12 + Math.sin(t / 800) * 8;
-            fillRectangle(imageData, grad2, rx, 1, rw, 8, true);
-
-            rastDemoDraw(ctx, imageData);
-            samplerControl.draw();
-
-            // Draw the pixel grid display.
-
-            // Axes.
-            var axesX = DISPLAY_XPAD;
-            var axesY = DISPLAY_HEIGHT + 20;
-            var axesWidth = DISPLAY_WIDTH;
-            var axesHeight = 100;
-
-            ctx.beginPath();
-            ctx.lineTo(axesX + 0.5, axesY + axesHeight - 3);
-            ctx.lineTo(axesX + 0.5, axesY + 0.5);
-            ctx.lineTo(axesX + axesWidth - 3, axesY + 0.5);
-            ctx.strokeStyle = '#aaaaaa';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            // Axes arrows.
-            // Y
-            ctx.fillStyle = '#aaaaaa';
-
-            var arrowWidth = 3, arrowHeight = 10;
-            ctx.beginPath();
-            ctx.lineTo(axesX + 0.5, axesY + axesHeight);
-            ctx.lineTo(axesX + 0.5 - arrowWidth, axesY + axesHeight - arrowHeight);
-            ctx.lineTo(axesX + 0.5 + arrowWidth, axesY + axesHeight - arrowHeight);
-            ctx.fill();
-
-            // X
-            ctx.beginPath();
-            ctx.lineTo(axesX + axesWidth,               axesY + 0.5);
-            ctx.lineTo(axesX + axesWidth - arrowHeight, axesY + 0.5 + arrowWidth);
-            ctx.lineTo(axesX + axesWidth - arrowHeight, axesY + 0.5 - arrowWidth);
-            ctx.fill();
-        }
-
-        /*
-        function draw(t) {
-            var imageData = newImageData(10, 10);
-
-            var fillStyle = newSolidFill(newHSL(t / 1000, 0.7, 0.5));
-            fillRectangle(imageData, fillStyle, 1, 1, 8, 8);
-
-            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-            drawImageData(ctx, imageData);
-            drawGrid(ctx, 10, 10);
-
-            samplerControl.draw();
-
-            function drawPixelDetail(x, y, rgb) {
-                var w = CELL_SIZE;
-                var h = CELL_SIZE * 2;
-                var pad = 2;
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-
-                var dx = x;
-                ctx.beginPath();
-                ctx.fillStyle = 'rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ')';
-                ctx.rect(dx + 0.5, y + 0.5, h, h);
-                ctx.fill();
-                ctx.stroke();
-                dx += h + w;
-
-                ctx.beginPath();
-                ctx.fillStyle = 'rgb(' + rgb.r + ', 0, 0)';
-                ctx.rect(dx + 0.5, y + 0.5, w, h);
-                ctx.fill();
-                ctx.stroke();
-                dx += w + pad;
-
-                ctx.beginPath();
-                ctx.fillStyle = 'rgb(0, ' + rgb.g + ', 0)';
-                ctx.rect(dx + 0.5, y + 0.5, w, h);
-                ctx.fill();
-                ctx.stroke();
-                dx += w + pad;
-
-                ctx.beginPath();
-                ctx.fillStyle = 'rgb(0, 0, ' + rgb.b + ')';
-                ctx.rect(dx + 0.5, y + 0.5, w, h);
-                ctx.fill();
-                ctx.stroke();
-                dx += w + pad;
-            }
-
-            var box = samplerControl.getActiveBox();
-            if (box) {
-                for (var y = box.y1; y < box.y2; y++) {
-                    for (var x = box.x1; x < box.x2; x++) {
-                        var rgb = getPixel(imageData, x, y);
-                        var dy = y - box.y1, dx = x - box.x1;
-                        drawPixelDetail(axesX + (dx * 180) + 32, axesY + (dy * 80) + 24, rgb);
-                    }
-                }
-            }
-        }
-        */
-
-        visibleRAF(canvas, draw);
-    });
-
     ArticleDemos.registerDemo("rast1-fillrect-basic", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
@@ -880,6 +652,7 @@
             draw(imageData, (t / 1000) % 1);
             rastDemoDraw(ctx, imageData);
         }
+
         visibleRAF(canvas, update);
     });
 
@@ -1079,6 +852,89 @@
         }
 
         visibleRAF(canvas, draw);
+    });
+
+    var SamplerControl = new Class({
+        initialize: function(canvas, boxSize, width, height) {
+            this._boxSize = boxSize;
+            this._width = width;
+            this._height = height;
+            this._canvas = canvas;
+            this._canvas.addEventListener('mousemove', this._onCanvasMouseMove.bind(this));
+            this._canvas.addEventListener('mouseout', this._onCanvasMouseOut.bind(this));
+            this._canvas.addEventListener('mousedown', this._onCanvasMouseDown.bind(this));
+            this._canvas.addEventListener('click', this._onCanvasClick.bind(this));
+
+            this._selectedBox = null;
+            this._hoverBox = null;
+        },
+
+        getActiveBox: function() {
+            return this._selectedBox !== null ? this._selectedBox : this._hoverBox;
+        },
+
+        _onCanvasMouseMove: function(e) {
+            var pos = { x: e.offsetX, y: e.offsetY };
+            pos.x -= DISPLAY_XPAD;
+            pos.y -= DISPLAY_YPAD;
+            displayToBuffer(pos);
+
+            var boxSize = this._boxSize;
+            var x1 = Math.round(Math.min(Math.max(pos.x - boxSize / 2, 0), this._width - boxSize));
+            var y1 = Math.round(Math.min(Math.max(pos.y - boxSize / 2, 0), this._height - boxSize));
+
+            this._hoverBox = { x1: x1, y1: y1, x2: x1 + boxSize, y2: y1 + boxSize };
+        },
+
+        _onCanvasMouseOut: function(e) {
+            this._hoverBox = null;
+        },
+
+        _onCanvasMouseDown: function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        },
+
+        _onCanvasClick: function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (this._selectedBox && this._hoverBox.x1 === this._selectedBox.x1 && this._hoverBox.y1 === this._selectedBox.y1) {
+                this._selectedBox = null;
+            } else {
+                this._selectedBox = this._hoverBox;
+            }
+        },
+
+        draw: function() {
+            var ctx = this._canvas.getContext('2d');
+            ctx.save();
+
+            function transformBox(box) {
+                var boxSize = box.size;
+                var tl = { x: box.x1, y: box.y1 };
+                var br = { x: box.x2, y: box.y2 };
+                bufferToDisplay(tl);
+                bufferToDisplay(br);
+                return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y };
+            }
+
+            if (this._hoverBox) {
+                ctx.strokeStyle = this._selectedBox ? '#666666' : '#000000';
+                ctx.lineWidth = 2;
+                var h = transformBox(this._hoverBox);
+                ctx.strokeRect(h.x + 1, h.y + 1, h.w - 1, h.h - 1);
+            }
+
+            if (this._selectedBox) {
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                var s = transformBox(this._selectedBox);
+                ctx.strokeRect(s.x - 1, s.y - 1, s.w + 3, s.h + 3);
+            }
+
+            ctx.restore();
+        },
     });
 
     ArticleDemos.registerDemo("rast1-circle-aa-smooth", STYLE, function(res) {
