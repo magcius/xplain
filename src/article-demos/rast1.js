@@ -7,9 +7,11 @@
     // since maintaining numerous "forks" as the article got updated got exhausting.
     // I also wanted to pull various tricks with the visualization and sometimes the
     // simplified code got in the way. That said, every line of code in the article
-    // *should* work. Please let me know if it doesn't.
+    // *should* work as advertised. Please let me know if it doesn't.
 
     // -- Rasterizer Engine --
+    // This is an improved, more robust rasterizer engine core that we end up building
+    // by the end of the article.
 
     var BYTES_PER_PIXEL = 4;
 
@@ -85,7 +87,6 @@
     }
 
     function blendPixel(imageData, x, y, src) {
-        // Construct an RGB of the pixel grid ("destination") for our lerp.
         var dst = getPixel(imageData, x, y);
         // Lerp using the src's alpha to blend.
         var blended = lerpRGBA(dst, src, src.a);
@@ -98,7 +99,7 @@
         }
     }
 
-    // Complete gradient code featuring multiple stops. Will be expanded on in the next article.
+    // Complete gradient code featuring multiple stops.
     function newGradientStop(position, rgba) {
         return { position: position, rgba: rgba };
     };
@@ -106,7 +107,12 @@
     // Given a set of stops, and a position "pos" between 0 and 1,
     // evaluate the color at the position using the list of stops.
     function evaluateStopsAtPos(stops, pos) {
-        // If pos is out of bounds, repeat the gradient.
+        // This code makes several choices for you. A real engine would
+        // have some of these choices configurable.
+
+        // If pos is out of bounds, repeat the gradient. Other valid choices
+        // would be mirroring the pattern, or clamping at the extents.
+        // This is often known as a "wrap mode" in most graphics APIs.
         if (pos < 0)
             pos = 1 + (pos % 1);
         if (pos > 1)
@@ -137,23 +143,24 @@
     }
 
     // Radial gradients are specified with a center, radius, and set of stops.
-    function newRadialGradientFull(xc, yc, radius, stops) {
+    function newRadialGradientFull(centerX, centerY, radius, stops) {
         return function(x, y) {
             // This is relatively simple. The distance from the center, compared
             // against the overall radius, gives us our position into the stops.
-            var dx = x - xc;
-            var dy = y - yc;
-            var dist = Math.sqrt(dx*dx + dy*dy);
+            var distX = x - centerX, distY = y - centerY;
+            var distance = Math.sqrt(distX*distX + distY*distY);
+
             // How far along is the distance into the range 0-radius?
-            var pos = inverseLerp(0, radius, dist);
+            var t = distance / radius;
+
             // Now look up the position against the gradient stops to get a final color.
-            var rgba = evaluateStopsAtPos(stops, pos);
+            var rgba = evaluateStopsAtPos(stops, t);
             return rgba;
         };
     };
 
-    // Simple form.
-    function newRadialGradient(centerX, centerY, radius, centerRGB, edgeRGB) {
+    // Simple form that appears in the article, which only takes two colors.
+    function newRadialGradient(centerX, centerY, radius, centerRGBA, edgeRGBA) {
         return function(x, y) {
             // Calculate distance from the center point.
             var distX = x - centerX, distY = y - centerY;
@@ -163,18 +170,20 @@
             // This is a choice -- we could instead choose to repeat or ping-pong
             // between the colors.
             if (distance >= radius)
-                return edgeRGB;
+                return edgeRGBA;
 
             // Translate the [0, radius] ranged value to a [0, 1] ranged value
             // so we can lerp the colors.
             var t = distance / radius;
-            return lerpRGBA(centerRGB, edgeRGB, t);
+
+            var rgba = lerpRGBA(centerRGBA, edgeRGBA, t);
+            return rgba;
         };
     }
 
     // You specify a linear gradient by specifying a line to follow,
     // and a series of stops along that line.
-    function newLinearGradient(x1, y1, x2, y2, stops) {
+    function newLinearGradient(gradX1, gradY1, gradX2, gradY2, stops) {
         return function(x, y) {
             // Basic bit of linear algebra. The gradient is specified along the line
             // x1,y1 - x2,y2. Every line perpendicular to this contains a single color
@@ -187,21 +196,24 @@
             // gradient.
 
             // "Set the origin at x1,y1"
-            var gradX = x2 - x1;
-            var gradY = y2 - y1;
-            var bufX = x - x1;
-            var bufY = y - y1;
+            var gradX = gradX2 - gradX1;
+            var gradY = gradY2 - gradY1;
+            var bufX = x - gradX1;
+            var bufY = y - gradY1;
 
             // Project bufX/Y. Normalize gradX/Y first since we only care about its
             // angle during the projection.
             var gradLength = Math.sqrt(gradX*gradX + gradY*gradY);
             gradX /= gradLength;
             gradY /= gradLength;
+
             // Now project using the dot product.
             var magnitude = gradX*bufX + gradY*bufY;
+
             // How far along is magnitude in the range 0-gradLength?
-            var pos = inverseLerp(0, gradLength, magnitude);
-            var rgba = evaluateStopsAtPos(stops, pos);
+            var t = magnitude / gradLength;
+
+            var rgba = evaluateStopsAtPos(stops, t);
             return rgba;
         };
     };
@@ -221,19 +233,29 @@
         x2 = Math.ceil(x2);
         y2 = Math.ceil(y2);
 
-        for (var y = y1; y < y2; y++) {
-            for (var x = x1; x < x2; x++) {
+        for (var y = y1; y < y2; y++)
+            for (var x = x1; x < x2; x++)
                 callback(x, y);
-            }
-        }
     }
 
-    // This is equivalent to the "inner" loop in our AA fillCircle function.
-    function collectCoverage(x1, y1, callback, numSubpixels, bias) {
-        bias = bias !== undefined ? bias : true;
+    // This is equivalent to the "inner" loop in our AA fillCircle function
+    // as seen in the article.
+
+    // Quick note here since the code is also a bit ugly.
+    // "numSubpixels" determines the number of subpixels that we sample with in each direction.
+    // Defaults to 4, giving us 4x4 / MSAAx16.
+    //
+    // "bias" determined whether we apply the 0.5 sample -- by default, this is true, making sure
+    // we have correct direction.
+    function collectCoverage(x1, y1, callback, options) {
+        if (!options)
+            options = {};
+
+        var bias = (options.bias !== undefined) ? options.bias : true;
 
         // Antialias by default.
-        numSubpixels = numSubpixels !== undefined ? numSubpixels : 8;
+        var numSubpixels = (options.numSubpixels !== undefined) ? numSubpixels :
+                           (options.aa == undefined || options.aa) ? 4 : 1;
         var numSubpixelsX = numSubpixels;
         var numSubpixelsY = numSubpixels;
 
@@ -272,7 +294,7 @@
         blendPixel(imageData, x, y, rgba);
     }
 
-    function fillRectangle(imageData, fillStyle, x1, y1, width, height, aa) {
+    function fillRectangle(imageData, fillStyle, x1, y1, width, height, coverageOptions) {
         var x2 = x1 + width;
         var y2 = y1 + height;
 
@@ -291,12 +313,12 @@
         }
 
         iterBoundingBox(x1, y1, x2, y2, function(x, y) {
-            var coverage = collectCoverage(x, y, rectangleCoverage, aa ? 4 : 1);
-            return fillCoverage(imageData, fillStyle, x, y, coverage);
+            var coverage = collectCoverage(x, y, rectangleCoverage, coverageOptions);
+            fillCoverage(imageData, fillStyle, x, y, coverage);
         });
     }
 
-    function fillCircle(imageData, fillStyle, centerX, centerY, radius, aa, bias) {
+    function fillCircle(imageData, fillStyle, centerX, centerY, radius, coverageOptions) {
         function circleCoverage(sampleX, sampleY) {
             var distX = (sampleX - centerX), distY = (sampleY - centerY);
             var distance = Math.sqrt(distX*distX + distY*distY);
@@ -306,25 +328,25 @@
         var x1 = centerX - radius, y1 = centerY - radius;
         var x2 = centerX + radius, y2 = centerY + radius;
         iterBoundingBox(x1, y1, x2, y2, function(x, y) {
-            var coverage = collectCoverage(x, y, circleCoverage, aa ? 4 : 1, bias);
-            return fillCoverage(imageData, fillStyle, x, y, coverage);
+            var coverage = collectCoverage(x, y, circleCoverage, coverageOptions);
+            fillCoverage(imageData, fillStyle, x, y, coverage);
         });
     }
 
-    function fillTri(imageData, fillStyle, x1, y1, x2, y2, x3, y3) {
-        // Returns whether point px,py is on the "right" or "left" of line x1,y1 - x2,y2.
-        function edgeFunction(x1, y1, x2, y2, px, py) {
-            // Put everything in the space of x1,y1.
-            px -= x1; py -= y1; x2 -= x1; y2 -= y1;
-
-            // Use the sign of the determinant of the vector x2,y2 -> px,py relative to
-            // origin x1,y1.
-            var determinant = (px * y2) - (py * x2);
-
+    function fillTri(imageData, fillStyle, x1, y1, x2, y2, x3, y3, coverageOptions) {
+        // Returns whether point px,py is on the "right" or "left" of line nx1,ny1 - nx2,ny2.
+        function edgeFunction(nx1, ny1, nx2, ny2, px, py) {
+            // Put everything in the space of nx1,ny1.
+            px -= nx1; py -= ny1; nx2 -= nx1; ny2 -= ny1;
+            // Use the sign of the determinant of the vector nx2,ny2 -> px,py relative to
+            // origin nx1,ny1.
+            var determinant = (px * ny2) - (py * nx2);
             // The point is "on the right" of the line if the area is positive. 
             return determinant > 0;
         }
 
+        // A triangle is defined by all points that are on the inside of the
+        // three defining edges, which combine to make "edge functions".
         function triangleCoverage(x, y) {
             var inside = (edgeFunction(x1, y1, x2, y2, x, y) &&
                           edgeFunction(x2, y2, x3, y3, x, y) &&
@@ -338,8 +360,8 @@
         var bboxY2 = Math.max(y1, y2, y3);
 
         iterBoundingBox(bboxX1, bboxY1, bboxX2, bboxY2, function(x, y) {
-            var coverage = collectCoverage(x, y, triangleCoverage);
-            return fillCoverage(imageData, fillStyle, x, y, coverage);
+            var coverage = collectCoverage(x, y, triangleCoverage, coverageOptions);
+            fillCoverage(imageData, fillStyle, x, y, coverage);
         });
     };
 
@@ -367,13 +389,13 @@
 
     // This rasterized buffer gets rendered so that each "picture element"
     // in it gets a giant 16x16 "cell" for demonstration purposes.
-    var CELL_SIZE = 16;
+    var DISPLAY_CELL_SIZE = 16;
 
     var DISPLAY_YPAD = 2;
 
     // As such, the final size of the buffer, rendered on the canvas, is:
-    var DISPLAY_WIDTH = BUFFER_WIDTH * CELL_SIZE;
-    var DISPLAY_HEIGHT = BUFFER_HEIGHT * CELL_SIZE + DISPLAY_YPAD * 2;
+    var DISPLAY_WIDTH = BUFFER_WIDTH * DISPLAY_CELL_SIZE;
+    var DISPLAY_HEIGHT = BUFFER_HEIGHT * DISPLAY_CELL_SIZE + DISPLAY_YPAD * 2;
 
     // The size of our "demo slot" is 800px, which means we need some padding
     // on the left and right sides.
@@ -384,13 +406,13 @@
     // -- Demo Utilities --
 
     function bufferToDisplay(p) {
-        p.x = p.x * CELL_SIZE + DISPLAY_XPAD;
-        p.y = p.y * CELL_SIZE + DISPLAY_YPAD;
+        p.x = p.x * DISPLAY_CELL_SIZE;
+        p.y = p.y * DISPLAY_CELL_SIZE;
     }
 
     function displayToBuffer(p) {
-        p.x = (p.x - DISPLAY_XPAD) / CELL_SIZE;
-        p.y = (p.y - DISPLAY_YPAD) / CELL_SIZE;
+        p.x = p.x / DISPLAY_CELL_SIZE;
+        p.y = p.y / DISPLAY_CELL_SIZE;
     }
 
     // Path out a grid of strokes drawing a grid.
@@ -439,7 +461,7 @@
                 var pos = { x: bufX, y: bufY };
                 bufferToDisplay(pos);
                 ctx.fillStyle = colorStyle(r, g, b);
-                ctx.fillRect(pos.x, pos.y, CELL_SIZE, CELL_SIZE);
+                ctx.fillRect(pos.x, pos.y, DISPLAY_CELL_SIZE, DISPLAY_CELL_SIZE);
             }
         }
 
@@ -448,29 +470,32 @@
 
     // Draw an imageData to our "zoomed-in" demo, along with a grid.
     function rastDemoDraw(ctx, imageData) {
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.clearRect(-DISPLAY_XPAD, -DISPLAY_YPAD, ctx.canvas.width, ctx.canvas.height);
         drawImageData(ctx, imageData);
-        drawGrid(ctx);
+        drawGrid(ctx, imageData.width, imageData.height);
     }
 
     function drawSamplePoint(ctx, x, y, hasContents) {
-        var ctxX = DISPLAY_XPAD + (x * CELL_SIZE) + 0.5;
-        var ctxY = DISPLAY_YPAD + (y * CELL_SIZE) + 0.5;
+        var ctxX = (x * DISPLAY_CELL_SIZE) + 0.5;
+        var ctxY = (y * DISPLAY_CELL_SIZE) + 0.5;
 
         ctx.save();
         ctx.lineWidth = 1;
 
-        ctx.beginPath();
-        ctx.arc(ctxX, ctxY, 2, 0, Math.PI * 2);
-
         if (hasContents) {
+            ctx.beginPath();
+            ctx.arc(ctxX, ctxY, 2.5, 0, Math.PI * 2);
+
             ctx.fillStyle = 'rgba(255, 200, 0, 1)';
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
             ctx.fill();
             ctx.stroke();
         } else {
+            ctx.beginPath();
+            ctx.arc(ctxX, ctxY, 2, 0, Math.PI * 2);
+
             ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.fill();
             ctx.stroke();
         }
@@ -506,9 +531,6 @@
 
     function drawCoverageSamplesFillStyle(ctx, pixOffs) {
         return function(x, y, coverage) {
-            if (coverage === 0)
-                return;
-
             var pX = x + (pixOffs ? 0.5 : 0);
             var pY = y + (pixOffs ? 0.5 : 0);
             drawSamplePoint(ctx, pX, pY, true);
@@ -535,6 +557,7 @@
     ArticleDemos.registerDemo("rast1-demo", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+        ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
         function draw(t) {
             var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
@@ -555,7 +578,7 @@
             var cy = 5;
             var sz = Math.cos(t / 430) * 2 + 5;
             var grad1 = newRadialGradient(cx - 0.5, cy - 0.5, sz, newRGBA(0, 0, 255, 0), newRGBA(0, 0, 255, 1));
-            fillCircle(imageData, grad1, cx, cy, sz, true, true);
+            fillCircle(imageData, grad1, cx, cy, sz);
 
             var grad2t = -(t / 100) % 30;
             var grad2 = newLinearGradient(1, grad2t - 30, 2, grad2t, [
@@ -569,7 +592,7 @@
             ]);
             var rx = 22 + Math.cos(t / 1200) * 3;
             var rw = 12 + Math.sin(t / 800) * 8;
-            fillRectangle(imageData, grad2, rx, 1, rw, 8, true);
+            fillRectangle(imageData, grad2, rx, 1, rw, 8);
 
             rastDemoDraw(ctx, imageData);
         }
@@ -585,6 +608,7 @@
             this._canvas = canvas;
             this._canvas.addEventListener('mousemove', this._onCanvasMouseMove.bind(this));
             this._canvas.addEventListener('mouseout', this._onCanvasMouseOut.bind(this));
+            this._canvas.addEventListener('mousedown', this._onCanvasMouseDown.bind(this));
             this._canvas.addEventListener('click', this._onCanvasClick.bind(this));
 
             this._selectedBox = null;
@@ -597,6 +621,8 @@
 
         _onCanvasMouseMove: function(e) {
             var pos = { x: e.offsetX, y: e.offsetY };
+            pos.x -= DISPLAY_XPAD;
+            pos.y -= DISPLAY_YPAD;
             displayToBuffer(pos);
 
             var boxSize = this._boxSize;
@@ -610,8 +636,14 @@
             this._hoverBox = null;
         },
 
+        _onCanvasMouseDown: function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        },
+
         _onCanvasClick: function(e) {
             e.preventDefault();
+            e.stopPropagation();
 
             if (this._selectedBox && this._hoverBox.x1 === this._selectedBox.x1 && this._hoverBox.y1 === this._selectedBox.y1) {
                 this._selectedBox = null;
@@ -651,11 +683,11 @@
         },
     });
 
-    ArticleDemos.registerDemo("rast1-imagedata-pixel-format", STYLE, function(res) {
+    ArticleDemos.registerDemo("rast1-imagedata-pixel-format", "height: 300px", function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
-        var samplerControl = new SamplerControl(canvas, 2, 10, 10);
+        var samplerControl = new SamplerControl(canvas, 2, BUFFER_WIDTH, BUFFER_HEIGHT);
 
         function draw(t) {
             var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
@@ -693,6 +725,41 @@
             fillRectangle(imageData, grad2, rx, 1, rw, 8, true);
 
             rastDemoDraw(ctx, imageData);
+            samplerControl.draw();
+
+            // Draw the pixel grid display.
+
+            // Axes.
+            var axesX = DISPLAY_XPAD;
+            var axesY = DISPLAY_HEIGHT + 20;
+            var axesWidth = DISPLAY_WIDTH;
+            var axesHeight = 100;
+
+            ctx.beginPath();
+            ctx.lineTo(axesX + 0.5, axesY + axesHeight - 3);
+            ctx.lineTo(axesX + 0.5, axesY + 0.5);
+            ctx.lineTo(axesX + axesWidth - 3, axesY + 0.5);
+            ctx.strokeStyle = '#aaaaaa';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Axes arrows.
+            // Y
+            ctx.fillStyle = '#aaaaaa';
+
+            var arrowWidth = 3, arrowHeight = 10;
+            ctx.beginPath();
+            ctx.lineTo(axesX + 0.5, axesY + axesHeight);
+            ctx.lineTo(axesX + 0.5 - arrowWidth, axesY + axesHeight - arrowHeight);
+            ctx.lineTo(axesX + 0.5 + arrowWidth, axesY + axesHeight - arrowHeight);
+            ctx.fill();
+
+            // X
+            ctx.beginPath();
+            ctx.lineTo(axesX + axesWidth,               axesY + 0.5);
+            ctx.lineTo(axesX + axesWidth - arrowHeight, axesY + 0.5 + arrowWidth);
+            ctx.lineTo(axesX + axesWidth - arrowHeight, axesY + 0.5 - arrowWidth);
+            ctx.fill();
         }
 
         /*
@@ -746,38 +813,6 @@
                 dx += w + pad;
             }
 
-            // Axes.
-            var axesX = imageData.width * CELL_SIZE + DISPLAY_XPAD * 2;
-            var axesY = DISPLAY_YPAD;
-            var axesWidth = 400;
-            var axesHeight = imageData.height * CELL_SIZE;
-
-            ctx.beginPath();
-            ctx.lineTo(axesX + 0.5, axesY + axesHeight - 3);
-            ctx.lineTo(axesX + 0.5, axesY + 0.5);
-            ctx.lineTo(axesX + axesWidth - 3, axesY + 0.5);
-            ctx.strokeStyle = '#aaaaaa';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            // Axes arrows.
-            // Y
-            ctx.fillStyle = '#aaaaaa';
-
-            var arrowWidth = 3, arrowHeight = 10;
-            ctx.beginPath();
-            ctx.lineTo(axesX + 0.5, axesY + axesHeight);
-            ctx.lineTo(axesX + 0.5 - arrowWidth, axesY + axesHeight - arrowHeight);
-            ctx.lineTo(axesX + 0.5 + arrowWidth, axesY + axesHeight - arrowHeight);
-            ctx.fill();
-
-            // X
-            ctx.beginPath();
-            ctx.lineTo(axesX + axesWidth,               axesY + 0.5);
-            ctx.lineTo(axesX + axesWidth - arrowHeight, axesY + 0.5 + arrowWidth);
-            ctx.lineTo(axesX + axesWidth - arrowHeight, axesY + 0.5 - arrowWidth);
-            ctx.fill();
-
             var box = samplerControl.getActiveBox();
             if (box) {
                 for (var y = box.y1; y < box.y2; y++) {
@@ -797,6 +832,7 @@
     ArticleDemos.registerDemo("rast1-fillrect-basic", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+        ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
         // The simplest rasterizer that can only write black pixels.
 
@@ -850,6 +886,7 @@
     ArticleDemos.registerDemo("rast1-fillrect-lerp-smoothstep", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+        ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
         function draw(imageData, secs) {
             var startX = 1;
@@ -872,6 +909,7 @@
     ArticleDemos.registerDemo("rast1-lerp-gradient", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+        ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
         function draw(imageData) {
             var startX = 1;
@@ -894,6 +932,7 @@
     ArticleDemos.registerDemo("rast1-gradients", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+        ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
         function draw(t) {
             var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
@@ -901,7 +940,7 @@
             var x = 20 + Math.floor(Math.cos(t / 500) * 16);
             var y = 1;
             var grad = newRadialGradient(x + 4, y + 4, 6, newRGB(255, 0, 0), newRGB(0, 0, 255));
-            fillRectangle(imageData, grad, x, y, 8, 8, false);
+            fillRectangle(imageData, grad, x, y, 8, 8, { aa: false });
 
             rastDemoDraw(ctx, imageData);
         }
@@ -912,6 +951,7 @@
     ArticleDemos.registerDemo("rast1-circle", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+        ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
         function draw(t) {
             var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
@@ -919,7 +959,7 @@
             var x = 23 + Math.floor(Math.cos(t / 500) * 16);
             var y = 5;
             var green = newSolidFill(newRGB(0, 180, 0));
-            fillCircle(imageData, green, x, y, 4, false, false);
+            fillCircle(imageData, green, x, y, 4, { aa: false, bias: false });
 
             rastDemoDraw(ctx, imageData);
         }
@@ -930,6 +970,7 @@
     ArticleDemos.registerDemo("rast1-circle-overlay", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+        ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
         function draw(t) {
             var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
@@ -937,26 +978,26 @@
             var x = 23 + Math.floor(Math.cos(t / 500) * 16);
             var y = 5;
             var green = newSolidFill(newRGB(0, 180, 0));
-            fillCircle(imageData, green, x, y, 4, false, false);
+            fillCircle(imageData, green, x, y, 4, { aa: false, bias: false });
 
             rastDemoDraw(ctx, imageData);
 
-            // Draw coverage visualization.
-            drawCoverageBlankGrid(ctx, 1, 1, imageData.width, imageData.height, false);
-            var coverageStyle = drawCoverageSamplesFillStyle(ctx, false);
-            fillCircle(imageData, coverageStyle, x, y, 4, false, false);
-
-            // Draw the circle over it.
+            // Draw the circle stroke.
             ctx.save();
-            var ctxX = DISPLAY_XPAD + x * CELL_SIZE; 
-            var ctxY = DISPLAY_YPAD + y * CELL_SIZE; 
+            var ctxX = x * DISPLAY_CELL_SIZE; 
+            var ctxY = y * DISPLAY_CELL_SIZE; 
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.lineWidth = 4;
             ctx.beginPath();
-            ctx.arc(ctxX, ctxY, 4 * CELL_SIZE, 0, Math.PI * 2);
+            ctx.arc(ctxX, ctxY, 4 * DISPLAY_CELL_SIZE, 0, Math.PI * 2);
             ctx.closePath();
             ctx.stroke();
             ctx.restore();
+
+            // Draw coverage visualization.
+            drawCoverageBlankGrid(ctx, 0, 0, imageData.width, imageData.height, false);
+            var coverageStyle = drawCoverageSamplesFillStyle(ctx, false);
+            fillCircle(imageData, coverageStyle, x, y, 4, { aa: false, bias: false });
         }
 
         visibleRAF(canvas, draw);
@@ -966,6 +1007,7 @@
     ArticleDemos.registerDemo("rast1-circle-overlay-fixed", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+        ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
         function draw(t) {
             var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
@@ -973,24 +1015,24 @@
             var x = 23 + Math.floor(Math.cos(t / 500) * 16);
             var y = 5;
             var green = newSolidFill(newRGB(0, 180, 0));
-            fillCircle(imageData, green, x, y, 4, false, true);
+            fillCircle(imageData, green, x, y, 4, { aa: false });
 
             rastDemoDraw(ctx, imageData);
 
-            drawCoverageBlankGrid(ctx, 0, 0, imageData.width, imageData.height, true);
-            var coverageStyle = drawCoverageSamplesFillStyle(ctx, true);
-            fillCircle(imageData, coverageStyle, x, y, 4, false, false);
-
             ctx.save();
-            var ctxX = DISPLAY_XPAD + x * CELL_SIZE; 
-            var ctxY = DISPLAY_YPAD + y * CELL_SIZE; 
+            var ctxX = x * DISPLAY_CELL_SIZE; 
+            var ctxY = y * DISPLAY_CELL_SIZE; 
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.lineWidth = 4;
             ctx.beginPath();
-            ctx.arc(ctxX, ctxY, 4 * CELL_SIZE, 0, Math.PI * 2);
+            ctx.arc(ctxX, ctxY, 4 * DISPLAY_CELL_SIZE, 0, Math.PI * 2);
             ctx.closePath();
             ctx.stroke();
             ctx.restore();
+
+            drawCoverageBlankGrid(ctx, 0, 0, imageData.width, imageData.height, true);
+            var coverageStyle = drawCoverageSamplesFillStyle(ctx, true);
+            fillCircle(imageData, coverageStyle, x, y, 4, { aa: false });
         }
 
         visibleRAF(canvas, draw);
@@ -999,6 +1041,7 @@
     ArticleDemos.registerDemo("rast1-circle-simple-alpha", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+        ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
         function draw(t) {
             var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
@@ -1006,12 +1049,12 @@
             var c1x = 23 + Math.floor(Math.cos(t / 500) * 16);
             var c1y = 4;
             var red = newSolidFill(newRGBA(180, 0, 0, 0.7));
-            fillCircle(imageData, red, c1x, c1y, 4, false, true);
+            fillCircle(imageData, red, c1x, c1y, 4, { aa: false, bias: true });
 
             var c2x = 26 + Math.floor(Math.cos(t / 370) * 14);
             var c2y = 6;
             var blue = newSolidFill(newRGBA(0, 0, 180, 0.7));
-            fillCircle(imageData, blue, c2x, c2y, 3, false, true);
+            fillCircle(imageData, blue, c2x, c2y, 3, { aa: false, bias: true });
 
             rastDemoDraw(ctx, imageData);
         }
@@ -1022,6 +1065,7 @@
     ArticleDemos.registerDemo("rast1-circle-aa", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+        ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
         function draw(t) {
             var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
@@ -1030,7 +1074,7 @@
             var y = 5;
 
             var green = newSolidFill(newRGBA(0, 180, 0, 1));
-            fillCircle(imageData, green, x, y, 4, true, true);
+            fillCircle(imageData, green, x, y, 4);
             rastDemoDraw(ctx, imageData);
         }
 
@@ -1041,20 +1085,93 @@
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
 
-        var viz = new SamplerControl(canvas);
+        var samplerControl = new SamplerControl(canvas, 2, 36, BUFFER_HEIGHT);
 
         function draw(t) {
-            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
+            var imageData = newImageData(36, BUFFER_HEIGHT);
 
-            var x = 23 + Math.cos(t / 500) * 16;
-            var y = 5;
+            var circleX = 18 + Math.cos(t / 3000) * 13;
+            var circleY = 5;
+            var circleRad = 4;
 
             var green = newSolidFill(newRGBA(0, 180, 0, 1));
-            fillCircle(imageData, green, x, y, 4, true, true);
-            rastDemoDraw(ctx, imageData);
+            fillCircle(imageData, green, circleX, circleY, circleRad);
 
-            viz.setBuffer(imageData);
-            viz.draw();
+            ctx.save();
+            ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
+            rastDemoDraw(ctx, imageData);
+            samplerControl.draw();
+            ctx.restore();
+
+            // Draw the grid for the sample area.
+            // Most of these numbers are just trial and error based on what looks good.
+            // I write ugly viz drawing code. Sorry.
+
+            // Grid size.
+            var NUM_SAMPLES_PER_PIXEL = 4;
+            var PIXEL_CELL_SIZE = DISPLAY_CELL_SIZE * NUM_SAMPLES_PER_PIXEL;
+            var GRID_SIZE = PIXEL_CELL_SIZE * 2;
+
+            ctx.save();
+            ctx.translate(DISPLAY_XPAD + imageData.width * DISPLAY_CELL_SIZE + DISPLAY_XPAD, DISPLAY_YPAD + DISPLAY_CELL_SIZE);
+
+            // Draw image.
+
+            // Vizualize coverage for circle.
+            drawCoverageBlankGrid(ctx, 0, 0, 8, 8, 0.5);
+
+            // XXX: Figure out a way to port this to fill styles?
+            var sampleBox = samplerControl.getActiveBox();
+            if (sampleBox) {
+                iterBoundingBox(sampleBox.x1, sampleBox.y1, sampleBox.x2, sampleBox.y2, function(x, y) {
+                    var relativeX = x - sampleBox.x1, relativeY = y - sampleBox.y1;
+
+                    var rgb = getPixel(imageData, x, y);
+                    ctx.fillStyle = 'rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ')';
+                    ctx.fillRect(relativeX * PIXEL_CELL_SIZE, relativeY * PIXEL_CELL_SIZE, PIXEL_CELL_SIZE, PIXEL_CELL_SIZE);
+
+                    collectCoverage(x, y, function(sampleX, sampleY) {
+                        var distX = (sampleX - circleX), distY = (sampleY - circleY);
+                        var distance = Math.sqrt(distX*distX + distY*distY);
+                        var hasContents = (distance <= circleRad);
+                        var vizX = (sampleX - sampleBox.x1) * 4, vizY = (sampleY - sampleBox.y1) * 4;
+                        drawSamplePoint(ctx, vizX, vizY, hasContents);
+                    });
+                });
+            }
+
+            // Small lines.
+            ctx.strokeStyle = '#aaa';
+            ctx.beginPath();
+            for (var x = 0; x <= 8; x++) {
+                var nx = x * DISPLAY_CELL_SIZE;
+                ctx.moveTo(nx + 0.5, 0);
+                ctx.lineTo(nx + 0.5, GRID_SIZE);
+            }
+            for (var y = 0; y <= 8; y++) {
+                var ny = y * DISPLAY_CELL_SIZE;
+                ctx.moveTo(0, ny + 0.5);
+                ctx.lineTo(GRID_SIZE, ny + 0.5);
+            }
+            ctx.stroke();
+
+            // Big lines.
+            ctx.beginPath();
+            ctx.lineCap = 'round';
+            for (var x = 0; x <= 8; x += 4) {
+                var nx = x * DISPLAY_CELL_SIZE;
+                ctx.moveTo(nx + 0.5, 0);
+                ctx.lineTo(nx + 0.5, GRID_SIZE);
+            }
+            for (var y = 0; y <= 8; y += 4) {
+                var ny = y * DISPLAY_CELL_SIZE;
+                ctx.moveTo(0, ny + 0.5);
+                ctx.lineTo(GRID_SIZE, ny + 0.5);
+            }
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.restore();
         }
 
         visibleRAF(canvas, draw);

@@ -532,13 +532,15 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
     return { r: r, g: g, b: b, a: a };
 }
 
-function blendPixel(imageData, x, y, rgba) {
+function getPixel(imageData, x, y) {
     var idx = indexForPixelLocation(imageData, x, y);
-    // Construct an RGB of the pixel grid ("destination") for our lerp.
-    var data = imageData.data;
-    var dst = newRGB(data[idx + 0], data[idx + 1], data[idx + 2]);
+    return newRGB(imageData.data[idx + 0], imageData.data[idx + 1], imageData.data[idx + 2]);
+}
+
+function blendPixel(imageData, x, y, src) {
+    var dst = getPixel(imageData, x, y);
     // Lerp using the src's alpha to blend.
-    var blended = mixRGB(dst, src, rgba.a);
+    var blended = lerpRGBA(dst, src, src.a);
     fillPixel(imageData, x, y, blended);
 }
 </code></pre>
