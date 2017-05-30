@@ -684,7 +684,7 @@ function blendPixel(imageData, x, y, src) {
         </p>
         <p>
             Also, now that we can draw shapes starting at any pixel, we have to be a bit more careful computing
-            the boundign box to help accomodate this. Note the additions of <code>Math.floor</code> and
+            the bounding box to help accomodate this. Note the additions of <code>Math.floor</code> and
             <code>Math.ceil</code> above; I sneakily put those in there, but they are required for this to work
             correctly. Otherwise, the X and Y values we pass to <code>blendImage</code> would be fractional,
             and our attempts at setting the memory array would fail on fractional indexes.
