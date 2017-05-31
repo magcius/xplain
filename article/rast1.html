@@ -84,7 +84,7 @@
         <p>
             A bit of note about the interactive demos on display in here today. First, I'm presenting a
             "zoomed in" buffer so you can see the pixels easier. Specifically, each "demo pixel" here
-            is 16 "real pixels" wide, and the same tall. The grid itself is composed of 34 of these
+            is 16 "real pixels" wide, and the same tall. The grid itself is composed of 46 of these
             "demo pixels" horizontally, and 10 of them vertically, which are basically a few arbitrary
             constants I chose to make it fit nicely inside these margins, which are 800 "real pixels" wide.
         </p>
@@ -549,12 +549,6 @@ function blendPixel(imageData, x, y, src) {
             It's a bit clunky, but it works fine. If you think about it, it makes sense too: at 0% alpha, you
             want the untouched pixel grid (the destination), and at 100% alpha, you want the source fully filled
             in between, and at 50%, you want half of one, half of the other.
-        </p>
-        <p>
-            This is also a simplification. To blend an RGBA image into another RGBA image,
-            <a href="https://en.wikipedia.org/wiki/Alpha_compositing#Alpha_blending">you have to take both alpha values into account</a> (e.g. 30% of one, 50% of the other) and the resulting image also has a new
-            alpha, and the formula gets messy, and we graphics guys invented <a href="https://blogs.msdn.microsoft.com/shawnhar/2009/11/06/premultiplied-alpha/">a trick to make it faster and cleaner</a>.
-            But for the simple case I gave you, I intentionally chose it to keep it nice and simple, so it's a lerp!
         </p>
         </section>
 
