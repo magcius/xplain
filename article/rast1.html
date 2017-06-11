@@ -53,10 +53,10 @@
         <p>
             Despite it going against your intuition, fast, good looking 2D graphics are actually
             <em>harder and more computationally expensive</em> to accomplish than 3D graphics, at least
-            on traditional consumer GPUs. I hope explain <em>why</em>, but unfortunately that won't come
+            on traditional consumer GPUs. I hope to explain <em>why</em>, but unfortunately that won't come
             today. Today, we will be exploring the basics of 2D graphics by writing a software rasterizer
             of our very own, from the ground up. All of the code you see here was written for this article,
-            from nothing more than basic principles and ideas. It's open source on GitHub, and I've tried
+            from nothing more than basic principles and ideas. It's <a href="https://github.com/magcius/xplain/blob/gh-pages/src/article-demos/rast1.js">open source on GitHub</a>, and I've tried
             to comment it well as a source to learn from. I encourage you to study it.
         </p>
         </section>
@@ -120,7 +120,8 @@
         </p>
         <p>
             Buffer layouts in the real world have a lot of subtleties: stride alignment, endianness, pixel formats.
-            If you don't know what any of those things are, don't worry, I'll explain them later. In this article series,
+            If you don't know what any of those things are, don't worry, I'll explain them later, though perhaps
+            not in this specific article. In this article series,
             we'll be using the convention established by HTML5's
             <a class="code-literal" href="https://developer.mozilla.org/en-US/docs/Web/API/ImageData">ImageData</a>
             API. We see this pixel grid as a giant, one-dimensional array of bytes, with each pixel taking four
@@ -307,14 +308,13 @@ function fillRectangle(imageData, rgb, x1, y1, width, height) {
 function draw(imageData) {
     var startX = 1;
     var endX = 45;
-    var y = 1, height = 8;
+    var y = 1, width = 1, height = 8;
 
     var red = newRGB(255, 0, 0);
     var blue = newRGB(0, 0, 255);
     for (var x = startX; x < endX; x++) {
         var t = (x - startX) / (endX - startX);
         var rgb = lerpRGB(red, blue, t);
-        var width = 1;
         fillRectangle(imageData, rgb, x, y, width, height);
     }
 }
@@ -372,6 +372,23 @@ function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
             fillPixel(imageData, x, y, rgb);
         }
     }
+}
+
+function draw(imageData, secs) {
+    var startX = 1;
+    var endX = 38;
+    var smoothSecs = smoothstep(secs);
+    var x = Math.floor(lerp(startX, endX, smoothSecs));
+    var y = 1;
+    fillRectangle(imageData, x, y, 8, 8);
+}
+
+function draw(imageData) {
+    var x = 20 + Math.floor(Math.cos(t / 500) * 16);
+    var y = 1;
+    var red = newRGB(255, 0, 0), blue = newRGB(0, 0, 255);
+    var gradient = newRadialGradient(x + 4, y + 4, 6, red, blue);
+    fillRectangle(imageData, gradient, x, y, 8, 8);
 }
 </code></pre>
         <p>
@@ -564,14 +581,14 @@ function blendPixel(imageData, x, y, src) {
             and that results in aliasing artifacts.
         </p>
         <p>
-            ... OK. If that made no sense, here's a quick signal processing intro:
+            ... OK. If that was a bit too technical, here's a quick signal processing intro:
             the word "frequency" just means "how fast things change". In our case, these "changes" are basically
             "how fast" our circle is changing, in the abstract grid case, and how fast our pixels
             are allowed to change, in the concrete grid case. Our abstract circle changes from "being inside" to
             "being outside" much faster than how often the grid can change, or, at a "higher frequency".
         </p>
         <p>
-            ... Erm, that might have made no sense. Imagine a rectangle in our abstract grid that changes rapidly
+            ... Erm, that might also be too technical. Imagine a rectangle in our abstract grid that changes rapidly
             from black to white over and over again. Sampling this in our extremely course pixel grid will have a
             seemingly random pattern of sometimes white pixels and sometimes black pixels. This is known as a
             <a href="https://en.wikipedia.org/wiki/Moir%C3%A9_pattern" class="definition">moire pattern</a>,
@@ -606,6 +623,7 @@ function blendPixel(imageData, x, y, src) {
             I'll explain it afterwards.
         </p>
         <pre><code class="javascript">function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
+    // Sample the shape 16 times in a 4x4 grid.
     var nSubpixelsX = 4;
     var nSubpixelsY = 4;
 
@@ -669,7 +687,11 @@ function blendPixel(imageData, x, y, src) {
         <p>
             You might also notice that the animation still seems a bit "jerky". This is because I'm drawing
             the circle locked to the pixel grid with a <code>Math.floor</code>. But now we can represent
-            arbitrary sample points thanks to proper antialiasing. Let's just remove that restriction.
+            arbitrary sample points thanks to proper antialiasing. Taking the <code>Math.floor</code> lets
+            us draw with something like <code>drawCircle(3.5, 2.32, 6.7);</code>, to pull some numbers at
+            a hat. Our abstract grid can represent fractions of pixels just perfectly, and, with us taking
+            multiple samples, our circle should look a lot more... well... circular, with fractional
+            sample positions.
         </p>
         <div class="demo-canvas" data-demo="rast1-circle-aa-smooth"></div>
         <p>
