@@ -3,16 +3,14 @@
 <head>
     <meta charset="utf8">
     <link rel="stylesheet" href="article.css">
-    <link rel="stylesheet" href="../src/inspector/inspector.css">
-    <link rel="stylesheet" href="../src/server/server.css">
     <link rel="shortcut icon" href="favicon.png">
-    <title>Xplain</title>
+    <title>Explanations</title>
 </head>
 <body id="rast1"><div class="main">
     <header>
         <a href="index.html">
-            <h1><span>Xplain</span></h1>
-            <span class="subtitle">Explaining X11 for the rest of us</span>
+            <h1><span>Explanations</span></h1>
+            <span class="subtitle">Play, don't show</span>
         </a>
     </header>
 
@@ -20,41 +18,30 @@
         <h2></h2>
 
         <section id="prologue">
-        <h3>Widening the horizon</h3>
+        <h3>Stepping Down</h3>
         <p>
-            While this article series is named "Xplain", and while I try to focus on concepts related to the
-            X11 window system and its architecture, I often want to write about other topics, ones that are
-            related, but maybe a bit more general than just X11-specific. The Regions article was an example
-            of that. Today, I'm going to talk about basic software rasterization of 2D graphics. While not
-            an X11-specific concept, I feel it will be interesting to the same audience, and I'll include it
-            in the Xplain series. In fact, going forward, the hastily named "Xplain" will probably not be just
-            about X11. If people like my "interactive demo" format for other topics, I might just rename
-            the whole series to something like "Jasper's Cool Explaining Demo Articles" and talk about other
-            stuff (3D graphics! Sound! Physics! Compression algorithms! Game design!). I often have lots of
-            articles I want to write that I often don't, just because starting up a new "brand" for articles
-            sounds time-consuming. Let me know what you think.
+            Up until now, we've been exploring the X11 Window System from a somewhat high level.
+            We've talked about Windows and Drawables and Pixmaps but we're always talking about them
+            in terms of the protocol. Like, you can "draw with on a Drawable on protocol extension RENDER".
+            Or you can "configure a window with the protocol request ConfigureWindow". But I haven't really
+            told you about how that's done. I think it's about time we dropped from the abstract to the
+            concrete. Today's article won't be about X11, or even the data structures that are inside of it.
+            Today, we're going to start to unravel 2D Graphics. You can explore the things I'm going to talk
+            about on any operating system, in any programming language, or even on paper.
         </p>
-
         <p>
-            <em><strong>*cough*</strong></em>
-        </p>
-
-        <p>
-            ... Excuse me. Now let's start the article, proper.
-        </p>
-
-        <p>
-            Something I have been interested in for quite some time, and something I feel is not very
-            widely understood, are the basics of 2D graphics and 2D graphics rasterization. I often see
-            comments like "oh, if only SVG was implemented with WebGL, then it would be fast", and realize
-            that people do not quite understand the challenges and complications of 2D graphics rendering.
-        </p>
-
-        <p>
-            Despite it going against your intuition, fast, good looking 2D graphics are actually
+            I often see comments like "oh, if only SVG was implemented with WebGL, then it would be fast",
+            and realize that people do not quite understand the challenges and complications of 2D graphics
+            rendering. Despite it going against your intuition, fast, good looking 2D graphics are actually
             <em>harder and more computationally expensive</em> to accomplish than 3D graphics, at least
-            on traditional consumer GPUs. I hope to explain <em>why</em>, but unfortunately that won't come
-            today. Today, we will be exploring the basics of 2D graphics by writing a software rasterizer
+            on traditional consumer GPUs. I hope to eventually explain <em>why</em>, but unfortunately that
+            won't come today.
+        </p>
+        <p>
+            Even though fast, good-looking 2D graphics rendering being extremely difficult, the basics and
+            principles behind it aren't: they're simple enough that you can write a toy renderer in the span
+            it takes you to read this article.
+            Today, we will be exploring the basics of 2D graphics by writing a software rasterizer
             of our very own, from the ground up. All of the code you see here was written for this article,
             from nothing more than basic principles and ideas. It's <a href="https://github.com/magcius/xplain/blob/gh-pages/src/article-demos/rast1.js">open source on GitHub</a>, and I've tried
             to comment it well as a source to learn from. I encourage you to study it.

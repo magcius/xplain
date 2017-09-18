@@ -2,53 +2,17 @@
 <html>
 <head>
     <meta charset="utf8">
-    <script>
-        // Hi there! Since you're looking at this, I'm sure you'd like to know a
-        // bit more about the demos in this article.
-        //
-        // For starters, as I mention at the end of the article, the code that
-        // powers all the demos in this article is at GitHub:
-        //
-        // https://github.com/magcius/xplain
-        //
-        // Most of the code that I've written is in the X server itself,
-        // which can be found at src/server/server.js
-        //
-        // The extensive "Inspector" can be found in src/inspector/inspector.js
-        //
-        // The rest of the demos are clients that connect to that server, and
-        // they can be found in src/article-demos/.
-        //
-        // The main demo "runner" framework is at src/article-demos/demos.js,
-        // and the code for all the demos in the article are littered around
-        // in that directory.
-        //
-        // I've tried to document it quite well, but if you have any more questions
-        // about the code, about anything in this article, or just want to flame
-        // me about Wayland or Mir, feel free to contact me through email.
-        //
-        // I can be reached at <jstpierre@mecheye.net>
-        //
-        // --
-        //   Jasper
-        //
-        // P.S. I tried to find one of those Medium-style "margin comment"
-        // systems so people could comment on this article in one place,
-        // but couldn't find any hosted or open-source solutions I could
-        // deploy! Disqus, other startups, please write this!
-    </script>
-
     <link rel="stylesheet" href="article.css">
     <link rel="stylesheet" href="../src/inspector/inspector.css">
     <link rel="stylesheet" href="../src/server/server.css">
     <link rel="shortcut icon" href="favicon.png">
-    <title>Xplain</title>
+    <title>Explanations</title>
 </head>
 <body id="x-basics"><div class="main">
     <header>
         <a href="index.html">
-            <h1><span>Xplain</span></h1>
-            <span class="subtitle">Explaining X11 for the rest of us</span>
+            <h1><span>Explanations</span></h1>
+            <span class="subtitle">Play, don't show</span>
         </a>
     </header>
 
@@ -63,6 +27,89 @@
         </p>
         </noscript>
 
+        <section id="self-test">
+        <h3>Before we begin...</h3>
+        <p>
+            Since this article contains a lot of interactive demos relying on fairly modern browser technology, let's
+            make sure that everything is OK before continuing.
+        </p>
+        <div class="demo-server" data-demo="test"></div>
+        <p>
+            If you can see the stipple pattern above, that means that your browser is modern enough to see the
+            interactive demos.
+        </p>
+        <p>
+            You might have noticed that when you ran your mouse over the stipple, your cursor changed. That's because
+            this isn't just any old stipple image, that stipple is actually the background of a full X server session
+            running in your browser using HTML5 canvas. All of the interactive demos will use this framework to explain
+            what's going on under the hood.
+        </p>
+        </section>
+
+        <section id="basic-architecture">
+        <h3>Basic Architecture</h3>
+        <p>
+            Although it may sound a bit stilted, notice how I keep saying "the X Window System" instead of the more
+            traditional shorthands "X", "X11", or "Xorg"? I want to be very careful to separate the ideas and design of
+            the system from its component parts.
+        </p>
+        <p>
+            The X Window System is a networked display system. A server component, the
+            <span class="definition">X server</span>, is responsible for coordinating between all of the clients
+            connected, taking input from the mouse and keyboard, and pushing pixels on the output. The most popular X
+            server implementation is the <a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a>,
+            developed by the X.Org Foundation and community. There are other X server implementations: you might
+            remember that Xorg was forked from <a href="http://www.xfree86.org/">XFree86</a> a decade ago, that Sun
+            Microsystems has had several X server implementations, in both
+            <a href="http://en.wikipedia.org/wiki/Xsun">Xsun</a> and
+            <a href="http://en.wikipedia.org/wiki/Xnews_%28X11_server%29">XNeWS</a>. Today, Xorg is the dominant
+            X server implementation, getting most of the development. But back in the day, multiple competing
+            implementations existed.
+        </p>
+        <p>
+            X servers and X clients all talk a standardized network protocol to each other, known as
+            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html">X11</a>. This protocol is
+            well-specified, from the wire format to the semantics of every request. The protocol documentation linked
+            above is invaluable documentation for any hacker who wants to learn more about this stuff.
+        </p>
+        <p>
+            Applications and toolkits don't write the wire format onto the socket directly, however. They often use
+            client libraries that implement the protocols, like the traditional
+            <a href="http://www.x.org/releases/current/doc/libX11/libX11/libX11.html">Xlib</a> library, or the
+            somewhat newer <a href="http://xcb.freedesktop.org/">xcb</a>.
+        </p>
+        <p>
+            I'm going to try and be precise in my nomenclature in this article.
+        </p>
+        <p>
+            When I talk about features or design decisions of the overall system, I will try to call it
+            <span class="definition">the X Window System</span>, even if it sounds a bit verbose. e.g.
+            <q><span class="definition">The X Window System</span> provides us Pixmaps, which are images in the
+            server's memory.</q>
+        </p>
+        <p>
+            When I talk about features or details of the network protocol, I will talk about
+            <span class="definition">the X11 protocol</span>. e.g. <q><span class="definition">The X11 protocol</span>
+            provides for a generic extension mechanism, which allows for a forward-compatible way to implement new
+            features without having to redesign older parts of X11</q>.
+        </p>
+        <p>
+            When I talk about the behavior of a client or a server, I'll say <span class="definition">X client</span>
+            or <span class="definition">X server</span> e.g. <q>Using the MIT-SHM extension, <span class="definition">X
+            clients</span> can pass memory buffers to the <span class="definition">X server</span> using POSIX shared
+            memory, which prevents networking and large copies</q>.
+        </p>
+        <p>
+            When I talk about features or the architecture in the Xorg X server implementation, I'll mention it
+            explicitly as <span class="definition">Xorg</span> or <span class="definition">the Xorg X server</span>,
+            e.g. <q>In order to make drawing calls accelerated, <span class="definition">Xorg</span> video drivers can
+            provide hardware-accelerated versions of certain drawing primitives through EXA.</q>
+        </p>
+        <p>
+            If I ever say "such-and-such is a feature of X", it's a bug.
+        </p>
+        </section>
+        
         <section id="requests-and-events">
         <h3>Requests and events</h3>
         <p>

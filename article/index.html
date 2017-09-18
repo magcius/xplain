@@ -2,53 +2,15 @@
 <html>
 <head>
     <meta charset="utf8">
-    <script>
-        // Hi there! Since you're looking at this, I'm sure you'd like to know a
-        // bit more about the demos in this article.
-        //
-        // For starters, as I mention at the end of the article, the code that
-        // powers all the demos in this article is at GitHub:
-        //
-        // https://github.com/magcius/xplain
-        //
-        // Most of the code that I've written is in the X server itself,
-        // which can be found at src/server/server.js
-        //
-        // The extensive "Inspector" can be found in src/inspector/inspector.js
-        //
-        // The rest of the demos are clients that connect to that server, and
-        // they can be found in src/article-demos/.
-        //
-        // The main demo "runner" framework is at src/article-demos/demos.js,
-        // and the code for all the demos in the article are littered around
-        // in that directory.
-        //
-        // I've tried to document it quite well, but if you have any more questions
-        // about the code, about anything in this article, or just want to flame
-        // me about Wayland or Mir, feel free to contact me through email.
-        //
-        // I can be reached at <jstpierre@mecheye.net>
-        //
-        // --
-        //   Jasper
-        //
-        // P.S. I tried to find one of those Medium-style "margin comment"
-        // systems so people could comment on this article in one place,
-        // but couldn't find any hosted or open-source solutions I could
-        // deploy! Disqus, other startups, please write this!
-    </script>
-
     <link rel="stylesheet" href="article.css">
-    <link rel="stylesheet" href="../src/inspector/inspector.css">
-    <link rel="stylesheet" href="../src/server/server.css">
     <link rel="shortcut icon" href="favicon.png">
-    <title>Xplain</title>
+    <title>Explanations</title>
 </head>
 <body id="index"><div class="main">
     <header>
         <a href="index.html">
-            <h1><span>Xplain</span></h1>
-            <span class="subtitle">Explaining X11 for the rest of us</span>
+            <h1><span>Explanations</span></h1>
+            <span class="subtitle">Play, don't show.</span>
         </a>
     </header>
 
@@ -57,143 +19,37 @@
 
         <noscript>
         <p class="warning">
-            This article relies a lot of interactive demos that use JavaScript to show how the X Window System works.
-            The article unfortunately won't work properly without these interactive demos, so if you feel like you're
-            missing out, try enabling JavaScript?
+            This article relies a lot of interactive demos that use JavaScript. I understand you're
+            disabling JavaScript because you've been burned by heavy scripts and tracking on other sites,
+            but the article really doesn't work without the ability to play with it.
+            I write every line of code in these demos from scratch, minus the snippet of Google Analytics
+            that lets me know when people read these so I can join in the conversation. Feel free to block
+            Google Analytics.
         </p>
         </noscript>
 
         <section id="introduction">
         <h3>Introduction</h3>
         <p>
-            Last year, I wrote <a href="http://blog.mecheye.net/2012/06/the-linux-graphics-stack/">an article</a>
-            describing the free and open-source graphics stack, explaining all of the interconnected pieces: X11,
-            graphics drivers, DRM, and DRI, and their roles in getting pixels placed on the screen. In the year since,
-            I've answered a lot of really good questions from the Linux community about my post, about X11, and about
-            Wayland. I've learned a lot.
-            <a href="http://en.wikipedia.org/wiki/Mir_%28software%29">Several</a>
-            <a href="https://dvdhrm.wordpress.com/2013/09/01/splitting-drm-and-kms-device-nodes/">new</a>
-            <a href="http://lists.freedesktop.org/archives/dri-devel/2013-October/046618.html">technologies</a>
-            have appeared, and I have
-            <a href="http://lists.freedesktop.org/archives/wayland-devel/2013-November/011879.html">started to take a
-            more active role in this myself</a>, as part of our efforts to
-            <a href="https://wiki.gnome.org/Initiatives/Wayland">port GNOME to Wayland</a>.
+            The goal of Explanations is to try to allow people to play with fun parts of computers. Graphics,
+            compression, audio. The tagline is my biggest inspiration: "Play, don't show", riffing off the
+            typical "Show, don't tell" rule of writers and authors everywhere. Why bother giving a diagram when
+            I give you an inspector and let you poke at things yourself!
         </p>
         <p>
-            However, I still field plenty of questions from lots of people about this, and a lot of the time, it's
-            extremely simple stuff: "What is X?" "How does it interact with my graphics card and mouse/keyboard?"
-            "What do apps use X for?" "What is Wayland, and how does it fit into the picture?" "What problems did X
-            have that made us want to write new display server technologies?"
+            It takes me a long time to write an Explanation, so these might not come out as quick as you like,
+            but I do plan on writing these as long as I'm able to. I also don't claim to be the world's expert
+            on most everything I'm writing about. I might be wrong! Please let me know by
+            <a href="mailto:jstpierre@mecheye.net">email</a> or through
+            <a href="https://github.com/magcius/xplain/issues/new">a GitHub issue</a>.
         </p>
         <p>
-            These sort of questions were what inspired me to write "The Linux Graphics Stack" in the first place, but
-            there's really never been a comprehensive, historical writeup of our display server technologies in
-            general. So, I chose to spend my free time at Red Hat writing it.
-        </p>
-        <p>
-            Now, compared to some of my colleagues, I'm relatively new to the Linux development scene, with only five
-            or so years of experience. I've also arrived late, way after we've added lots of hacks to keep the X Window
-            System fresh. Most of my knowledge comes from talking to my more experienced coworkers in person, digging
-            through mailing list and newsgroup archives, and IRC discussions with the great sports in
-            <span class="code-literal">#xorg-devel</span>. So, there's a good possibility that I'll get something wrong,
-            guy-who-worked-at-DEC-in-the-80s-waiting-to-correct-me! I'm genuinely sorry if I misrepresent something.
-            If you want to discuss this at all, shoot me an email at
-            <a href="mailto:jstpierre@mecheye.net">jstpierre@mecheye.net</a>, and let's try to work something out!
-        </p>
-        <p>
-            I also really don't want to inject my bias into this too much. While I do personally believe Wayland is
-            going to become The Linux Display Server Of The Future®, and that is a good thing, I'm not trying to rip X
-            apart! My intention here is twofold: I want to explain a lot of the more undocumented or harder-to-grasp
-            features built into X11 (the permutations of input grabs, for instance), and I also want to provide an
-            accurate, historical context on why a certain feature was added
-            (<a href="http://www.x.org/releases/current/doc/compositeproto/compositeproto.txt">COMPOSITE</a>,
-            for instance), and all the clever hacks we've invented along the way
-            (<span class="code-literal">WM_TAKE_FOCUS</span>, for instance). I really want this to be a resource for
-            somebody looking to learn. If I've inspired anybody out there to write any code, I've accomplished my goal.
-        </p>
-        </section>
-
-        <section id="self-test">
-        <h3>But before we begin...</h3>
-        <p>
-            Since this article contains a lot of interactive demos relying on fairly modern browser technology, let's
-            make sure that everything is OK before continuing. I've been testing this on modern versions of Firefox
-            Nightly and Chrome Canary.
-        </p>
-        <div class="demo-server" data-demo="test"></div>
-        <p>
-            If you can see the stipple pattern above, that means that your browser is modern enough to see the
-            interactive demos.
-        </p>
-        <p>
-            You might have noticed that when you ran your mouse over the stipple, your cursor changed. That's because
-            this isn't just any old stipple image, that stipple is actually the background of a full X server session
-            running in your browser using HTML5 canvas. All of the interactive demos will use this framework to explain
-            what's going on under the hood.
-        </p>
-        </section>
-
-        <section id="basic-architecture">
-        <h3>Basic Architecture</h3>
-        <p>
-            Although it may sound a bit stilted, notice how I keep saying "the X Window System" instead of the more
-            traditional shorthands "X", "X11", or "Xorg"? I want to be very careful to separate the ideas and design of
-            the system from its component parts.
-        </p>
-        <p>
-            The X Window System is a networked display system. A server component, the
-            <span class="definition">X server</span>, is responsible for coordinating between all of the clients
-            connected, taking input from the mouse and keyboard, and pushing pixels on the output. The most popular X
-            server implementation is the <a href="http://cgit.freedesktop.org/xorg/xserver">Xorg X server</a>,
-            developed by the X.Org Foundation and community. There are other X server implementations: you might
-            remember that Xorg was forked from <a href="http://www.xfree86.org/">XFree86</a> a decade ago, that Sun
-            Microsystems has had several X server implementations, in both
-            <a href="http://en.wikipedia.org/wiki/Xsun">Xsun</a> and
-            <a href="http://en.wikipedia.org/wiki/Xnews_%28X11_server%29">XNeWS</a>. Today, Xorg is the dominant
-            X server implementation, getting most of the development. But back in the day, multiple competing
-            implementations existed.
-        </p>
-        <p>
-            X servers and X clients all talk a standardized network protocol to each other, known as
-            <a href="http://www.x.org/releases/current/doc/xproto/x11protocol.html">X11</a>. This protocol is
-            well-specified, from the wire format to the semantics of every request. The protocol documentation linked
-            above is invaluable documentation for any hacker who wants to learn more about this stuff.
-        </p>
-        <p>
-            Applications and toolkits don't write the wire format onto the socket directly, however. They often use
-            client libraries that implement the protocols, like the traditional
-            <a href="http://www.x.org/releases/current/doc/libX11/libX11/libX11.html">Xlib</a> library, or the
-            somewhat newer <a href="http://xcb.freedesktop.org/">xcb</a>.
-        </p>
-        <p>
-            I'm going to try and be precise in my nomenclature in this article.
-        </p>
-        <p>
-            When I talk about features or design decisions of the overall system, I will try to call it
-            <span class="definition">the X Window System</span>, even if it sounds a bit verbose. e.g.
-            <q><span class="definition">The X Window System</span> provides us Pixmaps, which are images in the
-            server's memory.</q>
-        </p>
-        <p>
-            When I talk about features or details of the network protocol, I will talk about
-            <span class="definition">the X11 protocol</span>. e.g. <q><span class="definition">The X11 protocol</span>
-            provides for a generic extension mechanism, which allows for a forward-compatible way to implement new
-            features without having to redesign older parts of X11</q>.
-        </p>
-        <p>
-            When I talk about the behavior of a client or a server, I'll say <span class="definition">X client</span>
-            or <span class="definition">X server</span> e.g. <q>Using the MIT-SHM extension, <span class="definition">X
-            clients</span> can pass memory buffers to the <span class="definition">X server</span> using POSIX shared
-            memory, which prevents networking and large copies</q>.
-        </p>
-        <p>
-            When I talk about features or the architecture in the Xorg X server implementation, I'll mention it
-            explicitly as <span class="definition">Xorg</span> or <span class="definition">the Xorg X server</span>,
-            e.g. <q>In order to make drawing calls accelerated, <span class="definition">Xorg</span> video drivers can
-            provide hardware-accelerated versions of certain drawing primitives through EXA.</q>
-        </p>
-        <p>
-            If I ever say "such-and-such is a feature of X", it's a bug.
+            Previously, this series was known as "Xplain" and was more focused on the X11 window system and
+            protocol, but I've been slowly moving towards anything that interests me, since I really like the
+            format and style I've developed. The code for every single one of these demos is available in theme
+            <a href="https://github.com/magcius/xplain">GitHub repo</a>, and I do try to comment heavily and
+            try to give more depth. Play with the code! Use it for one of your own projects! It's all MIT/X11
+            licensed. I also appreciate questions and feedback.
         </p>
         </section>
 
@@ -207,9 +63,7 @@
         <h3>Credit where credit's due</h3>
         <p>
             The source code to this article and all demos is freely available under the MIT/X11 license on
-            <a href="http://github.com/magcius/xplain">GitHub</a> for inspection. I've tried to make the source code
-            well-commented, and be a useful resource for learning from as well, so for a third dimension of learning,
-            you can inspect my source code for the server and all the demos and figure out how things work that way.
+            <a href="http://github.com/magcius/xplain">GitHub</a> for inspection.
         </p>
         <p>
             Some of the more tricky code in there has been ported from the
@@ -241,10 +95,8 @@
             on this. Sorry for driving you guys crazy with this project.
         </p>
         <p>
-            If you have any questions or comments, or just want to thank me, feel free to email me at
-            <a href="mailto:jstpierre@mecheye.net">jstpierre@mecheye.net</a>, contact me on IRC on Freenode
-            as <code>Jasper</code>, or <a href="https://github.com/magcius/xplain/issues/new">open a GitHub issue here for this repo</a>.
-            I read every piece of mail I get, and I try to reply to everything as well.
+            Thanks to my friends and colleagues who have sent me feedback on work-in-progress articles,
+            and to anybody who has sent me a pull request. You guys rock.
         </p>
         </section>
 
