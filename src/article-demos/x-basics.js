@@ -4,6 +4,16 @@
 (function(exports) {
     "use strict";
 
+    // The "test" demo used in the first paragraph to let the user test
+    // that everything is working fine on their browser...
+    ArticleDemos.registerDemo("test", "height: 2em", function(res) {
+        var server = res.server;
+        var connection = server.connect();
+        var display = connection.display;
+
+        DemoCommon.setBackground(display, DemoCommon.makeStipple(display));
+    });
+
     ArticleDemos.registerDemo("two-kittens", "height: 200px", function(res) {
         DemoCommon.addInspector(res);
 
