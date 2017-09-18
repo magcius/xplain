@@ -48,8 +48,8 @@
     });
 
     // A simple image with a shape region.
-    var ShapedImage = new Class({
-        initialize: function(server, imgSrc) {
+    class ShapedImage {
+        constructor(server, imgSrc) {
             var connection = server.connect();
             this._display = connection.display;
 
@@ -62,9 +62,9 @@
                 this._display.changeAttributes({ windowId: this.windowId, backgroundPixmap: pixmapId });
                 this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this));
-        },
+        }
 
-        _setShape: function(pixmapId) {
+        _setShape(pixmapId) {
             var image = this._display.getPixmapImage({ pixmapId: pixmapId });
             var ctx = image.getContext('2d');
             var imgData = ctx.getImageData(0, 0, image.width, image.height);
@@ -74,8 +74,8 @@
                                                  shapeType: "Bounding",
                                                  region: region });
             region.finalize();
-        },
-    });
+        }
+    }
 
     ArticleDemos.registerDemo('shape', "height: 250px", function(res) {
         DemoCommon.addInspector(res);

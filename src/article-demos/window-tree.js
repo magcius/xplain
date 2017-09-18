@@ -4,8 +4,8 @@
 (function(exports) {
     "use strict";
 
-    var Crosshairs = new Class({
-        initialize: function(server) {
+    class Crosshairs {
+        constructor(server) {
             var connection = server.connect();
             this._display = connection.display;
 
@@ -21,9 +21,9 @@
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
 
             this._crosshairsVisible = false;
-        },
+        }
 
-        _draw: function() {
+        _draw() {
             this._display.drawTo(this.windowId, function(ctx) {
                 this._exposeHandler.clip(ctx);
 
@@ -76,27 +76,27 @@
                 ctx.strokeStyle = 'black';
                 ctx.strokeRect(0, 0, geom.width, geom.height);
             }.bind(this));
-        },
+        }
 
-        _redraw: function() {
+        _redraw() {
             this._display.invalidateWindow({ windowId: this.windowId });
-        },
+        }
 
-        _handleMotion: function(event) {
+        _handleMotion(event) {
             this._mx = event.winX;
             this._my = event.winY;
             this._redraw();
-        },
+        }
 
-        _handleCrossing: function(event) {
+        _handleCrossing(event) {
             if (event.detail == "Virtual" || event.detail == "NonlinearVirtual")
                 return;
 
             this._crosshairsVisible = (event.type == "Enter");
             this._redraw();
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             switch (event.type) {
                 case "Expose":
                     return this._exposeHandler.handleExpose(event);
@@ -108,8 +108,8 @@
                 case "ConfigureNotify":
                     return this._redraw();
             }
-        },
-    });
+        }
+    }
 
     ArticleDemos.registerDemo("input", "height: 200px", function(res) {
         var server = res.server;

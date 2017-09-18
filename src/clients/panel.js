@@ -3,8 +3,8 @@
 
     var PANEL_BACKGROUND_COLOR = "#eeeeec";
 
-    var Panel = new Class({
-        initialize: function(server) {
+    class Panel {
+        constructor(server) {
             var connection = server.connect();
             this._display = connection.display;
             var port = connection.clientPort;
@@ -21,16 +21,16 @@
             this._display.selectInput({ windowId: this.windowId, events: ["Expose"] });
             this._syncSize();
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
-        },
-        _syncSize: function() {
+        }
+        _syncSize() {
             var rootWindowGeometry = this._display.getGeometry({ drawableId: this._display.rootWindowId });
             var panelHeight = 30;
             this._display.configureWindow({ windowId: this.windowId,
                                             y: rootWindowGeometry.height - panelHeight,
                                             width: rootWindowGeometry.width,
                                             height: panelHeight });
-        },
-        _relayout: function() {
+        }
+        _relayout() {
             var padding = 4;
             var x;
             x = padding;
@@ -42,8 +42,8 @@
                                                 x: x, y: 0, height: buttonHeight });
                 x += geom.width + padding;
             }.bind(this));
-        },
-        _configureNotify: function(event) {
+        }
+        _configureNotify(event) {
             // Try and resize if the root window changes size
             if (event.windowId === this._server.rootWindowId)
                 this._syncSize();
@@ -55,16 +55,16 @@
             // And if a button changes width, relayout as well.
             else if (event.windowId !== this.windowId && event.width !== undefined)
                 this._relayout();
-        },
-        _handleEvent: function(event) {
+        }
+        _handleEvent(event) {
             switch(event.type) {
             case "Expose":
                 return this._exposeHandler.handleExpose(event);
             case "ConfigureNotify":
                 return this._configureNotify(event);
             }
-        },
-        _draw: function() {
+        }
+        _draw() {
             var geom = this._display.getGeometry({ drawableId: this.windowId });
             var width = geom.width, height = geom.height;
 
@@ -81,8 +81,8 @@
                 ctx.lineTo(width, 0.5);
                 ctx.stroke();
             }.bind(this));
-        },
-    });
+        }
+    }
 
     exports.Panel = Panel;
 

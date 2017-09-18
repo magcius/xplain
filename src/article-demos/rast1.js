@@ -854,8 +854,8 @@
         visibleRAF(canvas, draw);
     });
 
-    var SamplerControl = new Class({
-        initialize: function(canvas, boxSize, width, height) {
+    class SamplerControl {
+        constructor(canvas, boxSize, width, height) {
             this._boxSize = boxSize;
             this._width = width;
             this._height = height;
@@ -867,13 +867,13 @@
 
             this._selectedBox = null;
             this._hoverBox = null;
-        },
+        }
 
-        getActiveBox: function() {
+        getActiveBox() {
             return this._selectedBox !== null ? this._selectedBox : this._hoverBox;
-        },
+        }
 
-        _onCanvasMouseMove: function(e) {
+        _onCanvasMouseMove(e) {
             var pos = { x: e.offsetX, y: e.offsetY };
             pos.x -= DISPLAY_XPAD;
             pos.y -= DISPLAY_YPAD;
@@ -884,18 +884,18 @@
             var y1 = Math.round(Math.min(Math.max(pos.y - boxSize / 2, 0), this._height - boxSize));
 
             this._hoverBox = { x1: x1, y1: y1, x2: x1 + boxSize, y2: y1 + boxSize };
-        },
+        }
 
-        _onCanvasMouseOut: function(e) {
+        _onCanvasMouseOut(e) {
             this._hoverBox = null;
-        },
+        }
 
-        _onCanvasMouseDown: function(e) {
+        _onCanvasMouseDown(e) {
             e.preventDefault();
             e.stopPropagation();
-        },
+        }
 
-        _onCanvasClick: function(e) {
+        _onCanvasClick(e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -904,9 +904,9 @@
             } else {
                 this._selectedBox = this._hoverBox;
             }
-        },
+        }
 
-        draw: function() {
+        draw() {
             var ctx = this._canvas.getContext('2d');
             ctx.save();
 
@@ -934,8 +934,8 @@
             }
 
             ctx.restore();
-        },
-    });
+        }
+    }
 
     ArticleDemos.registerDemo("rast1-circle-aa-smooth", STYLE, function(res) {
         var canvas = res.canvas;

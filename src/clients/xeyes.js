@@ -17,8 +17,8 @@
         ctx.closePath();
     }
 
-    var Xeyes = new Class({
-        initialize: function(server) {
+    class Xeyes {
+        constructor(server) {
             var connection = server.connect();
             this._display = connection.display;
             var port = connection.clientPort;
@@ -33,8 +33,8 @@
             this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ConfigureNotify", "MapNotify", "UnmapNotify"] });
             this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "xeyes.js" });
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
-        },
-        _start: function() {
+        }
+        _start() {
             this._intervalId = setInterval(function() {
                 var pointer = this._display.queryPointer();
                 if (pointer.rootX == this._pointerRootX &&
@@ -45,18 +45,18 @@
                 this._pointerRootY = pointer.rootY;
                 this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this), 50);
-        },
-        _stop: function() {
+        }
+        _stop() {
             clearInterval(this._intervalId);
             this._intervalId = 0;
-        },
-        _configureNotify: function(event) {
+        }
+        _configureNotify(event) {
             // Invalidate the entire window when we get resized, as we need
             // to repaint all contents to fit the new size.
             if (event.width !== undefined || event.height !== undefined)
                 this._display.invalidateWindow({ windowId: this.windowId });
-        },
-        _handleEvent: function(event) {
+        }
+        _handleEvent(event) {
             switch(event.type) {
             case "Expose":
                 return this._exposeHandler.handleExpose(event);
@@ -67,9 +67,9 @@
             case "UnmapNotify":
                 return this._stop();
             }
-        },
+        }
 
-        _draw: function() {
+        _draw() {
             var geom = this._display.getGeometry({ drawableId: this.windowId });
             var width = geom.width, height = geom.height;
 
@@ -157,7 +157,7 @@
                 ctx.restore();
                 ctx.fill();
             }.bind(this));
-        },
+        }
     });
 
     exports.Xeyes = Xeyes;

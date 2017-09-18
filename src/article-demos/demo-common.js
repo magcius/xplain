@@ -38,8 +38,8 @@
 
     // Allows the user to drag and drop a window with the standard
     // "press left-click", "move mouse", "release left-click" motions.
-    DemoCommon.WindowDragger = new Class({
-        initialize: function(server, windowId, bounded) {
+    DemoCommon.WindowDragger = class WindowDragger {
+        constructor(server, windowId, bounded) {
             var connection = server.connect();
             this._display = connection.display;
             var port = connection.clientPort;
@@ -58,10 +58,10 @@
             this._winMouseY = -1;
 
             this._bounded = bounded;
-        },
+        }
 
         // Make it move.
-        _sync: function() {
+        _sync() {
             var query = this._display.queryTree({ windowId: this._windowId });
 
             // If the parent window is a frame, then configuring the window should be in root coordinates,
@@ -105,15 +105,15 @@
             }
 
             this._display.configureWindow({ windowId: this._windowId, x: newX, y: newY });
-        },
+        }
 
-        _updateWindowFromEvent: function(event) {
+        _updateWindowFromEvent(event) {
             this._rootMouseX = event.rootX;
             this._rootMouseY = event.rootY;
             this._sync();
-        },
+        }
 
-        _handleButtonPress: function(event) {
+        _handleButtonPress(event) {
             // Only allow dragging with left-click
             if (event.button != 1)
                 return;
@@ -127,21 +127,21 @@
                                         events: ["ButtonRelease", "Motion"],
                                         pointerMode: "Async",
                                         cursor: "grabbing" });
-        },
+        }
 
-        _handleButtonRelease: function(event) {
+        _handleButtonRelease(event) {
             if (event.button != 1)
                 return;
 
             this._updateWindowFromEvent(event);
             this._display.ungrabPointer({ windowId: this._windowId });
-        },
+        }
 
-        _handleMotion: function(event) {
+        _handleMotion(event) {
             this._updateWindowFromEvent(event);
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             switch (event.type) {
                 case 'ButtonPress':
                     return this._handleButtonPress(event);
@@ -150,39 +150,39 @@
                 case 'Motion':
                     return this._handleMotion(event);
             }
-        },
-    });
+        }
+    };
 
     // A simple helper to manage repeated timed events for WindowShaker below.
     // Perhaps we should consider using requestAnimationFrame for this?
-    var Timer = new Class({
-        initialize: function(delay, func) {
+    class Timer {
+        constructor(delay, func) {
             this._delay = delay;
             this._func = func;
             this._timeoutId = 0;
-        },
+        }
 
-        _schedule: function() {
+        _schedule() {
             this._timeoutId = setTimeout(function() {
                 this._func();
                 this._schedule();
             }.bind(this), this._delay);
-        },
+        }
 
-        stop: function() {
+        stop() {
             if (this._timeoutId) {
                 clearTimeout(this._timeoutId);
                 this._timeoutId = 0;
             }
-        },
+        }
 
-        start: function() {
+        start() {
             if (this._timeoutId)
                 this.stop();
 
             this._schedule();
-        },
-    });
+        }
+    }
 
     // The number of times to update, per second.
     var TICKS_PER_SEC = 30;
@@ -198,8 +198,8 @@
     var SWAY_AMOUNT = 75;
 
     // Shakes a window
-    DemoCommon.WindowShaker = new Class({
-        initialize: function(server, windowId) {
+    DemoCommon.WindowShaker = class WindowShaker {
+        constructor(server, windowId) {
             var connection = server.connect();
             this._display = connection.display;
 
@@ -218,19 +218,19 @@
             var attrs = this._display.getAttributes({ windowId: this._windowId });
             if (attrs.mapState === 'Viewable')
                 this._start();
-        },
+        }
 
-        _getXSway: function() {
+        _getXSway() {
             var theta = TAU * (this._tickCount / TICKS_PER_SEC / PERIOD);
             return Math.round(SWAY_AMOUNT * Math.sin(theta));
-        },
+        }
 
-        _configureNotify: function(event) {
+        _configureNotify(event) {
             if (event.synthetic && event.x !== undefined)
                 this._startX = event.x - this._getXSway();
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             switch (event.type) {
             case "ConfigureNotify":
                 return this._configureNotify(event);
@@ -239,33 +239,33 @@
             case "UnmapNotify":
                 return this._unmapNotify(event);
             }
-        },
+        }
 
-        _start: function() {
+        _start() {
             var geometry = this._display.translateCoordinates({ srcWindowId: this._windowId,
                                                                 destWindowId: this._display.rootWindowId,
                                                                 x: 0, y: 0 });
             this._startX = geometry.x;
             this._timer.start();
-        },
-        _mapNotify: function() {
+        }
+        _mapNotify() {
             this._start();
-        },
-        _unmapNotify: function() {
+        }
+        _unmapNotify() {
             this._timer.stop();
-        },
+        }
 
         // Make it move.
-        _sync: function() {
+        _sync() {
             var x = this._startX + this._getXSway();
             this._display.configureWindow({ windowId: this._windowId, x: x });
-        },
+        }
 
-        _tick: function() {
+        _tick() {
             this._tickCount++;
             this._sync();
-        },
-    });
+        }
+    };
 
     // Constructs a region containing the area where there are visible
     // pixels, where "visible pixels" have any alpha value other than 0.
@@ -303,8 +303,8 @@
     };
 
     // A simple window that opens/closes the inspector when clicking on it.
-    var InspectorButton = new Class({
-        initialize: function(server, inspector) {
+    class InspectorButton {
+        constructor(server, inspector) {
             var connection = server.connect();
             this._display = connection.display;
             var port = connection.clientPort;
@@ -328,22 +328,22 @@
             this._display.mapWindow({ windowId: this._windowId });
 
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
-        },
+        }
 
-        _syncShowing: function() {
+        _syncShowing() {
             var color = this._showing ? '#000000' : '#ffffff';
             this._display.changeAttributes({ windowId: this._windowId, backgroundColor: color });
             this._display.invalidateWindow({ windowId: this._windowId });
-        },
-        setShowing: function(showing) {
+        }
+        setShowing(showing) {
             if (this._showing == showing)
                 return;
 
             this._showing = showing;
             this._syncShowing();
-        },
+        }
 
-        _placeButton: function() {
+        _placeButton() {
             var rootGeom = this._display.getGeometry({ drawableId: this._display.rootWindowId });
             var selfGeom = this._display.getGeometry({ drawableId: this._windowId });
 
@@ -352,20 +352,20 @@
             var x = rootGeom.width - selfGeom.width - padding;
             var y = padding;
             this._display.configureWindow({ windowId: this._windowId, x: x, y: y });
-        },
+        }
 
-        _clicked: function() {
+        _clicked() {
             this._inspector.toggle();
-        },
-        _configureNotify: function(event) {
+        }
+        _configureNotify(event) {
             if (event.windowId == this._display.rootWindowId) {
                 this._placeButton();
                 this._display.invalidateWindow({ windowId: this._windowId });
             } else {
                 this._display.invalidateWindow({ windowId: this._windowId });
             }
-        },
-        _draw: function() {
+        }
+        _draw() {
             this._display.drawTo(this._windowId, function(ctx) {
                 this._exposeHandler.clip(ctx);
                 var geom = this._display.getGeometry({ drawableId: this._windowId });
@@ -379,8 +379,8 @@
                 ctx.fillStyle = this._showing ? '#ffffff' : '#000000';
                 ctx.fillText('i', geom.width / 2, 8);
             }.bind(this));
-        },
-        _handleEvent: function(event) {
+        }
+        _handleEvent(event) {
             switch (event.type) {
             case "ButtonRelease":
                 return this._clicked(event);
@@ -389,8 +389,8 @@
             case "Expose":
                 return this._exposeHandler.handleExpose(event);
             }
-        },
-    });
+        }
+    }
 
     DemoCommon.addInspector = function(res) {
         var server = res.server;
@@ -403,8 +403,8 @@
         inspector.addButton(button);
     };
 
-    var BaseImage = new Class({
-        initialize: function(server, imgSrc) {
+    class BaseImage {
+        constructor(server, imgSrc) {
             var connection = server.connect();
             this._display = connection.display;
             var port = connection.clientPort;
@@ -434,9 +434,9 @@
                 this._pixmapId = pixmapId;
                 this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this));
-        },
+        }
 
-        _draw: function() {
+        _draw() {
             if (!this._pixmapId)
                 return;
 
@@ -444,44 +444,40 @@
             this._display.drawTo(this.windowId, function(ctx) {
                 ctx.drawImage(image, 0, 0);
             }.bind(this));
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             switch (event.type) {
                 case "Expose":
                     return this._handleExpose(event);
             }
-        },
-    });
+        }
+    }
 
     // SimpleImage draws whenever it gets an expose. We could use the
     // ExposeProcessor to prevent repeated redraws, but since we know that
     // in this demo the window will always be on top, I think we're OK.
-    DemoCommon.SimpleImage = new Class({
-        Extends: BaseImage,
-
-        _handleExpose: function(event) {
+    DemoCommon.SimpleImage = class SimpleImage extends BaseImage {
+        _handleExpose(event) {
             this._draw();
-        },
-    });
+        }
+    };
 
     // DelayedExposeImage waits a bit before processing expose events, to
     // emulate a "hung" or "slow" app and show off how expose processing works.
-    DemoCommon.DelayedExposeImage = new Class({
-        Extends: BaseImage,
-
-        _scheduledDraw: function() {
+    DemoCommon.DelayedExposeImage = class DelayedExposeImage extends BaseImage {
+        _scheduledDraw() {
             this._draw();
             this._drawTimeoutId = 0;
-        },
+        }
 
-        _handleExpose: function(event) {
+        _handleExpose(event) {
             if (this._drawTimeoutId)
                 return;
 
             this._drawTimeoutId = setTimeout(this._scheduledDraw.bind(this), 200);
-        },
-    });
+        }
+    };
 
     exports.DemoCommon = DemoCommon;
 

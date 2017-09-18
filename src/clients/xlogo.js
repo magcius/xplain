@@ -3,8 +3,8 @@
 (function(exports) {
     "use strict";
 
-    var Xlogo = new Class({
-        initialize: function(server) {
+    class Xlogo {
+        constructor(server) {
             var connection = server.connect();
             this._display = connection.display;
             var port = connection.clientPort;
@@ -16,23 +16,23 @@
             this._display.selectInput({ windowId: this.windowId, events: ["Expose", "ConfigureNotify"] });
             this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "xlogo.js" });
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
-        },
-        _configureNotify: function(event) {
+        }
+        _configureNotify(event) {
             // Invalidate the entire window when we get resized, as we need
             // to repaint all contents to fit the new size.
             if (event.width !== undefined || event.height !== undefined)
                 this._display.invalidateWindow({ windowId: this.windowId });
-        },
-        _handleEvent: function(event) {
+        }
+        _handleEvent(event) {
             switch(event.type) {
             case "Expose":
                 return this._exposeHandler.handleExpose(event);
             case "ConfigureNotify":
                 return this._configureNotify(event);
             }
-        },
+        }
 
-        _draw: function() {
+        _draw() {
             var geom = this._display.getGeometry({ drawableId: this.windowId });
             var width = geom.width, height = geom.height;
 
@@ -82,8 +82,8 @@
                 ctx.stroke();
 
             }.bind(this));
-        },
-    });
+        }
+    }
 
     exports.Xlogo = Xlogo;
 

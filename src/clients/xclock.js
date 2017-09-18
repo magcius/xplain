@@ -3,8 +3,8 @@
 (function(exports) {
     "use strict";
 
-    var Xclock = new Class({
-        initialize: function(server) {
+    class Xclock {
+        constructor(server) {
             var connection = server.connect();
             this._display = connection.display;
             var port = connection.clientPort;
@@ -17,23 +17,23 @@
             this._display.changeProperty({ windowId: this.windowId, name: "WM_NAME", value: "xclock.js" });
             this._display.changeProperty({ windowId: this.windowId, name: "WM_NORMAL_HINTS", value: { minWidth: 125, minHeight: 125 } });
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
-        },
-        _start: function() {
+        }
+        _start() {
             this._intervalId = setInterval(function() {
                 this._display.invalidateWindow({ windowId: this.windowId });
             }.bind(this), 1000);
-        },
-        _stop: function() {
+        }
+        _stop() {
             clearInterval(this._intervalId);
             this._intervalId = 0;
-        },
-        _configureNotify: function(event) {
+        }
+        _configureNotify(event) {
             // Invalidate the entire window when we get resized, as we need
             // to repaint all contents to fit the new size.
             if (event.width !== undefined || event.height !== undefined)
                 this._display.invalidateWindow({ windowId: this.windowId });
-        },
-        _handleEvent: function(event) {
+        }
+        _handleEvent(event) {
             switch(event.type) {
             case "Expose":
                 return this._exposeHandler.handleExpose(event);
@@ -44,9 +44,9 @@
             case "UnmapNotify":
                 return this._stop();
             }
-        },
+        }
 
-        _draw: function() {
+        _draw() {
             var geom = this._display.getGeometry({ drawableId: this.windowId });
             var width = geom.width, height = geom.height;
 
@@ -118,8 +118,8 @@
                 ctx.fill();
                 ctx.restore();
             }.bind(this));
-        },
-    });
+        }
+    }
 
     exports.Xclock = Xclock;
 

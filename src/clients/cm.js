@@ -7,8 +7,8 @@
 
     var CompositingManager = {};
 
-    var RendererBase = new Class({
-        initialize: function(triggerRedraw) {
+    class RendererBase {
+        constructor(triggerRedraw) {
             this._triggerRedraw = triggerRedraw;
             this._triggeredRedraw = false;
 
@@ -21,19 +21,19 @@
 
             this._dirtyRegion = new Region();
             this._dirtyRegion.union_rect(this._dirtyRegion, 0, 0, 65535, 65535);
-        },
+        }
 
-        $addWindow: function(windowId, actor) {
+        $addWindow(windowId, actor) {
             this._windows[windowId] = actor;
             this._actorStacking.push(actor);
-        },
+        }
 
-        $removeWindow: function(windowId) {
+        $removeWindow(windowId) {
             this._windows[windowId] = null;
             this._actorStacking.splice(this._actorStacking.indexOf(actor), 1);
-        },
+        }
 
-        $stackWindow: function(actor, mode, siblingId) {
+        $stackWindow(actor, mode, siblingId) {
             this._actorStacking.splice(this._actorStacking.indexOf(actor), 1);
 
             var sibling = this._windows[siblingId];
@@ -59,23 +59,23 @@
                 break;
                 // TODO: TopIf, BottomIf, Opposite. Ever seen in practice?
             }
-        },
+        }
 
-        addDirtyRect: function(rect) {
+        addDirtyRect(rect) {
             this._dirtyRegion.union_rect(this._dirtyRegion, rect.x, rect.y, rect.width, rect.height);
-        },
+        }
 
-        queueRedraw: function(rect) {
+        queueRedraw(rect) {
             this.addDirtyRect(rect);
             if (!this._triggeredRedraw) {
                 this._triggerRedraw();
                 this._triggeredRedraw = true;
             }
-        },
-    });
+        }
+    }
 
-    var WindowActorBase = new Class({
-        initialize: function(renderer, server, windowId) {
+    class WindowActorBase {
+        constructor(renderer, server, windowId) {
             this._renderer = renderer;
 
             var connection = server.connect();
@@ -93,21 +93,21 @@
 
             this._renderer.$addWindow(this._windowId, this);
             this._renderer.queueRedraw(this._geometry);
-        },
+        }
 
-        _destroy: function() {
+        _destroy() {
             this._display.disconnect();
 
             this._renderer.$removeWindow(this._windowId);
             this._renderer.queueRedraw(this._geometry);
             this._renderer = null;
-        },
+        }
 
-        _setX: function(x) {
+        _setX(x) {
             this._geometry.x = x;
-        },
+        }
 
-        _setNewGeometry: function(newGeometry) {
+        _setNewGeometry(newGeometry) {
             if (newGeometry.x !== undefined)
                 this._setX(newGeometry.x);
             if (newGeometry.y !== undefined)
@@ -116,9 +116,9 @@
                 this._geometry.width = newGeometry.width;
             if (newGeometry.height !== undefined)
                 this._geometry.height = newGeometry.height;
-        },
+        }
 
-        _configureNotify: function(event) {
+        _configureNotify(event) {
             // Redraw where the window was
             this._renderer.queueRedraw(this._geometry);
 
@@ -129,13 +129,13 @@
 
             if (event.stackMode)
                 this._renderer.$stackWindow(this._windowId, event.stackMode, event.sibling);
-        },
+        }
 
-        _damaged: function() {
+        _damaged() {
             this._renderer.queueRedraw(this._geometry);
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             if (event.windowId != this._windowId)
                 return;
 
@@ -147,11 +147,11 @@
             case "UnmapNotify":
                 return this._destroy();
             }
-        },
-    });
+        }
+    }
 
-    var CompositingManagerBase = new Class({
-        initialize: function(server, toplevelWindowId) {
+    class CompositingManagerBase {
+        constructor(server, toplevelWindowId) {
             this._server = server;
 
             var connection = server.connect();
@@ -161,41 +161,40 @@
             }.bind(this));
             this._display = connection.display;
 
-            this._renderer = this._createRenderer();
-
             this._toplevelWindowId = toplevelWindowId;
             this._display.selectInput({ windowId: toplevelWindowId,
                                         events: ["SubstructureNotify"] });
-            var query = this._display.queryTree({ windowId: toplevelWindowId });
-            query.children.forEach(this._addWindow.bind(this));
-        },
+        }
 
-        _addWindow: function(windowId) {
+        _redirectChildren() {
+            var query = this._display.queryTree({ windowId: this._toplevelWindowId });
+            query.children.forEach(this._addWindow.bind(this));
+        }
+
+        _addWindow(windowId) {
             var attrs = this._display.getAttributes({ windowId: windowId });
             if (attrs.mapState != "Viewable")
                 return;
 
             this._display.redirectWindow({ windowId: windowId, mode: "manual" });
             var actor = this._createWindowActor(windowId);
-        },
+        }
 
-        _mapNotify: function(event) {
+        _mapNotify(event) {
             var windowId = event.windowId;
             this._addWindow(windowId);
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             switch (event.type) {
             case "MapNotify":
                 return this._mapNotify(event);
             }
-        },
-    });
+        }
+    }
 
-    var Canvas2DRenderer = new Class({
-        Extends: RendererBase,
-
-        draw: function(ctx) {
+    class Canvas2DRenderer extends RendererBase {
+        draw(ctx) {
             if (this._triggeredRedraw) {
                 CanvasUtil.pathFromRegion(ctx, this._dirtyRegion);
                 ctx.clip();
@@ -208,13 +207,11 @@
 
             this._dirtyRegion.clear();
             this._triggeredRedraw = false;
-        },
-    });
+        }
+    }
 
-    var Canvas2DWindowActor = new Class({
-        Extends: WindowActorBase,
-
-        draw: function(ctx) {
+    class Canvas2DWindowActor extends WindowActorBase {
+        draw(ctx) {
             var pixmapId = this._display.nameWindowPixmap({ windowId: this._windowId });
             var image = this._display.getPixmapImage({ pixmapId: pixmapId });
             ctx.save();
@@ -229,40 +226,38 @@
             ctx.drawImage(image, 0, 0);
             ctx.restore();
             this._display.freePixmap({ drawableId: pixmapId });
-        },
-    });
+        }
+    }
 
-    var Canvas2DCompositingManager = new Class({
-        Extends: CompositingManagerBase,
+    CompositingManager.Canvas2DCompositingManager = class Canvas2DCompositingManager extends CompositingManagerBase {
+        constructor(server, toplevelWindowId) {
+            super(server, toplevelWindowId);
 
-        initialize: function(server, toplevelWindowId) {
-            this.parent(server, toplevelWindowId);
-
+            this._renderer = new Canvas2DRenderer(this._triggerRedraw.bind(this));
+            
             this._display.selectInput({ windowId: toplevelWindowId,
                                         events: ["Expose"] });
             this._draw();
-        },
 
-        _triggerRedraw: function() {
+            this._redirectChildren();
+        }
+
+        _triggerRedraw() {
             this._display.invalidateWindow({ windowId: this._toplevelWindowId,
                                              includeChildren: true });
-        },
+        }
 
-        _createRenderer: function() {
-            return new Canvas2DRenderer(this._triggerRedraw.bind(this));
-        },
-
-        _createWindowActor: function(windowId) {
+        _createWindowActor(windowId) {
             return new Canvas2DWindowActor(this._renderer, this._server, windowId);
-        },
+        }
 
-        _draw: function() {
+        _draw() {
             this._display.drawTo(this._toplevelWindowId, function(ctx) {
                 this._renderer.draw(ctx);
             }.bind(this));
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             switch (event.type) {
             case "Expose":
                 this._renderer.addDirtyRect(event);
@@ -270,21 +265,18 @@
                     this._draw();
                 break;
             default:
-                return this.parent(event);
+                return super._handleEvent(event);
             }
-        },
-    });
-    CompositingManager.Canvas2DCompositingManager = Canvas2DCompositingManager;
+        }
+    };
 
-    var GLRenderer = new Class({
-        Extends: RendererBase,
-
-        initialize: function(needsRedrawFunc, gl) {
+    class GLRenderer extends RendererBase {
+        constructor(needsRedrawFunc, gl) {
+            super(needsRedrawFunc);
             this._gl = gl;
-            this.parent(needsRedrawFunc);
-        },
+        }
 
-        draw: function() {
+        draw() {
             var gl = this._gl;
 
             gl.enable(gl.BLEND);
@@ -300,8 +292,8 @@
             // bother using the dirty region in the GL renderer.
             this._dirtyRegion.clear();
             this._triggeredRedraw = false;
-        },
-    });
+        }
+    }
 
     function matIdentity(mat) {
         mat[0] = 1;
@@ -322,47 +314,41 @@
         mat[13] = 1;
     }
 
-    function M(X) {
-        return X.join('\n');
-    }
-
-    var TriangleActor = new Class({
-        initialize: function(renderer, gl) {
+    CompositingManager.TriangleActor = class TriangleActor {
+        constructor(renderer, gl) {
             this._renderer = renderer;
             this._gl = gl;
             this._time = 0;
             this._allocate();
-        },
+        }
 
-        _getVertShaderSource: function() {
-            return M([
-                'attribute vec2 a_position;',
-                'attribute vec3 a_color;',
-                '',
-                'varying vec3 v_color;',
-                '',
-                'uniform mat4 u_modelview;',
-                '',
-                'void main() {',
-                '  v_color = a_color;',
-                '  gl_Position = u_modelview * vec4(a_position, 0.0, 1.0);',
-                '}',
-            ]);
-        },
+        _getVertShaderSource() {
+            return `
+attribute vec2 a_position;
+attribute vec3 a_color;
 
-        _getFragShaderSource: function() {
-            return M([
-                'precision mediump float;',
-                '',
-                'varying vec3 v_color;',
-                '',
-                'void main() {',
-                '  gl_FragColor = vec4(v_color, 1.0);',
-                '}',
-            ]);
-        },
+varying vec3 v_color;
 
-        _allocate: function() {
+uniform mat4 u_modelview;
+
+void main() {
+    v_color = a_color;
+    gl_Position = u_modelview * vec4(a_position, 0.0, 1.0);
+}`;
+        }
+
+        _getFragShaderSource() {
+            return `
+precision mediump float;
+
+varying vec3 v_color;
+
+void main() {
+    gl_FragColor = vec4(v_color, 1.0);
+}`;
+        }
+
+        _allocate() {
             var gl = this._gl;
 
             this._vertShader = gl.createShader(gl.VERTEX_SHADER);
@@ -381,9 +367,9 @@
             gl.attachShader(this._shaderProgram, this._vertShader);
             gl.attachShader(this._shaderProgram, this._fragShader);
             gl.linkProgram(this._shaderProgram);
-        },
+        }
 
-        draw: function() {
+        draw() {
             var gl = this._gl;
 
             var buffer = gl.createBuffer();
@@ -421,9 +407,8 @@
             gl.bindTexture(gl.TEXTURE_2D, null);
 
             gl.useProgram(null);
-        },
-    });
-    CompositingManager.TriangleActor = TriangleActor;
+        }
+    }
 
     function clampAbs(v, cap) {
         if (v > cap)
@@ -433,25 +418,23 @@
         return v;
     }
 
-    var GLWindowActor = new Class({
-        Extends: WindowActorBase,
-
-        initialize: function(renderer, server, windowId, gl) {
+    class GLWindowActor extends WindowActorBase {
+        constructor(renderer, server, windowId, gl) {
+            super(renderer, server, windowId);
             this._gl = gl;
-            this.parent(renderer, server, windowId);
             this._allocate();
 
             this._bend = 0;
-        },
+        }
 
-        _setX: function(newX) {
+        _setX(newX) {
             var deltaX = newX - this._geometry.x;
             this._bend -= deltaX;
 
-            this.parent(newX);
-        },
+            super._setX(newX);
+        }
 
-        _stepBend: function() {
+        _stepBend() {
             var DAMPEN = 0.9;
             this._bend *= DAMPEN;
             if (Math.abs(this._bend) < 1)
@@ -461,48 +444,46 @@
             var BEND_CAP = 25;
             this._bend = clampAbs(this._bend, BEND_CAP);
             return this._bend;
-        },
+        }
 
-        _getVertShaderSource: function() {
-            return M([
-                'attribute vec2 a_position;',
-                'attribute vec2 a_uv;',
-                '',
-                'varying vec2 v_uv;',
-                '',
-                'uniform mat4 u_projection;',
-                '',
-                'void main() {',
-                '  v_uv = a_uv;',
-                '  gl_Position = u_projection * vec4(a_position, 0.0, 1.0);',
-                '}',
-            ]);
-        },
+        _getVertShaderSource() {
+            return `
+attribute vec2 a_position;
+attribute vec2 a_uv;
 
-        _getFragShaderSource: function() {
-            return M([
-                'precision mediump float;',
-                '',
-                'varying vec2 v_uv;',
-                '',
-                'uniform sampler2D u_texture;',
-                'uniform float u_opacity;',
-                'uniform int u_tex_width;',
-                'uniform int u_bend_x;',
-                '',
-                'void main() {',
-                '  float bend_x_coord = (float(u_bend_x) / float(u_tex_width));',
-                '  vec2 bent_uv = v_uv;',
-                '  float interp = ((1.0 - cos(bent_uv.y)) * 3.1415926) / 2.0;',
-                '  bent_uv.x -= (interp * float(bend_x_coord));',
-                '  vec4 sample = texture2D(u_texture, bent_uv);',
-                '  sample.a *= u_opacity;',
-                '  gl_FragColor = sample;',
-                '}',
-            ]);
-        },
+varying vec2 v_uv;
 
-        _allocate: function() {
+uniform mat4 u_projection;
+
+void main() {
+    v_uv = a_uv;
+    gl_Position = u_projection * vec4(a_position, 0.0, 1.0);
+}`;
+        }
+
+        _getFragShaderSource() {
+            return `
+precision mediump float;
+
+varying vec2 v_uv;
+
+uniform sampler2D u_texture;
+uniform float u_opacity;
+uniform int u_tex_width;
+uniform int u_bend_x;
+
+void main() {
+    float bend_x_coord = (float(u_bend_x) / float(u_tex_width));
+    vec2 bent_uv = v_uv;
+    float interp = ((1.0 - cos(bent_uv.y)) * 3.1415926) / 2.0;
+    bent_uv.x -= (interp * float(bend_x_coord));
+    vec4 sample = texture2D(u_texture, bent_uv);
+    sample.a *= u_opacity;
+    gl_FragColor = sample;
+}`;
+        }
+
+        _allocate() {
             var gl = this._gl;
 
             this._vertShader = gl.createShader(gl.VERTEX_SHADER);
@@ -526,9 +507,9 @@
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this._geometry.width + 2, this._geometry.height + 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
             this._imageDirty = true;
-        },
+        }
 
-        _destroy: function() {
+        _destroy() {
             var gl = this._gl;
 
             gl.deleteTexture(this._texture);
@@ -542,14 +523,14 @@
 
             gl.deleteShader(this._fragShader);
             this._fragShader = null;
-        },
+        }
 
-        _damaged: function() {
+        _damaged() {
             this._imageDirty = true;
-            this.parent();
-        },
+            super._damaged();
+        }
 
-        draw: function() {
+        draw() {
             var gl = this._gl;
 
             gl.bindTexture(gl.TEXTURE_2D, this._texture);
@@ -632,34 +613,29 @@
             gl.deleteBuffer(buffer);
 
             gl.useProgram(null);
-        },
-    });
+        }
+    }
 
-    var GLCompositingManager = new Class({
-        Extends: CompositingManagerBase,
-
-        initialize: function(server, toplevelWindowId, gl) {
+    CompositingManager.GLCompositingManager = class GLCompositingManager extends CompositingManagerBase {
+        constructor(server, toplevelWindowId, gl) {
+            super(server, toplevelWindowId);
             this._gl = gl;
-            this.parent(server, toplevelWindowId);
-        },
+            this._renderer = new GLRenderer(this._triggerRedraw.bind(this), this._gl);
+            this._redirectChildren();
+        }
 
-        _draw: function() {
+        _draw() {
             this._renderer.draw();
-        },
+        }
 
-        _triggerRedraw: function() {
+        _triggerRedraw() {
             window.requestAnimationFrame(this._draw.bind(this));
-        },
+        }
 
-        _createRenderer: function() {
-            return new GLRenderer(this._triggerRedraw.bind(this), this._gl);
-        },
-
-        _createWindowActor: function(windowId) {
+        _createWindowActor(windowId) {
             return new GLWindowActor(this._renderer, this._server, windowId, this._gl);
-        },
-    });
-    CompositingManager.GLCompositingManager = GLCompositingManager;
+        }
+    };
 
     exports.CompositingManager = CompositingManager;
 
