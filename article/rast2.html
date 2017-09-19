@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf8">
+    <link rel="stylesheet" href="article.css">
+    <link rel="shortcut icon" href="favicon.png">
+    <title>Explanations</title>
+</head>
+<body id="rast1"><div class="main">
+    <header>
+        <a href="index.html">
+            <h1><span>Explanations</span></h1>
+            <span class="subtitle">Play, don't show</span>
+        </a>
+    </header>
+
+    <article>
+        <h2></h2>
+
+        <section id="prologue">
+        <h3>Last time...</h3>
+        <p>
+            Last time, we talked about some basic principles of 2D graphics and how one might implement
+            a basic 2D graphics rasterizer. Today, we'll take a step back and look a bit more carefully
+            about what we did. Along the way, we'll develop a more generalized and abstract model for
+            2D graphics and rasterization, and from that new understanding, start building the standard
+            toolbox of techniques that is commonly seen in vector graphics: affine transformations,
+            filled polygons, Bezier curves. Finally, we'll contrast this with contemporary 3D graphics
+            and GPUs, and see if we can find some commonality between our approaches.
+        </p>
+        <p>
+            It's worth pointing out that while we do have a "standard toolbox" consisting of strokes, fills,
+            line caps, mitered joints and Bezier curves that's seen consistently from HTML5's &lt;canvas&gt;
+            to Microsoft's GDI, it wasn't always this way. The early days of computer graphics were dominated
+            by "plotter printers" which operated on a pen-down, pen-up kind of fashion, usually driven by
+            some form of basic ASCII command language. HP had
+            <a href="https://en.wikipedia.org/wiki/Printer_Command_Language">PCL</a> for basic plotting and later
+            <a href="https://en.wikipedia.org/wiki/HP-GL">HP/GL</a> which added support for primitive shapes
+            and text labels. When Tektronix released their <a href="https://en.wikipedia.org/wiki/Tektronix_4010">Tektronix 4010</a>,
+            the world's first affordable graphics terminal, they released with it
+            <a href="http://vt100.net/docs/vt3xx-gp/chapter13.html#S13.14">a simple graphing mode</a> that drew lines
+            but, again, in a pen-up pen-down fashion.
+        </p>
+        <p>
+            Like a lot of other inventions, this all changed at Xerox PARC. Researchers there were starting to develop
+            a new kind of printer language, one that was more computationally expressive. Based on Forth and with a
+            simple stack-based interpreter, they had come up with <a href="https://en.wikipedia.org/wiki/Interpress">Interpress</a>.
+            When PARC was unable to successfully sell it, the inventors jumped ship and founded "Adobe".
+            A heavily modified version was eventually born as
+            <a href="https://en.wikipedia.org/wiki/PostScript">PostScript</a>, Adobe's first major hit.
+            First released in 1985, it quickly had a near-complete domination over the printing industry.
+            Besides the cute, turing-complete stack-language language it comes with to calculate its shapes,
+            the original
+            <a href="http://wwwimages.adobe.com/content/dam/Adobe/en/devnet/postscript/pdfs/PLRM.pdf">PostScript Language Reference</a>
+            marks up an Imaging Model in Chapter 4, near-identical to the APIs we widely see today. Example 4.1
+            of the reference has something which can be translated to HTML5 &lt;canvas&gt; nearly line-by-line.
+        </p>
+<pre style="display: inline-block; width: 380px; margin-left: 20px;"><code style="margin-top: 0;">/box {
+    newpath
+    0 0 moveto
+    0 1 lineto
+    1 1 lineto
+    1 0 lineto
+    closepath
+} def
+
+gsave
+72 72 scale
+box fill
+2 2 translate
+box fill
+grestore
+</code></pre>
+<pre style="display: inline-block; width: 380px;"><code style="margin-top: 0;" class="javascript">function drawBox(ctx) {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, 1);
+    ctx.lineTo(1, 1);
+    ctx.lineTo(1, 0);
+    ctx.closePath();
+}
+
+ctx.save();
+ctx.scale(72, 72);
+drawBox(ctx); ctx.fill();
+ctx.translate(2, 2);
+drawBox(ctx); ctx.fill();
+ctx.restore();
+</code></pre>
+        <div class="demo-canvas" data-demo="rast2-postscript-canvas"></div>
+        <p>
+            This is not a coincidence.
+            Apple's Steve Jobs had met the Interpress engineers on his visit to PARC, and wanted to buy Adobe outright.
+            Instead, Adobe pressured Jobs to license PostScript to Apple, ensuring him it would be a major breakthrough
+            in printing. Similarly, Apple invested in a scrappy startup called Aldus who was making PageMaker, a
+            WSYWIG environment to create PostScript documents. In early 1985, Apple released a PostScript-compliant printer
+            called the LaserWriter. The combination of the Macintosh, PostScript, PageMaker, and LaserWriter singlehandedly
+            turned the printing industry on its head, giving way to "desktop publishing".
+        </p>
+        <p>
+            People eventually wanting to make files of PostScript Documents, specifying things like individual pages,
+            giving way to <a href="https://en.wikipedia.org/wiki/Encapsulated_PostScript">Encapsulated PostScript</a>.
+            Microsoft, meanwhile, had created its own graphics library designed to be compatible with PostScript printers,
+            <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd145203(v=vs.85).aspx">GDI</a> and
+            Microsoft's own vector file format based on it, <a href="https://en.wikipedia.org/wiki/Windows_Metafile">Windows Metafile</a>.
+            When people decided they did not like the idea of a Turing-complete interpreter for document display for
+            performance reasons, Adobe created the
+            <a href="http://www.adobe.com/content/dam/Adobe/en/devnet/acrobat/pdfs/pdf_reference_1-7.pdf">PDF specification</a>
+            aping the same graphics model. And by the time the W3C started to standardize on a 2D graphics markup language,
+            Adobe championed the XML-based <a href="https://www.w3.org/TR/1998/NOTE-PGML-19980410">PGML</a>, which had
+            the PostScript graphics model front and center. Microsoft's competing
+            <a href="https://www.w3.org/TR/NOTE-VML">VML</a> was also based on GDI, which was based on PostScript. Both
+            standards were roughly combined to make SVG.
+        </p>
+        <p>
+            Even though it's old, let's not pretend that the innovations PostScript brought to the world are anything
+            less than a technological marvel. In its first incarnation, PostScript invented a fairly complex, unconventional
+            graphics model with line caps, miter joints, and tons of minutae and specified detail we still take for granted
+            today. Fonts were another hard problem. The industry at the time traditionally described geometrically, but that
+            broke down at small sizes because of the smallness of the paths involved. To fix this, PostScript's authors added
+            an algorithm to "snap" paths to the finer grid of the smaller point sizes. To prevent the geometry from getting
+            too distorted, they allowed fonts to specify "hints" about what parts of the geometry should be preserved.
+        </p>
+        <p>
+            Adobe's original business model was to sell this hinting technology and these specially hinted fonts. The
+            <a href="https://www-cdf.fnal.gov/offline/PostScript/T1_SPEC.PDF">Type 1 Font</a> format was originally Adobe-proprietary
+            and contains an odd bit of "font encryption" code to ensure that only Adobe's software could interpret it properly.
+            It was later standardized after Adobe found itself making money selling desktop software instead.
+        </p>
+        <p>
+            This solution was so universally popular that when Apple was tired of paying licensing fees to Adobe, they
+            took the idea for their own font format, <a href="https://developer.apple.com/fonts/TrueType-Reference-Manual/">TrueType</a>.
+            Even today, PostScript's fonts live on today as one half of the congealed mess that is
+            <a href="https://www.microsoft.com/en-us/Typography/OpenTypeSpecification.aspx">OpenType</a>. Adobe took
+            Type 1 fonts, removed the encryption bits, gave them a bit of spit polish, and released
+            <a href="http://www.adobe.com/content/dam/Adobe/en/devnet/font/pdfs/5177.Type2.pdf">CFF/Type 2 fonts</a>,
+            which live on as <a href="https://www.microsoft.com/typography/otspec/cff.htm">cff</a> glyphs, one of two
+            ways to describe an outline in an OpenType font. The other is TrueType's
+            <a href="https://www.microsoft.com/typography/otspec/glyf.htm">glyf</a>.
+        </p>
+        <p>
+            From this lens of history, it's interesting to look at what could have been. Instead of filled paths,
+            Knuth's <a href="https://en.wikipedia.org/wiki/Metafont">METAFONT</a> from 1977 instead brought a pen-based
+            approach where a "pen", an abstract shape, would trace a curve directly.
+            <br>TODO: Earlier graphics models like those proposed by X11, CGM, Plan 9's libdraw?
+        </p>
+        </section>
+
+        <section id="coverage">
+        <h3>Establishing Coverage</h3>
+        <p>
+            Enough history, let's see some graphics. In the first article, we established the idea of "coverage",
+            which is a way of mapping where the math says the shape should be, and our idea of an idealized pixel
+            grid. By the time we got halfway through the article, the colors, the gradients, they weren't really
+            that important: they were sort of the final shiny effect after we figured out what our shape should
+            rasterize to. Today, we're going to focus on more shapes, bigger shapes, better shapes. Fancy splines
+            and curves under the influence of affine transformations. Where we're going, we don't need color, we
+            need coverage.
+        </p>
+        <p>
+            Let's get you intimately familiar with coverage. Just like the circles and squares of last time,
+            we're going to start off with basic, geometric, <em>functional</em> methods of coverage. You give me
+            a function that tells me whether it's inside or outside the shape, I plot it on the grid. Ready?
+        </p>
+
+        <div class="demo-canvas" data-demo="rast2-coverage-editor-1"></div>
+
+        </section>
+
+        <div class="nav-bottom"></div>
+    </article>
+
+    <script src="article.js"></script>
+
+    <script src="../src/region.js"></script>
+    <script src="../src/class.js"></script>
+    <script src="../src/canvas-util.js"></script>
+    <script src="../src/article-demos/demos.js"></script>
+    <script src="../src/article-demos/rast2.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/railscasts.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/highlight.min.js"></script>
+
+    <script>
+        (function() {
+            "use strict";
+
+            window.addEventListener("load", function() {
+                Article.generateNavButtons();
+                Article.generateSectionLinks();
+                ArticleDemos.runAllDemos();
+            });
+
+            hljs.initHighlightingOnLoad();
+        })();
+    </script>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-35480078-2', 'magcius.github.io');
+      ga('send', 'pageview');
+    </script>
+</div></body>
+</html>
