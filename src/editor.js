@@ -82,28 +82,36 @@
                 this._segments.push(segment);
             }
 
-            this._mouseX = 0;
+            this._anchorMouseX = 0;
+            this._anchorValue = undefined;
+            this._value = undefined;
+
             this._onMouseMove = this._onMouseMove.bind(this);
             this._onMouseUp = this._onMouseUp.bind(this);
         }
 
         _onMouseMove(e) {
+            const accel = 15;
+            const dx = Math.round((e.clientX - this._anchorMouseX) / accel);
+            const newValue = this._anchorValue + (dx * this._currentIncr);
+            if (this._value !== newValue) {
+                this._value = newValue;
+                this.onvalue(this._value);
+            }
+
             const y = e.clientY;
             for (const segment of this._segments) {
                 const bbox = segment.getBoundingClientRect();
                 if (y < bbox.bottom) {
-                    if (this._selectSegment(segment))
-                        this._mouseX = e.clientX;
+                    if (this._selectSegment(segment)) {
+                        // Set new anchor.
+                        if (this._anchorValue !== this._value) {
+                            this._anchorMouseX = e.clientX;
+                            this._anchorValue = this._value;
+                        }
+                    }
                     break;
                 }
-            }
-
-            const accel = 10;
-            const dx = ((e.clientX - this._mouseX) / accel) | 0;
-            if (dx !== 0) {
-                this._mouseX = e.clientX;
-                this._value += this._currentIncr * dx;
-                this.onvalue(this._value);
             }
         }
 
@@ -137,8 +145,8 @@
         }
 
         show(value, e) {
-            this._mouseX = e.clientX;
-            this._value = value;
+            this._anchorMouseX = e.clientX;
+            this._anchorValue = value;
 
             // reset
             this._selectSegment(this._segments[2]);
