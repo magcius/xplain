@@ -31,29 +31,40 @@
         <p>
             It's worth pointing out that while we do have a "standard toolbox" consisting of strokes, fills,
             line caps, mitered joints and Bezier curves that's seen consistently from HTML5's &lt;canvas&gt;
-            to Microsoft's GDI, it wasn't always this way. The early days of computer graphics were dominated
-            by "plotter printers" which operated on a pen-down, pen-up kind of fashion, usually driven by
-            some form of basic ASCII command language. HP had
-            <a href="https://en.wikipedia.org/wiki/Printer_Command_Language">PCL</a> for basic plotting and later
-            <a href="https://en.wikipedia.org/wiki/HP-GL">HP/GL</a> which added support for primitive shapes
-            and text labels. When Tektronix released their <a href="https://en.wikipedia.org/wiki/Tektronix_4010">Tektronix 4010</a>,
-            the world's first affordable graphics terminal, they released with it
+            to Microsoft's GDI, it wasn't always this way. Though we rarely hear of it today, a little language
+            known as <a href="https://en.wikipedia.org/wiki/PostScript">PostScript</a> remains quite possibly
+            the largest influence for programmers and artists that interact with 2D vector graphics. Since it's
+            important (and fun!) to learn, let's take a trip back in time. Back before CRTs and pixels. Back,
+            all the way, to the 1960s.
+        </p>
+        </section>
+        
+        <section id="history">
+        <h3>The rise of PostScript</h3>
+        <p>
+            The early days of computer graphics were dominated by "plotter printers" which operated on a
+            pen-down, pen-up kind of fashion, usually driven by some form of basic ASCII command language.
+            HP, manufacturer of some of the earliest plotter printers, used a variant of BASIC called "AGL"
+            which sent commands in a proprietary language, <a href="https://en.wikipedia.org/wiki/HP-GL">HP-GL</a>,
+            to the printer. During the 1970s, we saw the rise of affordable graphics terminals, starting with
+            the <a href="https://en.wikipedia.org/wiki/Tektronix_4010">Tektronix 4010</a>. It has a CRT for its
+            display, but don't be fooled: it's <em>not</em> a pixel display. Tektronix came from the analog
+            oscilloscope industry, and these machines work by driving the electron beam dynamically, not in a
+            grid-like order. As such, the Tektronix 4010 didn't have pixel output. Instead, you sent commands to it with
             <a href="http://vt100.net/docs/vt3xx-gp/chapter13.html#S13.14">a simple graphing mode</a> that drew lines
             but, again, in a pen-up pen-down fashion.
         </p>
         <p>
             Like a lot of other inventions, this all changed at Xerox PARC. Researchers there were starting to develop
-            a new kind of printer language, one that was more computationally expressive. Based on Forth and with a
-            simple stack-based interpreter, they had come up with <a href="https://en.wikipedia.org/wiki/Interpress">Interpress</a>.
-            When PARC was unable to successfully sell it, the inventors jumped ship and founded "Adobe".
-            A heavily modified version was eventually born as
-            <a href="https://en.wikipedia.org/wiki/PostScript">PostScript</a>, Adobe's first major hit.
-            First released in 1985, it quickly had a near-complete domination over the printing industry.
-            Besides the cute, turing-complete stack-language language it comes with to calculate its shapes,
-            the original
+            a new kind of printer, one that was more computationally expressive than what was seen in plotters.
+            This new printer was based on a small, stack-based Turing-complete language called Forth, and they named it...
+            the <a href="https://en.wikipedia.org/wiki/Interpress">Interpress</a>! PARC was, obviously, unable to sell it,
+            so the inventors jumped ship and founded a small, scrappy startup named "Adobe". They took Interpress with them
+            and tweaked it until was no longer recognizable. The result: PostScript. Besides the cute, turing-complete
+            stack-language language it comes with to calculate its shapes, the original
             <a href="http://wwwimages.adobe.com/content/dam/Adobe/en/devnet/postscript/pdfs/PLRM.pdf">PostScript Language Reference</a>
             marks up an Imaging Model in Chapter 4, near-identical to the APIs we widely see today. Example 4.1
-            of the reference has something which can be translated to HTML5 &lt;canvas&gt; nearly line-by-line.
+            of the manual has a code example which can be translated to HTML5 &lt;canvas&gt; nearly line-by-line:
         </p>
 <pre style="display: inline-block; width: 380px; margin-left: 20px;"><code style="margin-top: 0;">/box {
     newpath
@@ -71,7 +82,7 @@ box fill
 box fill
 grestore
 </code></pre>
-<pre style="display: inline-block; width: 380px;"><code style="margin-top: 0;" class="javascript">function drawBox(ctx) {
+<pre style="display: inline-block; width: 380px;"><code style="margin-top: 0;" class="javascript">function box() {
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(0, 1);
@@ -82,89 +93,185 @@ grestore
 
 ctx.save();
 ctx.scale(72, 72);
-drawBox(ctx); ctx.fill();
+box(); ctx.fill();
 ctx.translate(2, 2);
-drawBox(ctx); ctx.fill();
+box(); ctx.fill();
 ctx.restore();
 </code></pre>
         <div class="demo-canvas" data-demo="rast2-postscript-canvas"></div>
         <p>
             This is not a coincidence.
-            Apple's Steve Jobs had met the Interpress engineers on his visit to PARC, and wanted to buy Adobe outright.
-            Instead, Adobe pressured Jobs to license PostScript to Apple, ensuring him it would be a major breakthrough
-            in printing. Similarly, Apple invested in a scrappy startup called Aldus who was making PageMaker, a
-            WSYWIG environment to create PostScript documents. In early 1985, Apple released a PostScript-compliant printer
-            called the LaserWriter. The combination of the Macintosh, PostScript, PageMaker, and LaserWriter singlehandedly
-            turned the printing industry on its head, giving way to "desktop publishing".
         </p>
         <p>
-            People eventually wanting to make files of PostScript Documents, specifying things like individual pages,
-            giving way to <a href="https://en.wikipedia.org/wiki/Encapsulated_PostScript">Encapsulated PostScript</a>.
-            Microsoft, meanwhile, had created its own graphics library designed to be compatible with PostScript printers,
-            <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd145203(v=vs.85).aspx">GDI</a> and
-            Microsoft's own vector file format based on it, <a href="https://en.wikipedia.org/wiki/Windows_Metafile">Windows Metafile</a>.
+            Apple's Steve Jobs had met the Interpress engineers on his visit to PARC. Jobs thought that the printing business
+            would be lucrative, and tried to simply buy Adobe outright. Instead, Adobe countered and instead sold a five-year
+            license for PostScript to Apple. At the same time, Jobs and Apple were funding a small startup, Aldus, which was
+            making a WSYWIG app to create PostScript documents, "PageMaker". In early 1985, Apple released the first
+            PostScript-compliant printer, the Apple LaserWriter. The combination of the point-and-click Macintosh,
+            PageMaker, and the LaserWriter singlehandedly turned the printing industry on its head, giving way to
+            "desktop publishing" and solidifying PostScript its place in history. The main competition, Hewlett-Packward, would
+            eventually license PostScript for its competing LaserJet series of printers in 1991, after consumer pressure.
+        </p>
+        <p>
+            PostScript slowly moved from being a printer control language to a file format in and of itself.
+            People eventually wanted to make files of PostScript art and graphics, so the
+            <a href="https://en.wikipedia.org/wiki/Encapsulated_PostScript">Encapsulated PostScript</a> format was quickly
+            hacked together by Adobe. It used specially marked PostScript comments to give metadata about the size of the image,
+            its preferred orientation, and so on, and restricted the use of commands to render new pages. Adobe's Illustrator
+            was designed to export to Encapsulated PostScript files, for designing and embedding graphics in word processors,
+            which then created... PostScript documents to send to PostScript printers. The whole world was PostScript.
+            Microsoft, while working on Windows 95, wanted to create its own graphics API for developers, and a primary
+            goal was making it PostScript-compatible so the graphics could be sent to a printer as easily as a screen.
+            This API was eventually released as
+            <a href="https://msdn.microsoft.com/en-us/library/windows/desktop/dd145203(v=vs.85).aspx">GDI</a>. Underneath the hood,
+            a graphics engine known as "GRE" PostScript
             When people decided they did not like the idea of a Turing-complete interpreter for document display for
-            performance reasons, Adobe created the
+            performance reasons, Adobe developed and released the
             <a href="http://www.adobe.com/content/dam/Adobe/en/devnet/acrobat/pdfs/pdf_reference_1-7.pdf">PDF specification</a>
-            aping the same graphics model. And by the time the W3C started to standardize on a 2D graphics markup language,
-            Adobe championed the XML-based <a href="https://www.w3.org/TR/1998/NOTE-PGML-19980410">PGML</a>, which had
-            the PostScript graphics model front and center. Microsoft's competing
-            <a href="https://www.w3.org/TR/NOTE-VML">VML</a> was also based on GDI, which was based on PostScript. Both
-            standards were roughly combined to make SVG.
+            aping the same graphics model.
+            By the time the W3C started to standardize on a 2D graphics markup language, Adobe championed the XML-based
+            <a href="https://www.w3.org/TR/1998/NOTE-PGML-19980410">PGML</a>, which had the PostScript graphics model
+            front and center. I quote: <q>PGML should encompass the PDF/PostScript imaging model to guarantee a 2D scalable
+            graphics capability that satisfies the needs of both both casual users and graphics professionals.</q>
+            Microsoft's competing format,
+            <a href="https://www.w3.org/TR/NOTE-VML">VML</a>, was based on GDI, which was based on PostScript. Both
+            standards were eventually combined to make SVG.
         </p>
         <p>
             Even though it's old, let's not pretend that the innovations PostScript brought to the world are anything
-            less than a technological marvel. In its first incarnation, PostScript invented a fairly complex, unconventional
-            graphics model with line caps, miter joints, and tons of minutae and specified detail we still take for granted
-            today. Fonts were another hard problem. The industry at the time traditionally described geometrically, but that
-            broke down at small sizes because of the smallness of the paths involved. To fix this, PostScript's authors added
-            an algorithm to "snap" paths to the finer grid of the smaller point sizes. To prevent the geometry from getting
-            too distorted, they allowed fonts to specify "hints" about what parts of the geometry should be preserved.
+            less than a technological marvel. Apple's PostScript printer, the LaserWriter, had a CPU twice as powerful as the
+            Macintosh that was controlling it, just to interpret the PostScript and rasterize the vector paths to points on
+            paper. If you were already buying a fancy printer with a <em>laser</em> in it, the expensive CPU on the side
+            doesn't seem so expensive in comparison. In its first incarnation, PostScript invented a fairly sophisticated
+            imaging model, with all the features that we take for granted today. But the most powerful, wowing feature?
+            Fonts. Fonts were, at the time, drawn by hand with rule and protractor, and cast onto film, to be
+            <a href="https://en.wikipedia.org/wiki/Phototypesetting">printed photochemically</a>. Knuth's METAFONT and TeX
+            systems started the digital typesetting revolution, but it didn't catch on to replace existing optical printers,
+            since the geometrically-described fonts became blurry and unreadable at small sizes. Adobe's PostScript proposed
+            a novel solution to this: an algorithm to "snap" paths to the finer grid of the small point sizes. This is known
+            as "grid-fitting". To prevent the geometry from getting too distorted, they allowed fonts to specify "hints"
+            about what parts of the geometry should be preserved.
         </p>
         <p>
-            Adobe's original business model was to sell this hinting technology and these specially hinted fonts. The
-            <a href="https://www-cdf.fnal.gov/offline/PostScript/T1_SPEC.PDF">Type 1 Font</a> format was originally Adobe-proprietary
-            and contains an odd bit of "font encryption" code to ensure that only Adobe's software could interpret it properly.
-            It was later standardized after Adobe found itself making money selling desktop software instead.
+            Adobe's original business model was to sell this font technology to people that make printers, and sell special
+            recreations of fonts, with added hints, to publishers, which is why Adobe, to this day, sells their versions of
+            <a href="http://www.myfonts.com/fonts/adobe/times/">Times</a> and <a href="http://www.myfonts.com/fonts/adobe/futura/">Futura</a>.
+            Adobe can do this, by the way, because fonts, or, more formally, "typefaces", are one of
+            <a href="https://www.ecfr.gov/cgi-bin/text-idx?node=se37.1.202_11">five things explicitly excluded by US
+            Copyright Law</a>, since they were originally designated as "too plain or utilitarian to be creative works".
+            What <em>is</em> sold and copyrighted instead is the <em>digital program</em> that reproduces the font on the
+            screen. So, to prevent people from copying Adobe's fonts and adding their own, the
+            <a href="https://www-cdf.fnal.gov/offline/PostScript/T1_SPEC.PDF">Type 1 Font</a> format was originally
+            proprietary to Adobe and contained "font encryption" code. Only Adobe's PostScript could interpret a Type 1 Font,
+            and only Adobe's Type 1 Fonts had the custom hinting technology allowing them to be visible at small sizes. Once
+            Adobe got into the prosumer software market instead, they later standardized and released the specifications to
+            Type 1 Fonts.
         </p>
         <p>
-            This solution was so universally popular that when Apple was tired of paying licensing fees to Adobe, they
-            took the idea for their own font format, <a href="https://developer.apple.com/fonts/TrueType-Reference-Manual/">TrueType</a>.
-            Even today, PostScript's fonts live on today as one half of the congealed mess that is
-            <a href="https://www.microsoft.com/en-us/Typography/OpenTypeSpecification.aspx">OpenType</a>. Adobe took
-            Type 1 fonts, removed the encryption bits, gave them a bit of spit polish, and released
-            <a href="http://www.adobe.com/content/dam/Adobe/en/devnet/font/pdfs/5177.Type2.pdf">CFF/Type 2 fonts</a>,
-            which live on as <a href="https://www.microsoft.com/typography/otspec/cff.htm">cff</a> glyphs, one of two
-            ways to describe an outline in an OpenType font. The other is TrueType's
-            <a href="https://www.microsoft.com/typography/otspec/glyf.htm">glyf</a>.
+            Font hinting, by the way, was so universally popular that when Microsoft and Apple were tired of paying
+            licensing fees to Adobe, they invented an alternate method for their font file competitor,
+            <a href="https://developer.apple.com/fonts/TrueType-Reference-Manual/">TrueType</a>.
+            Instead of specifying declarative "hints", TrueType gives the font author a
+            <a href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM03/Chap3.html">complete turing-complete stack</a>
+            so that the author can control every part of grid-fitting (and conveniently avoiding Adobe's patents on hinting).
+            For years, the wars between the Adobe-backed Type 1 and the TrueType raged on, with font foundries being
+            stuck in the middle, having to provide both formats to their users. Eventually, the industry reached a compromise:
+            <a href="https://www.microsoft.com/en-us/Typography/OpenTypeSpecification.aspx">OpenType</a>.
+            But rather than actually decide a winner, they simply plopped both specifications into one file format: Adobe took Type 1
+            fonts, removed the encryption bits, gave them a small amount of spit polish, and released
+            <a href="http://www.adobe.com/content/dam/Adobe/en/devnet/font/pdfs/5176.CFF.pdf">CFF</a>/
+            <a href="http://www.adobe.com/content/dam/Adobe/en/devnet/font/pdfs/5177.Type2.pdf">Type 2</a> fonts</a>,
+            which were plopped into OpenType as the <a href="https://www.microsoft.com/typography/otspec/cff.htm">cff table</a>.
+            TrueType, on the other hand, got plopped in as
+            <a href="https://www.microsoft.com/typography/otspec/otff.htm#ttTables">glyf</a> and other tables.
+            OpenType, while ugly, seemed to get the job done for users, mostly by war of endurance: just require that all
+            software supports both kinds of fonts, because that's what OpenType mandates.
         </p>
         <p>
-            From this lens of history, it's interesting to look at what could have been. Instead of filled paths,
-            Knuth's <a href="https://en.wikipedia.org/wiki/Metafont">METAFONT</a> from 1977 instead brought a pen-based
-            approach where a "pen", an abstract shape, would trace a curve directly.
-            <br>TODO: Earlier graphics models like those proposed by X11, CGM, Plan 9's libdraw?
+            Of course, we're forced to ask: if PostScript didn't become popular, what might have happened instead?
+            It's worth looking at some other alternatives. The previously mentioned METAFONT didn't use filled paths.
+            Instead, Knuth, in typical sense, rigourously defines in his paper
+            <a href="http://www.math.lsa.umich.edu/~millerpd/docs/501_Winter13/Knuth79.pdf">Mathematical Typography</a>
+            the concept of a curve that is "most pleasing". You specify a number of points, and algorithm finds the
+            one correct path through these. You can stack these paths on top of each other: define such a path as a "pen",
+            and then "drag the pen" through some other path. Knuth introduced componentization and recursion to path definition.
+            Knuth's thesis student, John Hobby, designed and implemented algorithms for calculating
+            <a href="http://i.stanford.edu/pub/cstr/reports/cs/tr/85/1047/CS-TR-85-1047.pdf">the "most pleasing curve"</a>,
+            <a href="http://ect.bell-labs.com/who/hobby/thesis.pdf">"flattening" the nested recursion of paths</a>,
+            <em>and</em> <a href="http://ect.bell-labs.com/who/hobby/87_2-04.pdf">rasterizing such curves</a>.
+            For more on METAFONT, curves, and fonts in general, I <em>highly</em> recommend the somewhat dated, but
+            amazingly detailed reference of <a href="http://shop.oreilly.com/product/9780596102425.do">Fonts &amp; Encodings</a>,
+            and the papers of <a href="http://ect.bell-labs.com/who/hobby/Publications.shtml">John D. Hobby</a>.
+        </p>
+        <p>
+            ... Apologies if that was too long. I hope that was as fascinating to you as it is to me. Let's get
+            back to graphics.
         </p>
         </section>
 
         <section id="coverage">
         <h3>Establishing Coverage</h3>
         <p>
-            Enough history, let's see some graphics. In the first article, we established the idea of "coverage",
-            which is a way of mapping where the math says the shape should be, and our idea of an idealized pixel
-            grid. By the time we got halfway through the article, the colors, the gradients, they weren't really
-            that important: they were sort of the final shiny effect after we figured out what our shape should
-            rasterize to. Today, we're going to focus on more shapes, bigger shapes, better shapes. Fancy splines
-            and curves under the influence of affine transformations. Where we're going, we don't need color, we
-            need coverage.
+            In the first article, we established the idea of "coverage", and the process of "rasterization", which
+            takes our ideal shape and lossily maps it onto the pixel grid. So, for now, let's continue our understanding
+            of shapes and coverage by <em>tossing the color out the window</em>. The fancy fill styles, the colors,
+            the gradients, they weren't really that important: they were sort of the final shiny effect after we
+            rasterized our shape. But for now, let's make bigger shapes. Better shapes. Polygons and polylines and fancy
+            splines under the influence of affine transformations. Where we're going, we don't need color, we need coverage.
         </p>
         <p>
-            Let's get you intimately familiar with coverage. Just like the circles and squares of last time,
-            we're going to start off with basic, geometric, <em>functional</em> methods of coverage. You give me
-            a function that tells me whether it's inside or outside the shape, I plot it on the grid. Ready?
+            As a refresher, let's give you some basic coverage. Basic, geometric, <em>functional</em> methods of coverage.
+            You give me a function that tells me whether it's inside or outside the shape, I plot it on the grid. You ready?
         </p>
 
         <div class="demo-canvas" data-demo="rast2-coverage-editor-1"></div>
 
+        <p>
+            You'll be seeing this sort of code editor show up across this article. Try to both read and understand the
+            reference code. To help you out, you can modify and play with it! Don't be afraid, it won't freeze your
+            browser, even if you stick in a <code>while(true) ;</code> in there. You can also resize the final output
+            canvas to make it taller if you want more room to play.
+        </p>
+        <p>
+            Also, just so you're aware, graphics code <em>tends</em> to have short and sweet variable names. "x" and "y"
+            should hopefully be pretty obvious, but conventions like "dx", "cx", "sy" are a bit less obvious. Typically,
+            "dx" means "distance x" or "delta x" and means a difference between two X coordinates. The "c" in "cx" tends
+            to stand for "center", and the "s" in "sy" tends to stand for "shape", as in, the shape's coordinates.
+            "w" is width, "h" is height, "hw" is "half-width". You'll also see "x2" which tends to mean "the right side
+            of a rectangle", aka "x+w". The more you play with it, the more you start to recognize and be able to read
+            graphics code.
+        </p>
+        </section>
+
+        <section id="boolean">
+        <h3>Combining Shapes</h3>
+        <p>
+            Now that you're familiar with the basics, let's start off with a puzzle. Let's say we wanted to build a
+            long, "capsule" type shape. It has caps for circles at the ends, connected with a giant rectangle. How
+            can we <em>combine</em> shapes like this?
+        </p>
+
+        <div class="demo-canvas" data-demo="rast2-coverage-editor-2"></div>
+
+        <p>
+            We can, of course, combine shapes by using <em>boolean operators</em>. In the above example, we're
+            considered inside the capsule as long as we're inside <em>any</em> of the shapes: the two circles
+            or the connecting rectangle. This technique goes back to the earliest days of computer graphics, but
+            <a href="http://www.valvesoftware.com/publications/2007/SIGGRAPH2007_AlphaTestedMagnification.pdf">modern</a>
+            <a href="http://iquilezles.org/www/articles/distfunctions/distfunctions.htm">variations</a> on the
+            technique have brought it back from the realm of the forgotten.
+        </p>
+        <p>
+            Of course, we can also use all the boolean operators available to us, in the same way we calculated
+            our bands in <a href="regions.html">Regional Geometry</a>.
+        </p>    
+        </section>
+
+        <section id="transforms">
+        <h3>Affinity for linearity</h3>
+        <p>
+            This is all well and good, but we'll need to introduce.
+        </p>
         </section>
 
         <div class="nav-bottom"></div>
@@ -175,6 +282,7 @@ ctx.restore();
     <script src="../src/region.js"></script>
     <script src="../src/class.js"></script>
     <script src="../src/canvas-util.js"></script>
+    <script src="../src/editor.js"></script>
     <script src="../src/article-demos/demos.js"></script>
     <script src="../src/article-demos/rast2.js"></script>
 

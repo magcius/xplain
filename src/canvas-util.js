@@ -70,7 +70,7 @@
         ctx.drawImage(ctx.canvas, srcX, srcY, w, h, destX, destY, w, h);
     };
 
-    CanvasUtil.visibleRAF = function(elem, func) {
+    CanvasUtil.visibleRAF = function(elem, func, activateFunc) {
         function isElemVisible(elem) {
             var rect = elem.getBoundingClientRect();
             if (rect.bottom < 0 || rect.top > window.innerHeight)
@@ -95,6 +95,9 @@
                 return;
 
             isRunning = running;
+
+            if (activateFunc)
+                activateFunc(isRunning);
 
             if (isRunning)
                 window.requestAnimationFrame(update);

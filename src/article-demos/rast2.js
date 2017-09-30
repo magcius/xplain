@@ -72,411 +72,10 @@
         ctx.restore();
     });
 
-    class Editor {
-        constructor() {
-            this.ontextchanged = null;
-
-            this._prefix = '';
-            this._suffix = '';
-
-            this._toplevel = document.createElement('div');
-            this._toplevel.style.position = 'relative';
-            document.body.appendChild(this._toplevel);
-
-            this._textarea = document.createElement('textarea');
-            this._textarea.style.fontFamily = '"Source Code Pro", "Droid Sans Mono", monospace';
-            this._textarea.oninput = this._onInput.bind(this);
-            this._textarea.onkeydown = this._onKeyDown.bind(this);
-            this._toplevel.appendChild(this._textarea);
-
-            this._canvas = document.createElement('canvas');
-            this._toplevel.appendChild(this._canvas);
-            this._canvas.onmousedown = this._onMouseDown.bind(this);
-            this._canvas.onmouseup = this._onMouseUp.bind(this);
-            this._canvas.onmousemove = this._onMouseMove.bind(this);
-            this._textarea.style.whiteSpace = 'pre';
-            this._textarea.style.overflowWrap = 'normal';
-            // Hide the textarea the canvas now that we've sized it...
-            this._textarea.style.position = 'absolute';
-            this._canvas.style.position = 'absolute';
-
-            visibleRAF(this._canvas, this.redraw.bind(this));
-    
-            // Redraw-internal state.
-            this._redraw_cursorPosition = undefined;
-            this._redraw_cursorBlinkStart = undefined;
-
-            this.elem = this._toplevel;
-        }
-        setPrefixSuffix(prefix, suffix) {
-            this._prefix = prefix;
-            this._suffix = suffix;
-            this._recalculate();
-        }
-        setFontSize(size) {
-            this._textarea.style.fontSize = size;
-            this._recalculate();
-        }
-        setSize(w, h) {
-            this._canvas.width = w;
-            this._canvas.height = h;
-            this._toplevel.style.width = w + 'px';
-            this._toplevel.style.height = h + 'px';
-        }
-        getValue() {
-            return this._textarea.value;
-        }
-        setValue(t) {
-            this._textarea.value = t;
-            this._recalculate();
-        }
-        getFullText() {
-            return this._prefix + this._textarea.value + this._suffix;
-        }
-        _isRowLocked(row) {
-            // XXX: Assumes not word wrapping.
-            const prefixRows = this._prefix.split('\n').length - 1;
-            if (row < prefixRows)
-                return true;
-            const suffixRows = this._suffix.split('\n').length - 1;
-            if (row >= this._lineModel.length - suffixRows)
-                return true;
-            return false;
-        }
-        _recalculate() {
-            // Recalculate our line model.
-            const chars = this.getFullText() + '\n';
-            const lineModel = [];
-            let idx = 0, row = 0, lineno = 0;
-            while (true) {
-                let newIdx = chars.indexOf('\n', idx);
-                if (newIdx < 0)
-                    break;
-                const start = idx, end = newIdx + 1;
-                const length = end - start - 1;
-                const startRow = row;
-                // XXX: At some point we used to support word wrap, but we no longer do.
-                const rows = 1;
-                lineModel.push({ start, end, length, rows, startRow, lineno });
-                row += rows;
-                lineno++;
-                idx = end;
-            }
-            this._lineModel = lineModel;
-    
-            // Compute syntax highlights.
-            const syntaxRuns = [];
-    
-            let match;
-    
-            // Colors taken from the railscasts color scheme.
-            const keywords = (/\b(abstract|async|await|boolean|break|byte|case|catch|char|class|const|continue|debugger|default|delete|do|double|else|enum|export|extends|final|finally|float|for|from|function|goto|if|implements|import|in|instanceof|int|interface|let|long|native|new|null|of|package|private|protected|public|return|short|static|super|switch|synchronized|this|throw|throws|transient|try|typeof|var|void|volatile|while|with|true|false|prototype|yield)\b/g);
-            while ((match = keywords.exec(chars)) !== null)
-                syntaxRuns.push({ start: match.index, end: match.index + match[0].length, color: '#c26230' });
-            const types = (/\b(Array|Date|eval|hasOwnProperty|Infinity|isFinite|isNaN|isPrototypeOf|Math|NaN|Number|Object|prototype|String|toString|undefined|valueOf)\b/g);
-            while ((match = types.exec(chars)) !== null)
-                syntaxRuns.push({ start: match.index, end: match.index + match[0].length, color: '#6d9cbe' });
-            const numbers = (/\d+(\.\d+)?/g); // don't bother supporting scientific notation.
-            while ((match = numbers.exec(chars)) !== null)
-                syntaxRuns.push({ start: match.index, end: match.index + match[0].length, color: '#a5c261' });
-            const strings = (/("[^"]*")|('[^']*')/g);
-            while ((match = strings.exec(chars)) !== null)
-                syntaxRuns.push({ start: match.index, end: match.index + match[0].length, color: '#6d9cbe' });
-            const comments = (/\/\/.*$/gm);
-            while ((match = comments.exec(chars)) !== null)
-                syntaxRuns.push({ start: match.index, end: match.index + match[0].length, color: '#bc9458', style: 'italic' });
-            // XXX: Overlapping runs? Need some sort of priority system here...
-            syntaxRuns.sort((a, b) => a.start - b.start);
-            this._syntaxRuns = syntaxRuns;
-    
-            const textareaStyle = window.getComputedStyle(this._textarea);
-    
-            const ctx = this._canvas.getContext('2d');
-            ctx.font = textareaStyle.font;
-            // A monospace font should have identical metrics for all characters.
-            this._charWidth = ctx.measureText(' ').width;
-    
-            // Recalculate geometry.
-            const gutterChars = ('' + this._lineModel.length).length;
-            this._gutterMargin = 10;
-            this._gutterWidth = this._charWidth * Math.max(gutterChars, 2) + this._gutterMargin * 2;
-            this._textMargin = 10;
-    
-            let rowHeight = textareaStyle.lineHeight;
-            if (rowHeight === 'normal')
-                rowHeight = 1.2 * textareaStyle.fontSize.replace('px', '');
-            this._rowHeight = rowHeight;
-    
-            if (this.ontextchanged)
-                this.ontextchanged();
-        }
-        _onInput() {
-            this._recalculate();
-        }
-        _onKeyDown(e) {
-            if (e.key === 'Tab' && !e.shift) {
-                // XXX: If we have a selection, then indent the selection.
-                if (!this._hasSelection()) {
-                    this._insertAtCursor('    ');
-                }
-                e.preventDefault();
-            } else if (e.key === 'Tab' && e.shift) {
-                // XXX: If we have a selection, then unindent the selection.
-                e.preventDefault();
-            }
-        }
-        _onMouseDown(e) {
-            e.preventDefault();
-            const { row, col } = this._xyToRowCol(e.layerX, e.layerY);
-            if (this._isRowLocked(row))
-                return;
-            if (col === -1) {
-                const { line, idx } = this._rowColToLineIdx(row, 0);
-                this._textarea.setSelectionRange(this._idxToTextarea(line.start), this._idxToTextarea(line.end));
-            } else {
-                const { line, idx } = this._rowColToLineIdx(row, col);
-                this._textarea.setSelectionRange(this._idxToTextarea(idx), this._idxToTextarea(idx));
-                this._textarea.focus();
-                this._dragIdxStart = idx;
-                this._dragging = true;
-            }
-        }
-        _onMouseMove(e) {
-            const { row, col } = this._xyToRowCol(e.layerX, e.layerY);
-            const { line, idx } = this._rowColToLineIdx(row, col);
-            
-            if (this._dragging) {
-                const startIdx = Math.min(this._dragIdxStart, idx);
-                const endIdx = Math.max(this._dragIdxStart, idx);
-                this._textarea.setSelectionRange(this._idxToTextarea(startIdx), this._idxToTextarea(endIdx));
-                this._textarea.focus();
-            }
-    
-            if (!this._dragging && (col === -1 || this._isRowLocked(row)))
-                this._canvas.style.cursor = 'default';
-            else
-                this._canvas.style.cursor = 'text';
-        }
-        _onMouseUp(e) {
-            this._dragging = false;
-        }
-        _idxToTextarea(idx) {
-            return idx - this._prefix.length;
-        }
-        _textareaToIdx(idx) {
-            return idx + this._prefix.length;
-        }
-        _rowColToLineIdx(row, col) {
-            let line;
-            for (line of this._lineModel)
-                if (row >= line.startRow && row < line.startRow + line.rows)
-                    break;
-    
-            // We have our line. Find idx.
-            let idx = line.start;
-            // Fast path.
-            col = Math.min(Math.max(col, 0), line.length);
-            if (line.rows === 1) {
-                idx += col;
-            } else {
-                idx += (row - line.startRow) * this._cols + col;
-            }
-            return { line, idx };
-        }
-        _xyToRowCol(x, y) {
-            const row = Math.floor(y / this._rowHeight);
-            let col;
-            if (x < this._gutterWidth)
-                col = -1;
-            x -= this._gutterWidth;
-            if (col === undefined && x < this._textMargin)
-                col = 0;
-            x -= this._textMargin;
-            if (col === undefined)
-                col = Math.round(x / this._charWidth);
-            return { row, col };
-        }
-        _getRowLength(row) {
-            let line;
-            for (line of this._lineModel)
-                if (row >= line.startRow && row < line.startRow + line.rows)
-                    break;
-    
-            // Fast path.
-            if (line.rows === 1)
-                return line.length;
-    
-            if (row === line.startRow + line.rows - 1)
-                return line.length % this._cols;
-            else
-                return this._cols;
-        }
-        _getCharPos(idx) {
-            let line;
-            for (line of this._lineModel)
-                if (idx >= line.start && idx < line.end)
-                    break;
-    
-            const lineIdx = idx - line.start;
-            // Fast path.
-            if (line.rows === 1)
-                return { line, lineIdx, row: line.startRow, col: lineIdx };
-    
-            // Slow path.
-            const col = lineIdx % this._cols;
-            const row = line.startRow + Math.min((lineIdx / this._cols) | 0, line.rows);
-            return { line, lineIdx, row, col };
-        }
-        _hasSelection() {
-            return this._textarea.selectionStart !== this._textarea.selectionEnd;
-        }
-        _getSelection() {
-            return [this._textareaToIdx(this._textarea.selectionStart), this._textareaToIdx(this._textarea.selectionEnd)];
-        }
-        _insertAtCursor(s) {
-            this._textarea.focus();
-            document.execCommand('insertText', false, s);
-            this._recalculate();
-        }
-        redraw(t) {
-            // First, recalculate anything that's dirty.
-    
-            const hasFocus = this._textarea.matches(':focus');
-    
-            if (hasFocus && !this._hasSelection()) {
-                // Has a cursor.
-                const cursorPosition = this._textareaToIdx(this._textarea.selectionStart);
-                if (this._redraw_cursorPosition !== cursorPosition) {
-                    this._redraw_cursorPosition = cursorPosition;
-                    // Set it blinking again.
-                    this._redraw_cursorBlinkStart = t;
-                }
-            } else {
-                this._redraw_cursorPosition = undefined;
-            }
-    
-            const ctx = this._canvas.getContext('2d');
-    
-            const bgcolor = '#232323';
-            ctx.fillStyle = bgcolor;
-            ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
-    
-            const textareaStyle = window.getComputedStyle(this._textarea);
-            ctx.font = textareaStyle.font;
-    
-            // Highlight the current line before the gutter so the shadow interacts with it.
-            if (this._redraw_cursorPosition) {
-                const cursorPos = this._getCharPos(this._redraw_cursorPosition);
-                const row = cursorPos.row;
-                const y = row * this._rowHeight;
-                ctx.fillStyle = '#363430';
-                ctx.fillRect(0, y, this._canvas.width, this._rowHeight);
-            }
-    
-            // Gutter
-            ctx.save();
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            ctx.shadowOffsetX = 4;
-            ctx.fillStyle = '#445';
-            ctx.fillRect(0, 0, this._gutterWidth, this._canvas.height);
-            ctx.restore();
-    
-            // Gutter text.
-            ctx.fillStyle = '#ccc';
-            for (const line of this._lineModel) {
-                const no = line.lineno + 1;
-                const y = line.startRow * this._rowHeight;
-                ctx.textBaseline = 'top';
-                ctx.textAlign = 'right';
-                ctx.fillText(no, this._gutterWidth - this._gutterMargin, y);
-            }
-    
-            // Add a newline at the end to make paint logic simpler.
-            const chars = this.getFullText() + '\n';
-    
-            ctx.save();
-            ctx.translate(this._gutterWidth + this._textMargin, 0);
-    
-            if (this._hasSelection()) {
-                // Draw selection bounds.
-                let inSelection = false;
-                const [selectionStart, selectionEnd] = this._getSelection();
-                const startPos = this._getCharPos(selectionStart);
-                const endPos = this._getCharPos(selectionEnd);
-    
-                for (let row = startPos.row; row <= endPos.row; row++) {
-                    let colStart = (row === startPos.row) ? startPos.col : 0;
-                    let colEnd = (row === endPos.row) ? endPos.col : this._getRowLength(row);
-    
-                    const selectionColor = '#336';
-                    const startX = colStart * this._charWidth;
-                    const endX = colEnd * this._charWidth;
-                    const y = row * this._rowHeight;
-                    ctx.fillStyle = selectionColor;
-                    ctx.fillRect(startX, y, endX - startX, this._rowHeight);
-                }
-            }
-    
-            // XXX: Don't generate garbage in the repaint loop.
-            const syntaxRuns = this._syntaxRuns.slice();
-    
-            // Now for the actual paint.
-            for (const line of this._lineModel) {
-                let row = line.startRow, col = 0;
-                for (let i = line.start; i < line.end; i++) {
-                    // XXX: Use something else other than charAt for Unicode compliance.
-                    const char = chars.charAt(i);
-                    const x = col * this._charWidth, y = row * this._rowHeight;
-    
-                    if (i === this._redraw_cursorPosition) {
-                        // Draw cursor.
-                        ctx.save();
-                        ctx.fillStyle = '#fff';
-                        const blinkAnimationT = (t - this._redraw_cursorBlinkStart) / 1000;
-                        const blinkAlpha = (Math.sin(blinkAnimationT * 6) + 1);
-                        ctx.globalAlpha = blinkAlpha;
-                        ctx.fillRect(Math.floor(x), y, 2, this._rowHeight);
-                        ctx.restore();
-                    }
-    
-                    if (char === '\n')
-                        break;
-    
-                    let color = '#e6e1dc';
-                    let style = 'normal';
-                    if (syntaxRuns.length) {
-                        const run = syntaxRuns[0];
-                        if (i >= run.start && i < run.end) {
-                            color = syntaxRuns[0].color;
-                            style = syntaxRuns[0].style;
-                        }
-                        if (i >= run.end)
-                            syntaxRuns.shift();
-                    }
-    
-                    ctx.textBaseline = 'top';
-                    ctx.textAlign = 'left';
-                    ctx.fillStyle = color;
-                    ctx.font = `${style} ${textareaStyle.fontSize} ${textareaStyle.fontFamily}`;
-                    ctx.fillText(char, x, y);
-                    col++;
-    
-                    if (col === this._textarea.cols && (row - line.startRow) < line.rows - 1) {
-                        row++;
-                        col = 0;
-                    }
-                }
-            }
-    
-            ctx.restore();
-        }
-    }    
-
     // XXX: I need better names for these variables.
 
     // The size of our rasterized buffer.
-    var BUFFER_WIDTH = 46, BUFFER_HEIGHT = 10;
+    var BUFFER_WIDTH = 46, MIN_BUFFER_HEIGHT = 10;
 
     // This rasterized buffer gets rendered so that each "picture element"
     // in it gets a giant 16x16 "cell" for demonstration purposes.
@@ -486,7 +85,6 @@
 
     // As such, the final size of the buffer, rendered on the canvas, is:
     var DISPLAY_WIDTH = BUFFER_WIDTH * DISPLAY_CELL_SIZE;
-    var DISPLAY_HEIGHT = BUFFER_HEIGHT * DISPLAY_CELL_SIZE + DISPLAY_YPAD * 2;
 
     // The size of our "demo slot" is 800px, which means we need some padding
     // on the left and right sides.
@@ -525,11 +123,9 @@
     }
 
     function drawGrid(ctx, width, height) {
-        width = width !== undefined ? width : BUFFER_WIDTH;
-        height = height !== undefined ? height : BUFFER_HEIGHT;
         ctx.beginPath();
         gridPath(ctx, width, height);
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.strokeStyle = 'rgba(127, 127, 127, 0.4)';
         ctx.stroke();
     }
 
@@ -569,72 +165,358 @@
         return coverage;
     }
 
-    class CoverageDrawer {
-        constructor(canvas) {
-            this._canvas = canvas;
-            visibleRAF(this._canvas, this._redraw.bind(this));
+    function coverageWorker(global) {
+        global.onmessage = function(e) {
+            const time = e.data.time;
+            const w = e.data.width, h = e.data.height;
+            const array = new Uint8Array(w*h);
+
+            let i = 0;
+            let error;
+            outer:
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    let value;
+                    try {
+                        value = collectCoverage(x, y, coverage, [time]);
+                    } catch(e) {
+                        error = e;
+                        break outer;
+                    }
+                    array[i++] = (value * 255) | 0;
+                }
+            }
+
+            if (error !== undefined)
+                global.postMessage({ time: time, error: error.message });
+            else
+                global.postMessage({ time: time, array: array });
+        };
+    }
+
+    class CoverageWorker {
+        constructor(sourceFunc) {
+            this._worker = this._compileWorker(sourceFunc);
+            this._worker.onerror = (e) => {
+                this.terminate('onerror');
+            };
+            this._worker.onmessage = this._onMessage.bind(this);
+
+            this.terminated = null;
+            this.pending = false;
         }
 
-        setCoverageFunc(source) {
-            // Compile function.
-            let f;
-            try {
-                f = new Function(source + '\n return coverage;');
-            } catch(e) {
-                // If we can't compile, don't bother doing anything.
+        terminate(reason) {
+            if (this.terminated)
+                return;
+
+            // Terminate on first sight of error.
+            this.terminated = reason;
+            this._worker.terminate();
+            if (this.onterminated)
+                this.onterminated();
+        }
+
+        _onMessage(e) {
+            this.pending = false;
+            const data = e.data;
+            if (data.error !== undefined)
+                this.terminate('error');
+            else
+                this.onresult(data);
+        }
+
+        sendJob(job, time) {
+            if (this.pending) {
+                const diff = time - this._lastSentTime;
+                if (diff > 2000)
+                    this.terminate('timeout');
                 return;
             }
 
-            this._coverage = f();
+            this._worker.postMessage(job);
+            this.pending = true;
+            this._lastSentTime = time;
         }
 
-        _redraw(time) {
+        _compileWorker(coverageFunc) {
+            const blob = new Blob([coverageFunc, collectCoverage.toString(), coverageWorker.toString(), 'coverageWorker(this);'], { type: 'text/javascript' });
+            const url = window.URL.createObjectURL(blob);
+            const worker = new Worker(url);
+            window.URL.revokeObjectURL(url);
+            return worker;
+        }
+    }
+
+    class CoverageDrawer {
+        constructor(canvas) {
+            this._canvas = canvas;
+            visibleRAF(this._canvas, this._redraw.bind(this), this._setActive.bind(this));
+
+            this._bufferHeightNext = 0;
+        }
+
+        getCanvas() {
+            return this._canvas;
+        }
+
+        _drawGrid(array) {
+            if (this._bufferHeightNext === this._bufferHeight) {
+                this._canvas.height = this._bufferHeight * DISPLAY_CELL_SIZE + DISPLAY_YPAD * 2;
+                this._bufferHeightNext = 0;
+            }
+
             const ctx = this._canvas.getContext('2d');
             ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
             ctx.save();
             ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
-            ctx.fillStyle = 'rgb(0, 0, 0)';
-            drawGrid(ctx);
 
-            for (let y = 0; y < BUFFER_HEIGHT; y++) {
-                for (let x = 0; x < BUFFER_WIDTH; x++) {
-                    // Number between 0 and 1.
-                    const coverage = collectCoverage(x, y, this._coverage, [time]);
-                    const color = `rgba(0, 0, 0, ${coverage})`;
-                    ctx.fillStyle = color;
-                    const px = bufferToDisplay({ x, y });
-                    ctx.fillRect(px.x, px.y, DISPLAY_CELL_SIZE, DISPLAY_CELL_SIZE);
+            if (array) {
+                let i = 0;
+                for (let y = 0; y < this._bufferHeight; y++) {
+                    for (let x = 0; x < BUFFER_WIDTH; x++) {
+                        const coverage = array[i++] / 255;
+                        const color = `rgba(0, 0, 0, ${coverage})`;
+                        ctx.fillStyle = color;
+                        const px = bufferToDisplay({ x, y });
+                        ctx.fillRect(px.x, px.y, DISPLAY_CELL_SIZE, DISPLAY_CELL_SIZE);
+                    }
                 }
             }
+
+            drawGrid(ctx, BUFFER_WIDTH, this._bufferHeight);
             ctx.restore();
+        }
+
+        _setActive(active) {
+            this._active = active;
+
+            if (this._active) {
+                this._createWorker();
+            } else {
+                if (this._pendingWorker) {
+                    this._pendingWorker.terminate();
+                    this._pendingWorker = null;
+                }
+
+                if (this._worker) {
+                    this._worker.terminate();
+                    this._worker = null;
+                }
+            }
+        }
+
+        setNextHeight(bufferHeight) {
+            if (this._bufferHeight === bufferHeight)
+                return;
+
+            this._bufferHeightNext = bufferHeight;
+        }
+
+        setCoverageFunc(source) {
+            this._source = source;
+
+            if (this._active)
+                this._createWorker();
+        }
+
+        _createWorker() {
+            if (this._pendingWorker)
+                this._pendingWorker.terminate();
+
+            // Keep the old worker around until the new one picks up.
+            this._pendingWorker = new CoverageWorker(this._source);
+            this._pendingWorker.onresult = this._pendingWorkerResult.bind(this);
+        }
+
+        _pendingWorkerResult(data) {
+            // Kill the current worker.
+            if (this._worker)
+                this._worker.terminate();
+
+            const worker = this._pendingWorker;
+            this._worker = worker;
+            worker.onresult = (data) => {
+                this._workerResult(worker, data);
+            };
+
+            worker.onterminated = (e) => {
+                this._workerTerminated(worker, e);
+            };
+
+            this._pendingWorker = null;
+            this._workerResult(worker, data);
+        }
+
+        _workerResult(worker, data) {
+            if (worker !== this._worker) {
+                worker.terminate();
+                return;
+            }
+
+            const array = data.array;
+            this._drawGrid(array);
+        }
+
+        _workerTerminated(worker, e) {
+            // If the worker goes away, strip it.
+            if (this._worker === worker)
+                this._worker = null;
+        }
+
+        _redraw(time) {
+            if (this._bufferHeightNext) {
+                this._bufferHeight = this._bufferHeightNext;
+                // Don't clear.
+            }
+
+            const message = { time: time, width: BUFFER_WIDTH, height: this._bufferHeight };
+            if (this._worker)
+                this._worker.sendJob(message, time);
+            if (this._pendingWorker)
+                this._pendingWorker.sendJob(message, time);
+
+            // XXX: Should we draw a blank grid or keep the last known good compile there?
+            if (!this._worker)
+                this._drawGrid(null);
         }
     }
 
-    ArticleDemos.registerDemo("rast2-coverage-editor-1", "", function(res) {
-        const demoSlot = res.demoSlot;
+    class Splitter {
+        constructor() {
+            this._splitter = document.createElement('div');
+            this._splitter.style.backgroundImage = 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAFCAYAAABM6GxJAAAAGklEQVQYlWNkYGD4z0ABYPz/nyL9DIxD3wUAwasI/QBdwtsAAAAASUVORK5CYII=)';
+            this._splitter.style.backgroundRepeat = 'no-repeat';
+            this._splitter.style.backgroundPosition = 'center center';
+            this._splitter.style.cursor = 's-resize';
+            this._splitter.style.height = '15px';
+            this._setActive(false);
 
-        const canvas = res.canvas;
-        canvas.height = DISPLAY_HEIGHT;
+            this._splitter.onmousedown = this._onMouseDown.bind(this);
+            this._onMouseMove = this._onMouseMove.bind(this);
+            this._onMouseUp = this._onMouseUp.bind(this);
 
-        const coverageDrawer = new CoverageDrawer(canvas);
-
-        const editor = new Editor();
-        editor.setFontSize('14pt');
-        editor.setSize(canvas.width, 250);
-        editor.setPrefixSuffix('function coverage(x, y, time) {\n', '\n}');
-        editor.setValue(`    const radius = 3;
-    const circleX = 25 + Math.sin(time / 1000) * 10;
-    const circleY = 5;
-    const px = x - circleX, py = y - circleY;
-    return Math.sqrt(px*px + py*py) <= radius;`);
-        demoSlot.appendChild(editor.elem);
-
-        function setCoverage() {
-            coverageDrawer.setCoverageFunc(editor.getFullText());
+            this.elem = this._splitter;
         }
 
-        editor.ontextchanged = setCoverage;
-        setCoverage();
-    });
+        _onMouseDown(e) {
+            e.preventDefault();
+
+            this._dragStartX = e.clientX;
+            this._dragStartY = e.clientY;
+            document.documentElement.addEventListener('mousemove', this._onMouseMove);
+            document.documentElement.addEventListener('mouseup', this._onMouseUp);
+            this._setActive(true);
+            if (this.ondragstart)
+                this.ondragstart();
+        }
+
+        _onMouseMove(e) {
+            const dx = e.clientX - this._dragStartX;
+            const dy = e.clientY - this._dragStartY;
+            if (this.ondrag)
+                this.ondrag(dx, dy, e);
+        }
+
+        _onMouseUp(e) {
+            document.documentElement.removeEventListener('mousemove', this._onMouseMove);
+            document.documentElement.removeEventListener('mouseup', this._onMouseUp);
+            this._setActive(false);
+        }
+
+        _setActive(active) {
+            if (active)
+                document.body.style.setProperty('cursor', 's-resize', 'important');
+            else
+                document.body.style.cursor = '';
+            this._splitter.style.opacity = active ? 1.0 : 0.3;
+        }
+    }
+
+    class CoverageSplitter extends Splitter {
+        constructor(coverage) {
+            super();
+            this._coverage = coverage;
+        }
+        ondragstart() {
+            this._startHeight = this._coverage.getCanvas().height;
+        }
+        ondrag(dx, dy, e) {
+            const rawHeight = this._startHeight + dy;
+            const bufferHeight = Math.round((rawHeight - DISPLAY_YPAD * 2) / DISPLAY_CELL_SIZE);
+            const bufferHeightClamped = Math.max(bufferHeight, MIN_BUFFER_HEIGHT);
+            this._coverage.setNextHeight(bufferHeightClamped);
+        }
+    }
+
+    function registerCoverageDemo(name, initialHeight, source) {
+        ArticleDemos.registerDemo(name, "", function(res) {
+            const demoSlot = res.demoSlot;
+            const canvas = res.canvas;
+
+            const coverageDrawer = new CoverageDrawer(canvas);
+            coverageDrawer.setNextHeight(initialHeight);
+
+            const splitter = new CoverageSplitter(coverageDrawer);
+            demoSlot.appendChild(splitter.elem);
+
+            const editor = new Editor();
+            editor.setFontSize('12pt');
+            editor.setSize(canvas.width, 250);
+            editor.setPrefixSuffix('function coverage(x, y, time) {\n', '\n}');
+            // Trim initial newline.
+            source = source.replace(/^\n+/, '');
+            source = source.replace(/\n+$/, '');
+            editor.setValue(source);
+
+            demoSlot.appendChild(editor.elem);
+
+            function setCoverage() {
+                coverageDrawer.setCoverageFunc(editor.getFullText());
+            }
+
+            editor.ontextchanged = setCoverage;
+            setCoverage();
+        });
+    }
+
+    registerCoverageDemo('rast2-coverage-editor-1', MIN_BUFFER_HEIGHT, `
+    const radius = 3;
+    const circleX = 25 + Math.sin(time / 1000) * 10;
+    const circleY = 5;
+
+    // A circle includes any point where the distance
+    // between points is less than the radius.
+    const dx = circleX - x, dy = circleY - y;
+    return Math.sqrt(dx*dx + dy*dy) <= radius;
+`);
+
+registerCoverageDemo('rast2-coverage-editor-2', MIN_BUFFER_HEIGHT, `
+    function circle(cx, cy, radius) {
+        const dx = cx - x, dy = cy - y;
+        // Quick optimization trick to avoid the sqrt: square both sides.
+        return dx*dx + dy*dy <= radius*radius;
+    }
+
+    function rect(sx, sy, w, h) {
+        const sx2 = sx+w, sy2 = sy+h;
+        return x >= sx && x < sx2 && y >= sy && y < sy2;
+    }
+
+    function capsule(sx, sy, w, h) {
+        // Our circle's radiuses are half the height.
+        const r = h/2;
+        return (
+            circle(sx+r, sy+r, r)     || // Left cap.
+            circle(sx+r+w-h, sy+r, r) || // Right cap.
+            rect(sx+r, sy, w-h, h)       // Connecting rect.
+        );
+    }
+
+    // Animate width over time
+    const cx = Math.sin(time / 700) * 3 + 7;
+    const cw = Math.sin(time / 500) * 5 + 25;
+    return capsule(cx, 1, cw, 8);
+`);
 
 })(window);
