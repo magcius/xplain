@@ -26,6 +26,14 @@
         return entry.id + '.html';
     }
 
+    function generateTitle() {
+        const entryIndex = findTOCEntryIndex(document.body.id);
+        if (entryIndex === -1)
+            return;
+        const entry = TOC[entryIndex];
+        document.title += ` - ${entry.title}`;
+    }
+
     // Generate the table of contents
     function generateTOC() {
         const tocElem = document.querySelector('.table-of-contents');
@@ -104,6 +112,7 @@
         for (const yearElem of document.querySelectorAll('#current-year'))
             yearElem.textContent = (new Date().getFullYear());
 
+        generateTitle();
         generateTOC();
         generateNavButtons();
         generateSectionLinks();
