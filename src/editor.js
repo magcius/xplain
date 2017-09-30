@@ -128,6 +128,9 @@
             this._mouseX = e.clientX;
             this._value = value;
 
+            // reset
+            this._selectSegment(this._segments[2]);
+
             document.body.appendChild(this._toplevel);
 
             document.documentElement.addEventListener('mouseup', this._onMouseUp);
@@ -178,18 +181,18 @@
             this._textarea.style.position = 'absolute';
             this._canvas.style.position = 'absolute';
 
+            this._needsRecalculate = false;
+
             // Redraw-internal state.
             this._redraw_cursorPosition = undefined;
             this._redraw_cursorBlinkStart = undefined;
-
-            this.elem = this._toplevel;
-            this._needsRecalculate = false;
 
             this._numberDragger = new NumberDragger();
             this._numberDragger.onvalue = this._onNumberDraggerValue.bind(this);
             this._numberDragger.onend = this._onNumberDraggerEnd.bind(this);
 
-            // XXX: Should the redraw be user-called?
+            this.elem = this._toplevel;
+
             visibleRAF(this._canvas, this.redraw.bind(this));
         }
 
@@ -232,11 +235,9 @@
 
         _isRowLocked(row) {
             // XXX(WRAP): Assumes not word wrapping.
-            const prefixRows = this._prefix.split('\n').length - 1;
-            if (row < prefixRows)
+            if (row < this._prefixRows)
                 return true;
-            const suffixRows = this._suffix.split('\n').length - 1;
-            if (row >= this._lineModel.length - suffixRows)
+            if (row >= this._suffixRows)
                 return true;
             return false;
         }
@@ -268,6 +269,9 @@
             }
             this._lineModel = lineModel;
 
+            this._prefixRows = this._prefix.split('\n').length - 1;
+            this._suffixRows = this._lineModel.length - (this._suffix.split('\n').length - 1);
+
             // Compute syntax highlights.
             const syntaxRuns = [];
             const draggableNumbers = [];
@@ -298,6 +302,7 @@
             this._draggableNumbers = draggableNumbers;
 
             const textareaStyle = window.getComputedStyle(this._textarea);
+            this._textareaStyle = textareaStyle;
 
             const ctx = this._canvas.getContext('2d');
             ctx.font = `${textareaStyle.fontSize} ${textareaStyle.fontFamily}`;
@@ -318,7 +323,7 @@
             // XXX: This seems to be a Chrome default for the line-height? Not sure how else I can
             // calculate this guy... grr...
             if (rowHeight === 'normal')
-                rowHeight = 1.2 * textareaStyle.fontSize.replace('px', '');
+                rowHeight = 1.2 * parseFloat(textareaStyle.fontSize);
             else
                 rowHeight = parseFloat(rowHeight);
             this._rowHeight = Math.ceil(rowHeight);
@@ -573,7 +578,7 @@
             ctx.fillStyle = bgcolor;
             ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
 
-            const textareaStyle = window.getComputedStyle(this._textarea);
+            const textareaStyle = this._textareaStyle;
             ctx.font = `${textareaStyle.fontSize} ${textareaStyle.fontFamily}`;
 
             // Highlight the current line before the gutter so the shadow interacts with it.
@@ -595,7 +600,8 @@
             ctx.restore();
 
             // Gutter text.
-            for (const line of this._lineModel) {
+            for (let i = 0; i < this._lineModel.length; i++) {
+                const line = this._lineModel[i];
                 const no = line.lineno + 1;
                 const y = (this._paddingTop + line.startRow) * this._rowHeight;
                 ctx.fillStyle = this._isRowLocked(line.startRow) ? '#888' : '#ccc';
@@ -630,18 +636,19 @@
                 }
             }
 
-            // XXX: Don't generate garbage in the repaint loop.
-            const syntaxRuns = this._syntaxRuns.slice();
+            const syntaxRuns = this._syntaxRuns;
+            let currentSyntaxRun = 0;
 
             // Anything interesting under the mouse?
             let draggableNumber;
             if (this._draggingNumber)
                 draggableNumber = this._draggingNumber;
-            else if (!this._dragging)
+            else if (!this._dragging && this._mouseIdx > -1)
                 draggableNumber = this._findDraggableNumber(this._mouseIdx);
 
             // Now for the actual paint.
-            for (const line of this._lineModel) {
+            for (let m = 0; m < this._lineModel.length; m++) {
+                const line = this._lineModel[m];
                 let row = line.startRow, col = 0;
                 for (let i = line.start; i < line.end; i++) {
                     // XXX: Use something else other than charAt for Unicode compliance.
@@ -676,16 +683,17 @@
 
                     let color = '#e6e1dc';
                     let style = 'normal';
-                    if (syntaxRuns.length) {
-                        const run = syntaxRuns[0];
+
+                    if (currentSyntaxRun < syntaxRuns.length) {
+                        const run = syntaxRuns[currentSyntaxRun];
                         if (i >= run.start && i < run.end) {
                             color = run.color;
                             style = run.style;
                         }
                     }
 
-                    while (syntaxRuns.length && i >= syntaxRuns[0].end)
-                        syntaxRuns.shift();
+                    while (currentSyntaxRun < syntaxRuns.length && i >= syntaxRuns[currentSyntaxRun].end)
+                        currentSyntaxRun++;
 
                     ctx.textBaseline = 'top';
                     ctx.textAlign = 'left';

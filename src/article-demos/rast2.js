@@ -106,16 +106,20 @@
 
     // Path out a grid of strokes drawing a grid.
     function gridPath(ctx, width, height) {
+        const start = { x: 0, y: 0 };
+        const end = { x: 0, y: 0 };
+
         for (var x = 0; x <= width; x++) {
-            var start = { x: x, y: 0 }, end = { x: x, y: height };
+            start.x = end.x = x;
+            start.y = 0; end.y = height;
             bufferToDisplay(start); bufferToDisplay(end);
-            // See article for why these 0.5s are here!
             ctx.moveTo(start.x + 0.5, start.y);
             ctx.lineTo(end.x + 0.5, end.y);
         }
 
         for (var y = 0; y <= height; y++) {
-            var start = { x: 0, y: y }, end = { x: width, y: y };
+            start.y = end.y = y;
+            start.x = 0; end.x = width;
             bufferToDisplay(start); bufferToDisplay(end);
             ctx.moveTo(start.x, start.y + 0.5);
             ctx.lineTo(end.x, end.y + 0.5);
@@ -271,6 +275,7 @@
             ctx.save();
             ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
+            const px = { x: 0, y: 0 };
             if (array) {
                 let i = 0;
                 for (let y = 0; y < this._bufferHeight; y++) {
@@ -278,7 +283,7 @@
                         const coverage = array[i++] / 255;
                         const color = `rgba(0, 0, 0, ${coverage})`;
                         ctx.fillStyle = color;
-                        const px = bufferToDisplay({ x, y });
+                        px.x = x; px.y = y; bufferToDisplay(px);
                         ctx.fillRect(px.x, px.y, DISPLAY_CELL_SIZE, DISPLAY_CELL_SIZE);
                     }
                 }
