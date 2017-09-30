@@ -5,10 +5,8 @@
 (function(exports) {
     "use strict";
 
-    var Article = {};
-
     // The master table of contents.
-    var TOC = [
+    const TOC = [
         { id: "index", title: "Introduction & Table of Contents" },
         { id: "x-basics", title: "X Window System Basics" },
         { id: "window-tree", title: "Advanced Window Techniques" },
@@ -18,10 +16,10 @@
     ];
 
     function findTOCEntryIndex(id) {
-        for (var i = 0; i < TOC.length; i++)
+        for (let i = 0; i < TOC.length; i++)
             if (TOC[i].id == id)
                 return i;
-        throw new Error("Unknown page");
+        return -1;
     }
 
     function linkToEntry(entry) {
@@ -29,34 +27,39 @@
     }
 
     // Generate the table of contents
-    Article.generateTOC = function() {
-        var tocElem = document.querySelector('.table-of-contents');
-        TOC.forEach(function(entry) {
-            var link = document.createElement('a');
+    function generateTOC() {
+        const tocElem = document.querySelector('.table-of-contents');
+        if (!tocElem)
+            return;
+
+        for (const entry of TOC) {
+            const link = document.createElement('a');
             link.href = linkToEntry(entry);
             link.textContent = entry.title;
 
-            var li = document.createElement('li');
+            const li = document.createElement('li');
             li.appendChild(link);
             tocElem.appendChild(li);
-        });
-    };
+        }
+    }
 
     // Generate the <h2> at the top of each page, along with nav buttons linking
     // to the next/previous articles.
-    Article.generateNavButtons = function() {
-        var h2 = document.querySelector('h2');
-        var navBottom = document.querySelector('.nav-bottom');
-        var entryIndex = findTOCEntryIndex(document.body.id);
-        var entry = TOC[entryIndex];
+    function generateNavButtons() {
+        const h2 = document.querySelector('h2');
+        const navBottom = document.querySelector('.nav-bottom');
+        const entryIndex = findTOCEntryIndex(document.body.id);
+        if (entryIndex === -1)
+            return;
+        const entry = TOC[entryIndex];
 
         function createNavButton(container, entry, content) {
-            var slot = document.createElement('span');
+            const slot = document.createElement('span');
             slot.classList.add('nav-button');
             container.appendChild(slot);
 
             if (entry) {
-                var link = document.createElement('a');
+                const link = document.createElement('a');
                 link.href = linkToEntry(entry);
                 link.innerHTML = content;
                 link.title = entry.title;
@@ -68,12 +71,12 @@
         createNavButton(h2, TOC[entryIndex - 1], '&lang;');
         createNavButton(navBottom, TOC[entryIndex - 1], '&lang;');
 
-        var textSlot = document.createElement('span');
+        const textSlot = document.createElement('span');
         textSlot.classList.add('text-slot');
         textSlot.textContent = entry.title;
         h2.appendChild(textSlot);
 
-        var bottomSlot = document.createElement('span');
+        const bottomSlot = document.createElement('span');
         bottomSlot.innerHTML = 'Written by <a href="index.html#credits">Jasper St. Pierre, among others</a>';
         bottomSlot.classList.add('text-slot');
         navBottom.appendChild(bottomSlot);
@@ -81,21 +84,33 @@
         // Next page button
         createNavButton(h2, TOC[entryIndex + 1], '&rang;');
         createNavButton(navBottom, TOC[entryIndex + 1], '&rang;');
-    };
+    }
 
     // Generate the permalinks to each section in the article for easy linking.
-    Article.generateSectionLinks = function() {
-        var sections = document.querySelectorAll('section');
-        [].forEach.call(sections, function(section) {
-            var h3 = section.querySelector('h3');
+    function generateSectionLinks() {
+        const sections = document.querySelectorAll('section');
+        for (const section of sections) {
+            const h3 = section.querySelector('h3');
 
-            var link = document.createElement('a');
+            const link = document.createElement('a');
             link.href = '#' + section.id;
             link.innerHTML = '&para;';
             h3.appendChild(link);
-        });
+        }
     };
 
-    exports.Article = Article;
+    window.onload = function() {
+        // Silly thing about current year in composite.
+        for (const yearElem of document.querySelectorAll('#current-year'))
+            yearElem.textContent = (new Date().getFullYear());
+
+        generateTOC();
+        generateNavButtons();
+        generateSectionLinks();
+
+        // Run article demos.
+        if (window.ArticleDemos !== undefined)
+            ArticleDemos.runAllDemos();
+    };
 
 })(window);

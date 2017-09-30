@@ -400,20 +400,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/railscasts.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/highlight.min.js"></script>
-
-    <script>
-        (function() {
-            "use strict";
-
-            window.addEventListener("load", function() {
-                Article.generateNavButtons();
-                Article.generateSectionLinks();
-                ArticleDemos.runAllDemos();
-            });
-
-            hljs.initHighlightingOnLoad();
-        })();
-    </script>
+    <script>hljs.initHighlightingOnLoad();</script>
 
     <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
