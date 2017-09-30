@@ -92,7 +92,8 @@
             for (const segment of this._segments) {
                 const bbox = segment.getBoundingClientRect();
                 if (y < bbox.bottom) {
-                    this._selectSegment(segment);
+                    if (this._selectSegment(segment))
+                        this._mouseX = e.clientX;
                     break;
                 }
             }
@@ -118,7 +119,7 @@
         _selectSegment(segment) {
             const incr = segment._incr;
             if (this._currentIncr === incr)
-                return;
+                return false;
             this._currentIncr = incr;
 
             for (const seg of this._segments) {
@@ -127,6 +128,7 @@
                 seg.style.color = hilite ? '#222' : '';
                 seg.style.fontWeight = hilite ? 'bold' : '';
             }
+            return true;
         }
 
         setPosition(x, y) {
