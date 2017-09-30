@@ -300,7 +300,7 @@
             const textareaStyle = window.getComputedStyle(this._textarea);
 
             const ctx = this._canvas.getContext('2d');
-            ctx.font = textareaStyle.font;
+            ctx.font = `${textareaStyle.fontSize} ${textareaStyle.fontFamily}`;
 
             // We're using a monospace font. It should have identical metrics for all characters,
             // so just measuring one should be fine...
@@ -319,6 +319,8 @@
             // calculate this guy... grr...
             if (rowHeight === 'normal')
                 rowHeight = 1.2 * textareaStyle.fontSize.replace('px', '');
+            else
+                rowHeight = parseFloat(rowHeight);
             this._rowHeight = Math.ceil(rowHeight);
 
             const newHeight = Math.max(this._minHeight, this._rowHeight * (numLines + this._paddingTop + this._paddingBottom));
@@ -540,6 +542,10 @@
             return [this._textareaToIdx(this._textarea.selectionStart), this._textareaToIdx(this._textarea.selectionEnd)];
         }
         _insertAtCursor(s) {
+            // XXX: Doesn't work in Firefox. :(
+            // https://github.com/w3c/editing/issues/160
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1220696
+
             this._textarea.focus();
             document.execCommand('insertText', false, s);
             this._setNeedsRecalculate();
@@ -568,7 +574,7 @@
             ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
 
             const textareaStyle = window.getComputedStyle(this._textarea);
-            ctx.font = textareaStyle.font;
+            ctx.font = `${textareaStyle.fontSize} ${textareaStyle.fontFamily}`;
 
             // Highlight the current line before the gutter so the shadow interacts with it.
             if (this._redraw_cursorPosition) {
