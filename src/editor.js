@@ -150,6 +150,26 @@
         }
     }
 
+    // XXX: Differing browsers have inconsistent ways of drawing text... specifically,
+    // they don't always agree on what 'top' baseline alignment is. This tries to
+    // accurately measure the top margin by drawing a character and scanning where the top is...
+    function expensiveMeasureTextMargin(width, height, font) {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.font = font;
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = 'black';
+        ctx.fillText('l', 0, 0);
+        const image = ctx.getImageData(0, 0, width, height);
+        for (let y = 0; y < image.height; y++)
+            for (let x = 0; x < image.width; x++)
+                if (image.data[4*(y*image.width+x)+3])
+                    return y;
+        throw new Error('wtf');
+    }
+
     exports.Editor = class Editor {
         constructor() {
             // User-specified callback.
@@ -321,6 +341,21 @@
             // so just measuring one should be fine...
             this._charWidth = ctx.measureText(' ').width;
 
+            let rowHeight = textareaStyle.lineHeight;
+            // XXX: This seems to be a Chrome default for the line-height? Not sure how else I can
+            // calculate this guy... grr...
+            if (rowHeight === 'normal')
+                rowHeight = 1.3 * parseFloat(textareaStyle.fontSize);
+            else
+                rowHeight = parseFloat(rowHeight);
+            this._rowHeight = Math.ceil(rowHeight);
+
+            if (this._charMarginTop === undefined) {
+                const stdMargin = 4;
+                this._charMarginTop = stdMargin - expensiveMeasureTextMargin(this._charWidth, this._rowHeight, ctx.font);
+                console.log(this._charMarginTop);
+            }
+
             // Recalculate geometry.
             const numLines = this._lineModel.length;
 
@@ -328,15 +363,6 @@
             this._gutterMargin = 10;
             this._gutterWidth = this._charWidth * Math.max(gutterChars, 2) + this._gutterMargin * 2;
             this._textMargin = 10;
-
-            let rowHeight = textareaStyle.lineHeight;
-            // XXX: This seems to be a Chrome default for the line-height? Not sure how else I can
-            // calculate this guy... grr...
-            if (rowHeight === 'normal')
-                rowHeight = 1.2 * parseFloat(textareaStyle.fontSize);
-            else
-                rowHeight = parseFloat(rowHeight);
-            this._rowHeight = Math.ceil(rowHeight);
 
             const newHeight = Math.max(this._minHeight, this._rowHeight * (numLines + this._paddingTop + this._paddingBottom));
             if (newHeight !== this._height) {
@@ -615,7 +641,7 @@
                 ctx.fillStyle = this._isRowLocked(line.startRow) ? '#888' : '#ccc';
                 ctx.textBaseline = 'top';
                 ctx.textAlign = 'right';
-                ctx.fillText(no, this._gutterWidth - this._gutterMargin, y);
+                ctx.fillText(no, this._gutterWidth - this._gutterMargin, this._charMarginTop + y);
             }
 
             // Add a newline at the end to make paint logic simpler.
@@ -707,7 +733,7 @@
                     ctx.textAlign = 'left';
                     ctx.fillStyle = color;
                     ctx.font = `${style} ${textareaStyle.fontSize} ${textareaStyle.fontFamily}`;
-                    ctx.fillText(char, x, y);
+                    ctx.fillText(char, x, y + this._charMarginTop);
                     col++;
 
                     if (col === this._textarea.cols && (row - line.startRow) < line.rows - 1) {
