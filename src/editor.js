@@ -353,7 +353,6 @@
             if (this._charMarginTop === undefined) {
                 const stdMargin = 4;
                 this._charMarginTop = stdMargin - expensiveMeasureTextMargin(this._charWidth, this._rowHeight, ctx.font);
-                console.log(this._charMarginTop);
             }
 
             // Recalculate geometry.
@@ -680,6 +679,10 @@
             else if (!this._dragging && this._mouseIdx > -1)
                 draggableNumber = this._findDraggableNumber(this._mouseIdx);
 
+            // Setting the font on a CanvasRenderingContext2D in Firefox is expensive, so try
+            // to set it as little as possible by only setting it when it changes.
+            let currentFont;
+            
             // Now for the actual paint.
             for (let m = 0; m < this._lineModel.length; m++) {
                 const line = this._lineModel[m];
@@ -716,13 +719,15 @@
                     }
 
                     let color = '#e6e1dc';
-                    let style = 'normal';
+                    let style = '';
 
                     if (currentSyntaxRun < syntaxRuns.length) {
                         const run = syntaxRuns[currentSyntaxRun];
                         if (i >= run.start && i < run.end) {
-                            color = run.color;
-                            style = run.style;
+                            if (run.color)
+                                color = run.color;
+                            if (run.style)
+                                style = run.style;
                         }
                     }
 
@@ -732,7 +737,11 @@
                     ctx.textBaseline = 'top';
                     ctx.textAlign = 'left';
                     ctx.fillStyle = color;
-                    ctx.font = `${style} ${textareaStyle.fontSize} ${textareaStyle.fontFamily}`;
+                    const newFont = `${style} ${textareaStyle.fontSize} ${textareaStyle.fontFamily}`;
+                    if (currentFont !== newFont) {
+                        ctx.font = newFont;
+                        currentFont = newFont;
+                    }
                     ctx.fillText(char, x, y + this._charMarginTop);
                     col++;
 
