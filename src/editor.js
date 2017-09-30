@@ -60,7 +60,7 @@
             this.onend = null;
 
             this._toplevel = document.createElement('div');
-            this._toplevel.style.position = 'fixed';
+            this._toplevel.style.position = 'absolute';
             this._toplevel.style.transform = 'translate(0, -50%)';
             this._toplevel.style.fontFamily = MONOSPACE;
             this._toplevel.style.backgroundColor = '#232323';
@@ -485,7 +485,7 @@
             const { x, y } = this._rowColToXY(endPos.row, endPos.col);
             const bbox = this._toplevel.getBoundingClientRect();
             const absX = bbox.left + x;
-            const absY = bbox.top + y + this._rowHeight / 2;
+            const absY = bbox.top + y + this._rowHeight / 2 + window.scrollY;
             this._numberDragger.setPosition(absX, absY);
         }
         _spliceValue(start, end, v) {
