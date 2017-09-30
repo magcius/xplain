@@ -29,14 +29,22 @@
             this._styleElem = document.createElement('style');
             document.head.appendChild(this._styleElem);
             this._style = this._styleElem.sheet;
+            this._owner = null;
         }
-        setCursor(cursor) {
+        setCursor(owner, cursor) {
+            // If we have a current owner, don't let modifications by other owners...
+            if (this._owner && owner !== this._owner)
+                return;
+
             if (this._style.cssRules.length)
                 this._style.deleteRule(0);
 
             if (cursor) {
                 const rule = `* { cursor: ${cursor} !important; }`;
                 this._style.insertRule(rule, 0);
+                this._owner = owner;
+            } else {
+                this._owner = null;
             }
         }
     }
@@ -103,6 +111,8 @@
             document.documentElement.removeEventListener('mouseup', this._onMouseUp);
             document.documentElement.removeEventListener('mousemove', this._onMouseMove);
             document.body.removeChild(this._toplevel);
+
+            cursorOverride.setCursor(this, '');
         }
 
         _selectSegment(segment) {
@@ -136,7 +146,7 @@
             document.documentElement.addEventListener('mouseup', this._onMouseUp);
             document.documentElement.addEventListener('mousemove', this._onMouseMove);
 
-            cursorOverride.setCursor('e-resize');
+            cursorOverride.setCursor(this, 'e-resize');
         }
     }
 
@@ -396,8 +406,6 @@
 
             document.documentElement.removeEventListener('mouseup', this._onMouseUp);
             document.documentElement.removeEventListener('mousemove', this._onMouseMove);
-
-            cursorOverride.setCursor('');
         }
         _onMouseMove(e) {
             const { row, col } = this._xyToRowCol(e.layerX, e.layerY);
@@ -425,9 +433,9 @@
 
             this._canvas.style.cursor = cursor;
             if (this._dragging)
-                cursorOverride.setCursor(cursor);
+                cursorOverride.setCursor(this, cursor);
             else
-                cursorOverride.setCursor('');
+                cursorOverride.setCursor(this, '');
         }
         _onMouseLeave(e) {
             this._mouseIdx = undefined;
