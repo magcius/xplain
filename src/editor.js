@@ -23,6 +23,26 @@
         return beforeDec + '.' + afterDec;
     }
 
+    // Helper class to globally set a cursor.
+    class CursorOverride {
+        constructor() {
+            this._styleElem = document.createElement('style');
+            document.head.appendChild(this._styleElem);
+            this._style = this._styleElem.sheet;
+        }
+        setCursor(cursor) {
+            if (this._style.cssRules.length)
+                this._style.deleteRule(0);
+
+            if (cursor) {
+                const rule = `* { cursor: ${cursor} !important; }`;
+                this._style.insertRule(rule, 0);
+            }
+        }
+    }
+
+    const cursorOverride = new CursorOverride();
+
     // This is the fancy number slider controller that comes up from the editor.
     // UI inspired by Houdini's number slider control.
     class NumberDragger {
@@ -37,9 +57,11 @@
             this._toplevel.style.fontFamily = MONOSPACE;
             this._toplevel.style.backgroundColor = '#232323';
             this._toplevel.style.color = '#c93';
-            this._toplevel.style.border = '1px solid #c93';
+            this._toplevel.style.border = '2px solid #c93';
             this._toplevel.style.lineHeight = '1.5em';
             this._toplevel.style.marginLeft = '1em';
+            this._toplevel.style.borderRadius = '6px';
+            this._toplevel.style.boxShadow = 'rgba(0, 0, 0, .4) 0px 4px 16px';
 
             this._segments = [];
             for (let exp = 2; exp >= -2; exp--) {
@@ -111,7 +133,7 @@
             document.documentElement.addEventListener('mouseup', this._onMouseUp);
             document.documentElement.addEventListener('mousemove', this._onMouseMove);
 
-            document.body.style.setProperty('cursor', 'e-resize', 'important');
+            cursorOverride.setCursor('e-resize');
         }
     }
 
@@ -368,7 +390,7 @@
             document.documentElement.removeEventListener('mouseup', this._onMouseUp);
             document.documentElement.removeEventListener('mousemove', this._onMouseMove);
 
-            document.body.style.cursor = '';
+            cursorOverride.setCursor('');
         }
         _onMouseMove(e) {
             const { row, col } = this._xyToRowCol(e.layerX, e.layerY);
@@ -396,7 +418,9 @@
 
             this._canvas.style.cursor = cursor;
             if (this._dragging)
-                document.body.style.setProperty('cursor', cursor, 'important');
+                cursorOverride.setCursor(cursor);
+            else
+                cursorOverride.setCursor('');
         }
         _onMouseLeave(e) {
             this._mouseIdx = undefined;
