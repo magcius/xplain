@@ -3,51 +3,6 @@
 (function(exports) {
     "use strict";
 
-    /*
-    // Path data for "g" used in demos. I retrieved this by going to https://opentype.js.org/glyph-inspector.html
-    // dragging in Liberation Serif, and then running "font.glyphs.get(74).path.toSVG()".
-    var g = "M870 643L870 643L870 643Q870 481 773 398L773 398L773 398Q676 315 494 315L494 315L494 315Q412 315 342 330L342 330L279 199L279 199Q282 182 318 167L318 167L318 167Q354 152 408 152L408 152L686 152L686 152Q838 152 911.50 86L911.50 86L911.50 86Q985 20 985-96L985-96L985-96Q985-201 926.50-279L926.50-279L926.50-279Q868-357 755-399.50L755-399.50L755-399.50Q642-442 481-442L481-442L481-442Q289-442 188.50-383L188.50-383L188.50-383Q88-324 88-215L88-215L88-215Q88-162 124-110.50L124-110.50L124-110.50Q160-59 256 10L256 10L256 10Q199 29 160 75L160 75L160 75Q121 121 121 174L121 174L279 352L279 352Q121 426 121 643L121 643L121 643Q121 797 218.50 881L218.50 881L218.50 881Q316 965 502 965L502 965L502 965Q539 965 597 957.50L597 957.50L597 957.50Q655 950 686 940L686 940L907 1051L942 1008L803 864L803 864Q870 789 870 643ZM829-127L829-127L829-127Q829-70 794-38L794-38L794-38Q759-6 688-6L688-6L324-6L324-6Q282-42 255.50-97.50L255.50-97.50L255.50-97.50Q229-153 229-201L229-201L229-201Q229-287 291-324.50L291-324.50L291-324.50Q353-362 481-362L481-362L481-362Q648-362 738.50-300L738.50-300L738.50-300Q829-238 829-127ZM496 391L496 391L496 391Q605 391 650.50 453.50L650.50 453.50L650.50 453.50Q696 516 696 643L696 643L696 643Q696 776 649 832.50L649 832.50L649 832.50Q602 889 498 889L498 889L498 889Q393 889 344 832L344 832L344 832Q295 775 295 643L295 643L295 643Q295 511 343 451L343 451L343 451Q391 391 496 391Z";
-
-    function parseSVGPathDataToCanvas(ctx, pathString) {
-        var commands = pathString.match(/M|L|Q|Z|-?[\d.]+/g);
-        for (var i = 0; i < commands.length;) {
-            var k = commands[i++];
-            if (k === 'M') {
-                var x = commands[i++], y = commands[i++];
-                ctx.moveTo(x, y);
-            } else if (k === 'L') {
-                var x = commands[i++], y = commands[i++];
-                ctx.lineTo(x, y);
-            } else if (k === 'Q') {
-                var cx = commands[i++], cy = commands[i++];
-                var x = commands[i++], y = commands[i++];
-                ctx.quadraticCurveTo(cx, cy, x, y);
-            } else if (k === 'Z') {
-                ctx.closePath();
-            } else {
-                console.assert(false, "Bad k %s at %d", k, i);
-            }
-        }
-    }
-
-    var visibleRAF = CanvasUtil.visibleRAF;
-
-    ArticleDemos.registerDemo("rast2-coverage-map", "height: 300px", function(res) {
-        var canvas = res.canvas;
-        var ctx = canvas.getContext('2d');
-
-        function draw() {
-            ctx.beginPath();
-            ctx.translate(300, 150);
-            ctx.scale(0.1, -0.1);
-            parseSVGPathData(ctx, g);
-            ctx.fill();
-        }
-
-        draw();
-    });
-    */
-
     const visibleRAF = CanvasUtil.visibleRAF;
     
     ArticleDemos.registerDemo("rast2-postscript-canvas", "height: 220px", function(res) {
@@ -194,7 +149,7 @@
             if (error !== undefined)
                 global.postMessage({ time: time, error: error.message });
             else
-                global.postMessage({ time: time, array: array });
+                global.postMessage({ time: time, buffer: array.buffer }, [array.buffer]);
         };
     }
 
@@ -264,7 +219,7 @@
             return this._canvas;
         }
 
-        _drawGrid(array) {
+        _drawGrid(buffer) {
             if (this._bufferHeightNext === this._bufferHeight) {
                 this._canvas.height = this._bufferHeight * DISPLAY_CELL_SIZE + DISPLAY_YPAD * 2;
                 this._bufferHeightNext = 0;
@@ -276,7 +231,8 @@
             ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
             const px = { x: 0, y: 0 };
-            if (array) {
+            if (buffer) {
+                const array = new Uint8Array(buffer);
                 let i = 0;
                 for (let y = 0; y < this._bufferHeight; y++) {
                     for (let x = 0; x < BUFFER_WIDTH; x++) {
@@ -359,8 +315,8 @@
                 return;
             }
 
-            const array = data.array;
-            this._drawGrid(array);
+            const buffer = data.buffer;
+            this._drawGrid(buffer);
         }
 
         _workerTerminated(worker, e) {
