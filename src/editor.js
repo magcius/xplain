@@ -3,26 +3,11 @@
 (function(exports) {
 
     const visibleRAF = CanvasUtil.visibleRAF;
+
+    // The monospace font we use...
     const MONOSPACE = '"Source Code Pro", "Droid Sans Mono", monospace';
 
-    // Gross number formatting function used to lop unlucky floating points off...
-    // e.g. 12345.100000007 => '12345.1'
-    function formatDecimal(value) {
-        let valueStr = value.toString();
-        const sides = valueStr.split('.');
-        const beforeDec = sides[0];
-        if (sides.length === 1)
-            return beforeDec;
-
-        let afterDec = sides[1].slice(0, 2);
-        if (afterDec[1] === '0') {
-            afterDec = afterDec.slice(0, 1);
-            if (afterDec[0] === '0')
-                return beforeDec;
-        }
-        return beforeDec + '.' + afterDec;
-    }
-
+    // #region Cursor
     // Helper class to globally set a cursor.
     class CursorOverride {
         constructor() {
@@ -50,6 +35,27 @@
     }
 
     const cursorOverride = new CursorOverride();
+    // #endregion
+
+    // #region NumberDragger
+
+    // Gross number formatting function used to lop unlucky floating points off...
+    // e.g. 12345.100000007 => '12345.1'
+    function formatDecimal(value) {
+        let valueStr = value.toString();
+        const sides = valueStr.split('.');
+        const beforeDec = sides[0];
+        if (sides.length === 1)
+            return beforeDec;
+
+        let afterDec = sides[1].slice(0, 2);
+        if (afterDec[1] === '0') {
+            afterDec = afterDec.slice(0, 1);
+            if (afterDec[0] === '0')
+                return beforeDec;
+        }
+        return beforeDec + '.' + afterDec;
+    }
 
     // This is the fancy number slider controller that comes up from the editor.
     // UI inspired by Houdini's number slider control.
@@ -66,7 +72,7 @@
             this._toplevel.style.backgroundColor = '#232323';
             this._toplevel.style.color = '#c93';
             this._toplevel.style.border = '2px solid #c93';
-            this._toplevel.style.lineHeight = '1.5em';
+            this._toplevel.style.lineHeight = '2em';
             this._toplevel.style.marginLeft = '1em';
             this._toplevel.style.borderRadius = '6px';
             this._toplevel.style.boxShadow = 'rgba(0, 0, 0, .4) 0px 4px 16px';
@@ -116,12 +122,18 @@
         }
 
         _onMouseUp(e) {
-            this.onend();
+            cursorOverride.setCursor(this, '');
             document.documentElement.removeEventListener('mouseup', this._onMouseUp);
+
+            if (this._showTimeout) {
+                clearTimeout(this._showTimeout);
+                this._showTimeout = 0;
+                return;
+            }
+
+            this.onend();
             document.documentElement.removeEventListener('mousemove', this._onMouseMove);
             document.body.removeChild(this._toplevel);
-
-            cursorOverride.setCursor(this, '');
         }
 
         _selectSegment(segment) {
@@ -144,6 +156,12 @@
             this._toplevel.style.top = y + 'px';
         }
 
+        _show() {
+            this._showTimeout = 0;
+            document.body.appendChild(this._toplevel);
+            document.documentElement.addEventListener('mousemove', this._onMouseMove);
+        }
+
         show(value, e) {
             this._anchorMouseX = e.clientX;
             this._anchorValue = value;
@@ -151,14 +169,13 @@
             // reset
             this._selectSegment(this._segments[2]);
 
-            document.body.appendChild(this._toplevel);
-
             document.documentElement.addEventListener('mouseup', this._onMouseUp);
-            document.documentElement.addEventListener('mousemove', this._onMouseMove);
-
+            // Delay the show a tiny bit...
+            this._showTimeout = setTimeout(this._show.bind(this), 100);
             cursorOverride.setCursor(this, 'e-resize');
         }
     }
+    // #endregion
 
     // XXX: Differing browsers have inconsistent ways of drawing text... specifically,
     // they don't always agree on what 'top' baseline alignment is. This tries to
