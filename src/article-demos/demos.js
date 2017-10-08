@@ -1,15 +1,11 @@
-// Contains the "demo framework", along with some of the more simple demos.
+// Contains the "demo framework".
 
 (function(exports) {
     "use strict";
 
-    // Creates a server instance for each demo, and sets up "demo things".
-    // It sizes each server according to the containing element, adds the
-    // stipple pattern, and (optionally) adds the inspector as well.
     function bootstrapDemo(demo, elem) {
         var demoSlot = document.createElement("div");
         demoSlot.setAttribute('style', demo.style);
-        demoSlot.classList.add('demo-' + demo.name);
         elem.insertBefore(demoSlot, elem.firstChild);
         return demoSlot;
     }
@@ -18,7 +14,11 @@
 
     var ArticleDemos = {};
     ArticleDemos.registerDemo = function(name, style, func) {
-        demos[name] = { name: name, func: func, style: style };
+        if (func !== undefined) {
+            demos[name] = { name: name, func: func, style: style };
+        } else {
+            demos[name] = style;
+        }
     };
 
     function findDemo(demoName) {
@@ -27,7 +27,7 @@
             console.error("Unknown demo: " + demoName);
         return demo;
     }
-    ArticleDemos.runServerDemo = function(elem) {
+    function runServerDemo(elem) {
         var demoName = elem.dataset.demo;
         var demo = findDemo(demoName);
         var demoFunc = demo.func;
@@ -37,8 +37,8 @@
         demoSlot.appendChild(server.elem);
         var res = { server: server, elem: elem };
         demoFunc(res);
-    };
-    ArticleDemos.runCanvasDemo = function(elem) {
+    }
+    function runCanvasDemo(elem) {
         var demoName = elem.dataset.demo;
         var demo = findDemo(demoName);
         if (!demo)
@@ -51,16 +51,25 @@
         demoSlot.appendChild(canvas);
         var res = { canvas: canvas, elem: elem, demoSlot: demoSlot };
         demoFunc(res);
-    };
+    }
+    function runSlotDemo(elem) {
+        const demoName = elem.dataset.demo;
+        const demoFunc = findDemo(demoName);
+        if (!demoFunc)
+            return;
+        demoFunc(elem);
+    }
 
     // The "main" function of the article. Goes over all the demo elements
     // the article's source code and runs the according demo for them.
     ArticleDemos.runAllDemos = function() {
         var elems;
         elems = document.querySelectorAll(".demo-server");
-        [].forEach.call(elems, ArticleDemos.runServerDemo);
+        [].forEach.call(elems, runServerDemo);
         elems = document.querySelectorAll(".demo-canvas");
-        [].forEach.call(elems, ArticleDemos.runCanvasDemo);
+        [].forEach.call(elems, runCanvasDemo);
+        elems = document.querySelectorAll(".demo-slot");
+        [].forEach.call(elems, runSlotDemo);
     };
 
     exports.ArticleDemos = ArticleDemos;

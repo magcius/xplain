@@ -224,7 +224,7 @@ ctx.restore();
             You give me a function that tells me whether it's inside or outside the shape, I plot it on the grid. You ready?
         </p>
 
-        <div class="demo-canvas" data-demo="rast2-coverage-editor-1"></div>
+        <div class="demo-slot" data-demo="rast2-coverage-editor-1"></div>
 
         <p>
             You'll be seeing this sort of code editor show up across this article. Try to both read and understand the
@@ -251,7 +251,7 @@ ctx.restore();
             can we <em>combine</em> shapes like this?
         </p>
 
-        <div class="demo-canvas" data-demo="rast2-coverage-editor-2"></div>
+        <div class="demo-slot" data-demo="rast2-coverage-editor-2"></div>
 
         <p>
             We can, of course, combine shapes by using <em>boolean operators</em>. In the above example, we're
@@ -263,17 +263,33 @@ ctx.restore();
         </p>
         <p>
             Of course, we can also use all the boolean operators available to us, in the same way we calculated
-            our bands in <a href="regions.html">Regional Geometry</a>.
-        </p>    
-        </section>
-
-        <section id="transforms">
-        <h3>Affinity for linearity</h3>
-        <p>
-            This is all well and good, but we'll need to introduce.
+            our bands in <a href="regions.html">Regional Geometry</a>, to union, intersect, subtract, and xor shapes.
+            What kinds of shapes can you come up with?
         </p>
         </section>
 
+        <section id="transforms">
+        <h3>Squash and Stretch</h3>
+        <p>
+            We've mostly played with circles and rectangles, and it's easy to see why: they're extremely basic and
+            simple primitives. But sometimes we want things that move with weight, things that have elasticity,
+            things that morph and rotate and skew. It's
+            <a href="https://en.wikipedia.org/wiki/12_basic_principles_of_animation">important for animation</a>,
+            after all. We can easily adjust our coordinates of a rectangle to make it wider than tall, but it's a
+            bit unclear about how to do that with a circle. And what about other transformations besides simple
+            scaling, like skewing or rotating? It's unrealistic to modify all of our primitives to support this.
+            How can we easily, <em>generically implement transformations?</em>
+        </p>
+
+        <div class="demo-canvas" data-demo="rast2-transforms-1"></div>
+
+        <p>
+            It becomes easy by changing our perspective. Instead of changing our shapes, we change the pixel grid.
+            To make an ellipse that's twice as long, we shrink the width of each pixel in our grid in half. The
+            mathematically perfect circle remains the same. This isn't actually changing the size of our pixels,
+            it's simply changing how we sample each shape.
+        </p>
+        </section>
         <div class="nav-bottom"></div>
     </article>
 
@@ -288,7 +304,7 @@ ctx.restore();
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/styles/railscasts.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.9.1/highlight.min.js"></script>
-    <script>// hljs.initHighlightingOnLoad();</script>
+    <script>hljs.initHighlightingOnLoad();</script>
 
     <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
