@@ -153,16 +153,21 @@
         };
     }
 
-    class CoverageWorker {
-        constructor(sourceFunc) {
-            this._worker = this._compileWorker(sourceFunc);
+    // A wrapper around a worker that implements a watchdog timer. If we don't get
+    // a response in 2 seconds, we kill it.
+    class WorkerWatchdog {
+        constructor(url) {
+            this._worker = new Worker(url);
             this._worker.onerror = (e) => {
-                this.terminate('onerror');
+                this.terminate(`onerror: ${e}`);
             };
             this._worker.onmessage = this._onMessage.bind(this);
 
             this.terminated = null;
             this.pending = false;
+
+            this.onterminated = null;
+            this.onresult = null;
         }
 
         terminate(reason) {
@@ -180,7 +185,7 @@
             this.pending = false;
             const data = e.data;
             if (data.error !== undefined)
-                this.terminate('error');
+                this.terminate(`worker error: ${data.error}`);
             else
                 this.onresult(data);
         }
@@ -197,13 +202,77 @@
             this.pending = true;
             this._lastSentTime = time;
         }
+    }
 
-        _compileWorker(coverageFunc) {
-            const blob = new Blob([coverageFunc, collectCoverage.toString(), coverageWorker.toString(), 'coverageWorker(this);'], { type: 'text/javascript' });
-            const url = window.URL.createObjectURL(blob);
-            const worker = new Worker(url);
-            window.URL.revokeObjectURL(url);
-            return worker;
+    class DoubleBufferedWorker {
+        constructor() {
+            this._currentWorker = null;
+            this._pendingWorker = null;
+
+            this.onresult = null;
+        }
+
+        setPendingWorker(pendingWorker) {
+            if (this._pendingWorker)
+                this._pendingWorker.terminate();
+
+            this._pendingWorker = pendingWorker;
+            this._pendingWorker.onresult = this._pendingWorkerResult.bind(this);
+        }
+
+        sendJob(job) {
+            if (this._pendingWorker)
+                this._pendingWorker.sendJob(job);
+            if (this._currentWorker)
+                this._currentWorker.sendJob(job);
+
+            return !!this._currentWorker || !!this._pendingWorker;
+        }
+
+        terminate() {
+            if (this._pendingWorker) {
+                this._pendingWorker.terminate();
+                this._pendingWorker = null;
+            }
+
+            if (this._currentWorker) {
+                this._currentWorker.terminate();
+                this._currentWorker = null;
+            }
+        }
+
+        _pendingWorkerResult(data) {
+            // Kill the current worker.
+            if (this._currentWorker)
+                this._currentWorker.terminate();
+
+            const worker = this._pendingWorker;
+            this._currentWorker = worker;
+            worker.onresult = (data) => {
+                this._workerResult(worker, data);
+            };
+
+            worker.onterminated = (e) => {
+                this._workerTerminated(worker, e);
+            };
+
+            this._pendingWorker = null;
+            this._workerResult(worker, data);
+        }
+
+        _workerResult(worker, data) {
+            if (worker !== this._currentWorker) {
+                worker.terminate();
+                return;
+            }
+
+            this.onresult(data);
+        }
+
+        _workerTerminated(worker, e) {
+            // If the worker goes away, strip it.
+            if (this._currentWorker === worker)
+                this._currentWorker = null;
         }
     }
 
@@ -213,6 +282,8 @@
             visibleRAF(this._canvas, this._redraw.bind(this), this._setActive.bind(this));
 
             this._bufferHeightNext = 0;
+            this._doubleBufferedWorker = new DoubleBufferedWorker();
+            this._doubleBufferedWorker.onresult = this._workerResult.bind(this);
         }
 
         getCanvas() {
@@ -255,15 +326,7 @@
             if (this._active) {
                 this._createWorker();
             } else {
-                if (this._pendingWorker) {
-                    this._pendingWorker.terminate();
-                    this._pendingWorker = null;
-                }
-
-                if (this._worker) {
-                    this._worker.terminate();
-                    this._worker = null;
-                }
+                this._doubleBufferedWorker.terminate();
             }
         }
 
@@ -281,48 +344,25 @@
                 this._createWorker();
         }
 
+        _compileWorker(coverageFunc) {
+            const blob = new Blob([coverageFunc, collectCoverage.toString(), coverageWorker.toString(), 'coverageWorker(this);'], { type: 'text/javascript' });
+            const url = window.URL.createObjectURL(blob);
+            const worker = new WorkerWatchdog(url);
+            window.URL.revokeObjectURL(url);
+            return worker;
+        }
+
         _createWorker() {
-            if (this._pendingWorker)
-                this._pendingWorker.terminate();
-
-            // Keep the old worker around until the new one picks up.
-            this._pendingWorker = new CoverageWorker(this._source);
-            this._pendingWorker.onresult = this._pendingWorkerResult.bind(this);
-        }
-
-        _pendingWorkerResult(data) {
-            // Kill the current worker.
-            if (this._worker)
-                this._worker.terminate();
-
-            const worker = this._pendingWorker;
-            this._worker = worker;
-            worker.onresult = (data) => {
-                this._workerResult(worker, data);
-            };
-
-            worker.onterminated = (e) => {
-                this._workerTerminated(worker, e);
-            };
-
-            this._pendingWorker = null;
-            this._workerResult(worker, data);
-        }
-
-        _workerResult(worker, data) {
-            if (worker !== this._worker) {
-                worker.terminate();
+            if (!this._source)
                 return;
-            }
 
+            const newWorker = this._compileWorker(this._source);
+            this._doubleBufferedWorker.setPendingWorker(newWorker);
+        }
+
+        _workerResult(data) {
             const buffer = data.buffer;
             this._drawGrid(buffer);
-        }
-
-        _workerTerminated(worker, e) {
-            // If the worker goes away, strip it.
-            if (this._worker === worker)
-                this._worker = null;
         }
 
         _redraw(time) {
@@ -331,14 +371,11 @@
                 // Don't clear.
             }
 
-            const message = { time: time, width: BUFFER_WIDTH, height: this._bufferHeight };
-            if (this._worker)
-                this._worker.sendJob(message, time);
-            if (this._pendingWorker)
-                this._pendingWorker.sendJob(message, time);
+            const job = { time: time, width: BUFFER_WIDTH, height: this._bufferHeight };
+            const sentJob = this._doubleBufferedWorker.sendJob(job);
 
             // XXX: Should we draw a blank grid or keep the last known good compile there?
-            if (!this._worker)
+            if (!sentJob)
                 this._drawGrid(null);
         }
     }
