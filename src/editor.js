@@ -201,7 +201,6 @@
 
             this._textarea = document.createElement('textarea');
             this._textarea.style.fontFamily = MONOSPACE;
-            this._textarea.style.marginLeft = '4px';
             this._textarea.oninput = this._onInput.bind(this);
             this._textarea.onkeydown = this._onKeyDown.bind(this);
             this._toplevel.appendChild(this._textarea);
@@ -215,10 +214,11 @@
             this._canvas.onmousedown = this._onMouseDown;
             this._canvas.onmouseleave = this._onMouseLeave;
             this._canvas.onmousemove = this._onMouseMove;
-            this._textarea.style.whiteSpace = 'pre';
-            this._textarea.style.overflowWrap = 'normal';
+            this._textarea.style.whiteSpace = 'pre-wrap';
+            this._textarea.style.wordBreak = 'break-all';
             // Hide the textarea the canvas now that we've sized it...
             this._textarea.style.position = 'absolute';
+            this._textarea.style.left = '-99999px';
             this._canvas.style.position = 'absolute';
 
             this._needsRecalculate = false;
@@ -258,7 +258,10 @@
         setSize(w, h) {
             this._minHeight = h;
             this._canvas.width = w;
-            this._toplevel.style.width = w + 'px';
+            this._toplevel.style.width = `${w}px`;
+            // Calculate cols immediately.
+            this._cols = this._xyToRowCol(w, 0).col;
+            this._textarea.style.width = `${this._cols}ch`;
             this._setNeedsRecalculate();
         }
 
@@ -300,8 +303,7 @@
                 const start = idx, end = newIdx + 1;
                 const length = end - start - 1;
                 const startRow = row;
-                // XXX(WRAP): At some point we used to support word wrap, but we no longer do.
-                const rows = 1;
+                const rows = Math.max(Math.ceil(length / this._cols), 1);
                 lineModel.push({ start, end, length, rows, startRow, lineno });
                 row += rows;
                 lineno++;
@@ -408,16 +410,19 @@
             if (this._isRowLocked(row)) {
                 this._textarea.blur();
             } else if (col === -1) {
-                const { line, idx } = this._rowColToLineIdx(row, 0);
+                const { line, idx } = this._rowColToLineIdx(row, 0, true);
                 this._textarea.setSelectionRange(this._idxToTextarea(line.start), this._idxToTextarea(line.end));
                 this._textarea.focus();
             } else {
-                const { line, idx } = this._rowColToLineIdx(row, col);
+                const { line, idx } = this._rowColToLineIdx(row, col, true);
+                this._textarea.setSelectionRange(this._idxToTextarea(idx), this._idxToTextarea(idx));
+                this._textarea.focus();
 
                 this._dragStartX = e.clientX;
                 this._dragStartY = e.clientY;
 
-                const draggableNumber = this._findDraggableNumber(idx);
+                const { idx: exactIdx } = this._rowColToLineIdx(row, col, false);
+                const draggableNumber = this._findDraggableNumber(exactIdx);
                 if (draggableNumber) {
                     const { start, end } = draggableNumber;
                     const value = +this.getValue().slice(this._idxToTextarea(start), this._idxToTextarea(end));
@@ -426,8 +431,6 @@
                     this._syncNumberDraggerPosition();
                     this._numberDragger.show(value, e);
                 } else {
-                    this._textarea.setSelectionRange(this._idxToTextarea(idx), this._idxToTextarea(idx));
-                    this._textarea.focus();
                     this._dragStartIdx = idx;
                     this._dragging = 'selection';
 
@@ -444,7 +447,7 @@
         }
         _onMouseMove(e) {
             const { row, col } = this._xyToRowCol(e.layerX, e.layerY);
-            const { line, idx } = this._rowColToLineIdx(row, col);
+            const { line, idx } = this._rowColToLineIdx(row, col, true);
             this._mouseIdx = idx;
 
             if (this._dragging === 'selection') {
@@ -454,13 +457,15 @@
                 this._textarea.focus();
             }
 
+            const { idx: exactIdx } = this._rowColToLineIdx(row, col, false);
+
             // Dragging takes priority.
             let cursor;
             if (this._dragging === 'selection') {
                 cursor = 'text';
             } else if (col === -1 || this._isRowLocked(row)) {
                 cursor = 'default';
-            } else if (this._findDraggableNumber(idx)) {
+            } else if (this._findDraggableNumber(exactIdx)) {
                 cursor = 'e-resize';
             } else {
                 cursor = 'text';
@@ -512,7 +517,7 @@
         _textareaToIdx(idx) {
             return idx + this._prefix.length;
         }
-        _rowColToLineIdx(row, col) {
+        _rowColToLineIdx(row, col, clampCol) {
             this._recalculate();
             let line;
             for (line of this._lineModel)
@@ -521,13 +526,20 @@
 
             // We have our line. Find idx.
             let idx = line.start;
-            // Fast path.
-            col = Math.min(Math.max(col, 0), line.length);
-            if (line.rows === 1) {
-                idx += col;
-            } else {
-                idx += (row - line.startRow) * this._cols + col;
+            if (clampCol)
+                col = Math.min(Math.max(col, 0), line.length);
+            else if (col > line.length)
+                idx = -1;
+
+            if (idx > -1) {
+                // Fast path.
+                if (line.rows === 1) {
+                    idx += col;
+                } else {
+                    idx += (row - line.startRow) * this._cols + col;
+                }
             }
+
             return { line, idx };
         }
         _xyToRowCol(x, y) {
@@ -669,7 +681,7 @@
                 for (let row = startPos.row; row <= endPos.row; row++) {
                     let colStart = (row === startPos.row) ? startPos.col : 0;
                     let colEnd = (row === endPos.row) ? endPos.col : this._getRowLength(row);
-    
+
                     const selectionColor = '#336';
                     const startX = colStart * this._charWidth;
                     const endX = colEnd * this._charWidth;
@@ -698,6 +710,11 @@
                 const line = this._lineModel[m];
                 let row = line.startRow, col = 0;
                 for (let i = line.start; i < line.end; i++) {
+                    if (col === this._cols && (row - line.startRow) < line.rows - 1) {
+                        row++;
+                        col = 0;
+                    }
+
                     // XXX: Use something else other than charAt for Unicode compliance.
                     const char = chars.charAt(i);
                     const x = col * this._charWidth, y = (this._paddingTop + row) * this._rowHeight;
@@ -754,11 +771,6 @@
                     }
                     ctx.fillText(char, x, y + this._charMarginTop);
                     col++;
-
-                    if (col === this._textarea.cols && (row - line.startRow) < line.rows - 1) {
-                        row++;
-                        col = 0;
-                    }
                 }
             }
 
