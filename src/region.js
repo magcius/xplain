@@ -6,9 +6,9 @@
     function int(x) { return x | 0; }
 
     // Some basic precalculated "empty" regions and parts of regions.
-    var FROZEN_EMPTY_BANDS = Object.freeze([]);
-    var FROZEN_EMPTY_EXTENTS = Object.freeze({ x1: 0, y1: 0, x2: 0, y2: 0 });
-    var FROZEN_EMPTY_REGION = Object.freeze({ bands: FROZEN_EMPTY_BANDS, extents: FROZEN_EMPTY_EXTENTS });
+    const FROZEN_EMPTY_BANDS = Object.freeze([]);
+    const FROZEN_EMPTY_EXTENTS = Object.freeze({ x1: 0, y1: 0, x2: 0, y2: 0 });
+    const FROZEN_EMPTY_REGION = Object.freeze({ bands: FROZEN_EMPTY_BANDS, extents: FROZEN_EMPTY_EXTENTS });
 
     // We have a number of data structures here:
     //
@@ -23,23 +23,22 @@
 
     // The number of rectangles in a band.
     function bandsNRects(bands) {
-        var n = 0;
-        bands.forEach(function(band) {
+        let n = 0;
+        for (const band of bands)
             n += band.walls.length / 2;
-        })
         return n;
     }
 
     // Iterate over the rectangles in a region.
     function bandsRects(bands, callback) {
-        bands.forEach(function(band) {
-            var y = band.top, height = band.bottom - y;
+        for (const band of bands) {
+            const y = band.top, height = band.bottom - y;
 
-            for (var i = 0; i < band.walls.length; i += 2) {
-                var x = band.walls[i], width = band.walls[i+1] - x;
+            for (let i = 0; i < band.walls.length; i += 2) {
+                const x = band.walls[i], width = band.walls[i+1] - x;
                 callback(x, y, width, height);
             }
-        });
+        }
     }
 
     // Is point x,y in the extents?
@@ -49,12 +48,12 @@
 
     // The intersection of two extents.
     function extentsIntersection(extents1, extents2) {
-        var x1 = Math.max(extents1.x1, extents2.x1);
-        var x2 = Math.min(extents1.x2, extents2.x2);
+        const x1 = Math.max(extents1.x1, extents2.x1);
+        const x2 = Math.min(extents1.x2, extents2.x2);
         if (x1 >= x2)
             return FROZEN_EMPTY_EXTENTS;
-        var y1 = Math.max(extents1.y1, extents2.y1);
-        var y2 = Math.min(extents1.y2, extents2.y2);
+        const y1 = Math.max(extents1.y1, extents2.y1);
+        const y2 = Math.min(extents1.y2, extents2.y2);
         if (y1 >= y2)
             return FROZEN_EMPTY_EXTENTS;
         return Object.freeze({ x1: x1, x2: x2, y1: y1, y2: y2 });
@@ -62,10 +61,10 @@
 
     // The union of two extents.
     function extentsUnion(extents1, extents2) {
-        var x1 = Math.min(extents1.x1, extents2.x1);
-        var x2 = Math.max(extents1.x2, extents2.x2);
-        var y1 = Math.min(extents1.y1, extents2.y1);
-        var y2 = Math.max(extents1.y2, extents2.y2);
+        const x1 = Math.min(extents1.x1, extents2.x1);
+        const x2 = Math.max(extents1.x2, extents2.x2);
+        const y1 = Math.min(extents1.y1, extents2.y1);
+        const y2 = Math.max(extents1.y2, extents2.y2);
         return Object.freeze({ x1: x1, x2: x2, y1: y1, y2: y2 });
     }
 
@@ -77,9 +76,9 @@
     // Returns a region containing a single rectangle.
     function rectRegion(x1, y1, width, height) {
         x1 = int(x1); y1 = int(y1); width = int(width); height = int(height);
-        var x2 = x1 + width, y2 = y1 + height;
-        var bands = Object.freeze([newBand(y1, y2, [x1, x2])]);
-        var extents = Object.freeze({ x1: x1, y1: y1, x2: x2, y2: y2 });
+        const x2 = x1 + width, y2 = y1 + height;
+        const bands = Object.freeze([newBand(y1, y2, [x1, x2])]);
+        const extents = Object.freeze({ x1: x1, y1: y1, x2: x2, y2: y2 });
         return Object.freeze({ bands: bands, extents: extents });
     }
 
@@ -105,7 +104,7 @@
     // We describe these possible states with three bits. When we transition
     // from having none of these bits set to having one or more of these bits
     // set, we emit a wall. Same when transitioning to zero.
-    var Operation = {
+    const Operation = {
         // B = Inside both regions
         // 2 = Inside region 2, outside region 1
         // 1 = Inside region 1, outside region 2
@@ -118,7 +117,7 @@
     };
 
     // Bitfield components of Operation, above.
-    var OperationComponents = {
+    const OperationComponents = {
         IN_1: 0x1,
         IN_2: 0x2,
         IN_BOTH: 0x4,
@@ -154,7 +153,7 @@
 
         // If the extents of the regions don't intersect, then we can take an
         // early exit for the intersection/subtract cases.
-        var intersection = extentsIntersection(src1.extents, src2.extents);
+        const intersection = extentsIntersection(src1.extents, src2.extents);
         if (intersection == FROZEN_EMPTY_EXTENTS) {
             if (op == OperationComponents.BOTH)
                 return FROZEN_EMPTY_REGION;
@@ -169,7 +168,7 @@
         // "State" enum here, where (State.IN_1 | State.IN_2) is equivalent to
         // Operation.IN_BOTH when going to check. The bitfield of states maps
         // exactly to one bit inside OperationComponents.
-        var State = {
+        const State = {
             NONE: 0x0,
             IN_1: 0x1,
             IN_2: 0x2,
@@ -183,7 +182,7 @@
                 return false;
 
             // Translate the state to OperationComponents.
-            var stateOp;
+            let stateOp;
             if (state == (State.IN_1 | State.IN_2))
                 stateOp = OperationComponents.IN_BOTH;
             else
@@ -217,21 +216,21 @@
         }
 
         function combineBands(bandA, bandB) {
-            var state = State.NONE;
-            var iA = 0, iB = 0;
-            var walls = [];
+            let state = State.NONE;
+            let iA = 0, iB = 0;
+            const walls = [];
             while (true) {
                 // Take the first wall we see.
-                var wallA = bandA.walls[iA];
-                var wallB = bandB.walls[iB];
+                const wallA = bandA.walls[iA];
+                const wallB = bandB.walls[iB];
 
-                var wall = selectMin(wallA, wallB);
+                const wall = selectMin(wallA, wallB);
 
                 // When we run out of walls, break out.
                 if (wall === undefined)
                     break;
 
-                var oldState = state;
+                const oldState = state;
 
                 if (wall === wallA) {
                     iA++;
@@ -255,7 +254,7 @@
             if (w1.length != w2.length)
                 return false;
 
-            for (var i = 0; i < w1.length; i++)
+            for (let i = 0; i < w1.length; i++)
                 if (w1[i] != w2[i])
                     return false;
 
@@ -274,7 +273,7 @@
 
             // Coalesce bands that have the same walls and are touching each other.
             if (bands.length >= 1) {
-                var aboveBand = bands[bands.length - 1];
+                const aboveBand = bands[bands.length - 1];
                 if (wallsEqual(walls, aboveBand.walls) && top == aboveBand.bottom) {
                     aboveBand.bottom = bottom;
                     return;
@@ -284,17 +283,17 @@
             bands.push(newBand(top, bottom, walls));
         }
 
-        var iA = -1, iB = -1;
-        var bands = [];
+        let iA = -1, iB = -1;
+        const bands = [];
 
         while (true) {
-            var bandA = getBand(src1, iA);
-            var bandB = getBand(src2, iB);
+            const bandA = getBand(src1, iA);
+            const bandB = getBand(src2, iB);
 
-            var top = Math.max(bandA.top, bandB.top);
-            var bottom = Math.min(bandA.bottom, bandB.bottom);
+            const top = Math.max(bandA.top, bandB.top);
+            const bottom = Math.min(bandA.bottom, bandB.bottom);
 
-            var walls = combineBands(bandA, bandB);
+            const walls = combineBands(bandA, bandB);
             pushBand(top, bottom, walls);
 
             if (bottom === Infinity)
@@ -312,7 +311,7 @@
         // two extents (union, xor). As such, we can calculate the new extents
         // without actually looking at the resulting bands.
 
-        var extents;
+        let extents;
         if ((op & (OperationComponents.IN_1 | OperationComponents.IN_2)) == (OperationComponents.IN_1 | OperationComponents.IN_2))
             extents = extentsUnion(src1.extents, src2.extents);
         else if (op & OperationComponents.IN_1)
@@ -327,99 +326,102 @@
         return Object.freeze({ bands: Object.freeze(bands), extents: extents });
     }
 
-    function Region() {
-        this.clear();
-    }
-    Region.prototype.copy = function(source) {
-        this.bands = source.bands;
-        this.extents = source.extents;
-    };
-    Region.prototype.finalize = function() {
-        this.bands = null;
-        this.extents = null;
-    };
-    Region.prototype.clear = function() {
-        this.copy(FROZEN_EMPTY_REGION);
-    };
-    Region.prototype.init_rect = function(x, y, width, height) {
-        this.copy(rectRegion(x, y, width, height));
-    };
-    Region.prototype.union = function(r1, r2) {
-        this.copy(combineRegion(Operation.UNION, r1, r2));
-    };
-    Region.prototype.union_rect = function(r1, x, y, w, h) {
-        this.copy(combineRegion(Operation.UNION, r1, rectRegion(x, y, w, h)));
-    };
-    Region.prototype.intersect = function(r1, r2) {
-        this.copy(combineRegion(Operation.INTERSECT, r1, r2));
-    };
-    Region.prototype.intersect_rect = function(r1, x, y, w, h) {
-        this.copy(combineRegion(Operation.INTERSECT, r1, rectRegion(x, y, w, h)));
-    };
-    Region.prototype.subtract = function(r1, r2) {
-        this.copy(combineRegion(Operation.SUBTRACT, r1, r2));
-    };
-    Region.prototype.subtract_rect = function(r1, x, y, w, h) {
-        this.copy(combineRegion(Operation.SUBTRACT, r1, rectRegion(x, y, w, h)));
-    };
-    Region.prototype.xor = function(r1, r2) {
-        this.copy(combineRegion(Operation.XOR, r1, r2));
-    };
-    Region.prototype.is_empty = function() {
-        return this.extents.x2 <= this.extents.x1;
-    };
-    Region.prototype.not_empty = function() {
-        return this.extents.x2 > this.extents.x1;
-    };
-    Region.prototype.n_rects = function() {
-        return bandsNRects(this.bands);
-    };
-    Region.prototype.iter_rectangles = function(callback) {
-        bandsRects(this.bands, callback);
-    };
-    Region.prototype.translate = function(x, y) {
-        this.bands = this.bands.map(function(band) {
-            var newWalls = band.walls.map(function(wall) { return wall + x; });
-            return newBand(band.top + y, band.bottom + y, newWalls);
-        });
-        this.extents = Object.freeze({ x1: this.extents.x1 + x, y1: this.extents.y1 + y,
-                                       x2: this.extents.x2 + x, y2: this.extents.y2 + y });
-    };
-    Region.prototype.contains_point = function(x, y) {
-        if (!pointInExtents(this.extents, x, y))
-            return false;
-
-        for (var i = 0; i < this.bands.length; i++) {
-            var band = this.bands[i];
-            if (y < band.top)
-                return false;
-            if (y > band.bottom)
-                continue;
-
-            for (var j = 0; j < band.walls.length; j += 2) {
-                var x1 = band.walls[j], x2 = band.walls[j + 1];
-                if (x < x1)
-                    return false;
-                if (x < x2)
-                    return true;
-            }
+    class Region {
+        constructor() {
+            this.clear();
         }
-        return false;
-    };
-    Region.prototype.extentsString = function() {
-        return this.extents.x1 + "," + this.extents.y1 + " - " + this.extents.x2 + "," + this.extents.y2;
-    };
-    Region.prototype.toString = function() {
-        if (this.is_empty())
-            return "[]";
+        copy(source) {
+            this.bands = source.bands;
+            this.extents = source.extents;
+        }
+        finalize() {
+            this.bands = null;
+            this.extents = null;
+        }
+        clear() {
+            this.copy(FROZEN_EMPTY_REGION);
+        }
+        init_rect(x, y, width, height) {
+            this.copy(rectRegion(x, y, width, height));
+        }
+        union(r1, r2) {
+            this.copy(combineRegion(Operation.UNION, r1, r2));
+        }
+        union_rect(r1, x, y, w, h) {
+            this.copy(combineRegion(Operation.UNION, r1, rectRegion(x, y, w, h)));
+        }
+        intersect(r1, r2) {
+            this.copy(combineRegion(Operation.INTERSECT, r1, r2));
+        }
+        intersect_rect(r1, x, y, w, h) {
+            this.copy(combineRegion(Operation.INTERSECT, r1, rectRegion(x, y, w, h)));
+        }
+        subtract(r1, r2) {
+            this.copy(combineRegion(Operation.SUBTRACT, r1, r2));
+        }
+        subtract_rect(r1, x, y, w, h) {
+            this.copy(combineRegion(Operation.SUBTRACT, r1, rectRegion(x, y, w, h)));
+        }
+        xor(r1, r2) {
+            this.copy(combineRegion(Operation.XOR, r1, r2));
+        }
+        is_empty() {
+            return this.extents.x2 <= this.extents.x1;
+        }
+        not_empty() {
+            return this.extents.x2 > this.extents.x1;
+        }
+        n_rects() {
+            return bandsNRects(this.bands);
+        }
+        iter_rectangles(callback) {
+            bandsRects(this.bands, callback);
+        }
+        translate(x, y) {
+            this.bands = this.bands.map(function(band) {
+                const newWalls = band.walls.map(function(wall) { return wall + x; });
+                return newBand(band.top + y, band.bottom + y, newWalls);
+            });
+            this.extents = Object.freeze({ x1: this.extents.x1 + x, y1: this.extents.y1 + y,
+                                        x2: this.extents.x2 + x, y2: this.extents.y2 + y });
+        }
+        contains_point(x, y) {
+            if (!pointInExtents(this.extents, x, y))
+                return false;
 
-        var S = "[";
-        this.iter_rectangles(function(x, y, width, height) {
-            S += "+" + x + "+" + y + "x" + width + "x" + height + ", ";
-        });
-        S = S.slice(0, -2) + "]";
-        return S;
-    };
+            for (let i = 0; i < this.bands.length; i++) {
+                const band = this.bands[i];
+                if (y < band.top)
+                    return false;
+                if (y > band.bottom)
+                    continue;
+
+                for (let j = 0; j < band.walls.length; j += 2) {
+                    const x1 = band.walls[j], x2 = band.walls[j + 1];
+                    if (x < x1)
+                        return false;
+                    if (x < x2)
+                        return true;
+                }
+            }
+            return false;
+        }
+        extentsString() {
+            const { x1, y1, x2, y2 } = this.extents;
+            return `${x1},${y1} - ${x2},${y2}`;
+        }
+        toString() {
+            if (this.is_empty())
+                return "[]";
+
+            const S = "[";
+            this.iter_rectangles(function(x, y, width, height) {
+                S += `+${x}+${y}x${width}x${height}, `;
+            });
+            S = S.slice(0, -2) + "]";
+            return S;
+        }
+    }
 
     exports.Region = Region;
 
