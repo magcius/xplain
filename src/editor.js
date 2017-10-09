@@ -699,7 +699,7 @@
                     let colStart = (row === startPos.row) ? startPos.col : 0;
                     let colEnd = (row === endPos.row) ? endPos.col : this._getRowLength(row);
 
-                    const selectionColor = '#336';
+                    const selectionColor = hasFocus ? '#336' : '#333';
                     const startX = colStart * this._charWidth;
                     const endX = colEnd * this._charWidth;
                     const y = (this._paddingTop + row) * this._rowHeight;
