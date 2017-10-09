@@ -5,7 +5,7 @@
             "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
-            "url": "http://localhost:8000/article/rast1.html",
+            "url": "http://localhost:8000/article/rast2.html",
             "webRoot": "${workspaceRoot}"
         },
         {

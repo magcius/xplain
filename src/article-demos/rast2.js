@@ -280,7 +280,6 @@
     // Runs in Worker scope! Needs to bundle all of its dependencies!
     function coverageWorker(global) {
         function collectCoverage(x1, y1, callback, args) {
-            // Antialias by default.
             const numSubpixels = 4;
             const numSubpixelsX = numSubpixels;
             const numSubpixelsY = numSubpixels;
@@ -327,13 +326,15 @@
     }
 
     class CoverageDrawer {
-        constructor(canvas) {
-            this._canvas = canvas;
+        constructor() {
+            this._canvas = document.createElement('canvas');
             visibleRAF(this._canvas, this._redraw.bind(this), this._setActive.bind(this));
-            
+
             this._bufferHeightNext = 0;
             this._doubleBufferedWorker = new DoubleBufferedWorker();
             this._doubleBufferedWorker.onresult = this._workerResult.bind(this);
+
+            this.elem = this._canvas;
         }
 
         getCanvas() {
@@ -379,6 +380,10 @@
                 this._doubleBufferedWorker.terminate();
         }
 
+        setWidth(width) {
+            this._canvas.width = width;
+        }
+
         setNextHeight(bufferHeight) {
             if (this._bufferHeight === bufferHeight)
                 return;
@@ -386,7 +391,7 @@
             this._bufferHeightNext = bufferHeight;
         }
 
-        setCoverageFunc(source) {
+        setSource(source) {
             this._source = source;
 
             if (this._active)
@@ -436,19 +441,17 @@
     }
 
     function runCoverageDemo(elem, initialHeight, source) {
-        const canvas = document.createElement('canvas');
-        canvas.width = elem.clientWidth;
-        elem.appendChild(canvas);
-
-        const coverageDrawer = new CoverageDrawer(canvas);
+        const coverageDrawer = new CoverageDrawer();
+        coverageDrawer.setWidth(elem.clientWidth);
         coverageDrawer.setNextHeight(initialHeight);
+        elem.appendChild(coverageDrawer.elem);
 
         const splitter = new CoverageSplitter(coverageDrawer);
         elem.appendChild(splitter.elem);
 
         const editor = new Editor();
         editor.setFontSize('12pt');
-        editor.setSize(canvas.width, 250);
+        editor.setSize(elem.clientWidth, 250);
         editor.setPrefixSuffix('function coverage(x, y, time) {\n', '\n}');
         // Trim initial newline.
         source = source.replace(/^\n+/, '');
@@ -458,7 +461,7 @@
         elem.appendChild(editor.elem);
 
         function setCoverage() {
-            coverageDrawer.setCoverageFunc(editor.getFullText());
+            coverageDrawer.setSource(editor.getFullText());
         }
 
         editor.ontextchanged = setCoverage;
@@ -502,6 +505,197 @@
     const cx = Math.sin(time / 700) * 3 + 7;
     const cw = Math.sin(time / 500) * 5 + 25;
     return capsule(cx, 1, cw, 8);
+`));
+
+    // Runs in Worker scope! Needs to bundle all of its dependencies!
+    function transformWorker(global) {
+        global.onmessage = function(e) {
+            const time = e.data.time;
+            const w = e.data.width, h = e.data.height;
+            const numSubpixelsX = e.data.numSubpixelsX;
+            const numSubpixelsY = e.data.numSubpixelsY;
+            const array = new Float32Array(w*h*numSubpixelsX*numSubpixelsY*2);
+            const args = [time];
+
+            let i = 0;
+            let error;
+            outer:
+            for (let y = 0; y < h; y++)
+                for (let yy = 0; yy < numSubpixelsY; yy++)
+                    for (let x = 0; x < w; x++)
+                        for (let xx = 0; xx < numSubpixelsX; xx++) {
+                            const sampleX = x + xx / numSubpixelsX;
+                            const sampleY = y + yy / numSubpixelsY;
+                            try {
+                                const { newX, newY } = transform(sampleX, sampleY, ...args);
+                                array[i++] = newX;
+                                array[i++] = newY;
+                            } catch(e) {
+                                error = e;
+                                break outer;
+                            }
+                        }
+
+            if (error !== undefined)
+                global.postMessage({ time: time, error: error.message });
+            else
+                global.postMessage({ time: time, buffer: array.buffer }, [array.buffer]);
+        };
+    }
+
+    class TransformDrawer {
+        constructor() {
+            this._canvas = document.createElement('canvas');
+            visibleRAF(this._canvas, this._redraw.bind(this), this._setActive.bind(this));
+
+            this._bufferHeightNext = 0;
+            this._doubleBufferedWorker = new DoubleBufferedWorker();
+            this._doubleBufferedWorker.onresult = this._workerResult.bind(this);
+
+            this.elem = this._canvas;
+        }
+
+        getCanvas() {
+            return this._canvas;
+        }
+
+        _drawGrid(meshBuffer) {
+            if (this._bufferHeightNext === this._bufferHeight) {
+                this._canvas.height = this._bufferHeight * DISPLAY_CELL_SIZE + DISPLAY_YPAD * 2;
+                this._bufferHeightNext = 0;
+            }
+
+            const ctx = this._canvas.getContext('2d');
+            ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+            ctx.save();
+            ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
+
+            const array = new Float32Array(meshBuffer);
+            const numSubpixelsX = 4, numSubpixelsY = 4;
+            ctx.strokeStyle = 'rgba(127, 127, 127, 0.4)';
+            let i;
+            // This is complicated.
+            //
+            // First, draw the horizontal lines.
+            for (let y = 0; y < this._bufferHeight; y++) {
+                ctx.beginPath();
+                for (let x = 0; x < BUFFER_WIDTH; x++) {
+                    for (let xx = 0; xx < numSubpixelsX; xx++) {
+                        const yy = 0;
+                        const idx = ((y*numSubpixelsY+yy)*BUFFER_WIDTH*numSubpixelsX + x*numSubpixelsX+xx) * 2;
+                        const px = (array[idx+0]) * DISPLAY_CELL_SIZE;
+                        const py = (array[idx+1]) * DISPLAY_CELL_SIZE + 0.5;
+                        ctx.lineTo(px, py);
+                    }
+                }
+                ctx.stroke();
+            }
+            // Vertical lines.
+            for (let x = 0; x < BUFFER_WIDTH; x++) {
+                ctx.beginPath();
+                for (let y = 0; y < this._bufferHeight; y++) {
+                    for (let yy = 0; yy < numSubpixelsY; yy++) {
+                        const xx = 0;
+                        const idx = ((y*numSubpixelsY+yy)*BUFFER_WIDTH*numSubpixelsX + x*numSubpixelsX+xx) * 2;
+                        const px = (array[idx+0]) * DISPLAY_CELL_SIZE + 0.5;
+                        const py = (array[idx+1]) * DISPLAY_CELL_SIZE;
+                        ctx.lineTo(px, py);
+                    }
+                }
+                ctx.stroke();
+            }
+            // XXX: Now fill these things with coverage.
+
+            ctx.restore();
+        }
+
+        _setActive(active) {
+            this._active = active;
+
+            if (this._active)
+                this._createWorker();
+            else
+                this._doubleBufferedWorker.terminate();
+        }
+
+        setWidth(width) {
+            this._canvas.width = width;
+        }
+
+        setNextHeight(bufferHeight) {
+            if (this._bufferHeight === bufferHeight)
+                return;
+
+            this._bufferHeightNext = bufferHeight;
+        }
+
+        setSource(source) {
+            this._source = source;
+
+            if (this._active)
+                this._createWorker();
+        }
+
+        _createWorker() {
+            if (!this._source)
+                return;
+
+            const newWorker = compileWorkerFromParts([this._source, transformWorker.toString(), 'transformWorker(this);']);
+            this._doubleBufferedWorker.setPendingWorker(newWorker);
+        }
+
+        _workerResult(data) {
+            const buffer = data.buffer;
+            this._drawGrid(buffer);
+        }
+
+        _redraw(time) {
+            if (this._bufferHeightNext)
+                this._bufferHeight = this._bufferHeightNext;
+
+            const width = BUFFER_WIDTH, height = this._bufferHeight;
+            const numSubpixelsX = 4, numSubpixelsY = 4;
+            const job = { time, width, height, numSubpixelsX, numSubpixelsY };
+            const sentJob = this._doubleBufferedWorker.sendJob(job);
+
+            // XXX: Should we draw a blank grid or keep the last known good compile there?
+            if (!sentJob)
+                this._drawGrid(null);
+        }
+    }
+
+    function runTransformDemo(elem, initialHeight, source) {
+        const transformDrawer = new TransformDrawer();
+        transformDrawer.setWidth(elem.clientWidth);
+        transformDrawer.setNextHeight(initialHeight);
+        elem.appendChild(transformDrawer.elem);
+
+        const splitter = new CoverageSplitter(transformDrawer);
+        elem.appendChild(splitter.elem);
+
+        const editor = new Editor();
+        editor.setFontSize('12pt');
+        editor.setSize(elem.clientWidth, 250);
+        editor.setPrefixSuffix('function transform(x, y, time) {\n', '\n    return { newX, newY };\n}');
+        // Trim initial newline.
+        source = source.replace(/^\n+/, '');
+        source = source.replace(/\n+$/, '');
+        editor.setValue(source);
+
+        elem.appendChild(editor.elem);
+
+        function transform() {
+            transformDrawer.setSource(editor.getFullText());
+        }
+
+        editor.ontextchanged = transform;
+        transform();
+    }
+
+    ArticleDemos.registerDemo('rast2-transforms-1', (elem) => runTransformDemo(elem, MIN_BUFFER_HEIGHT, `
+    const t = Math.sin(time / 1000) + 2;
+    const newX = x;
+    const newY = y;
 `));
 
 })(window);
