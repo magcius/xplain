@@ -234,12 +234,15 @@ ctx.restore();
         </p>
         <p>
             Also, just so you're aware, graphics code <em>tends</em> to have short and sweet variable names. "x" and "y"
-            should hopefully be pretty obvious, but conventions like "dx", "cx", "sy" are a bit less obvious. Typically,
+            should hopefully be pretty obvious, but conventions like "dx", "cx", "sy" are a bit less obvious. In my code,
             "dx" means "distance x" or "delta x" and means a difference between two X coordinates. The "c" in "cx" tends
             to stand for "center", and the "s" in "sy" tends to stand for "shape", as in, the shape's coordinates.
             "w" is width, "h" is height, "hw" is "half-width". You'll also see "x2" which tends to mean "the right side
             of a rectangle", aka "x+w". The more you play with it, the more you start to recognize and be able to read
-            graphics code.
+            graphics code. I tell you now because when you go look it up, you'll see this sort of stuff everywhere, and
+            it's a really good habit to figure out how to read this more... terse sort of graphics lingo. Everyone has
+            their own style, and I certainly am not the best or cleanest programmer, but it matches the level of terseness
+            you'll see among the industry. It can be challenging, but if I can figure it out, so you can you. I promise.
         </p>
         </section>
 
@@ -247,8 +250,8 @@ ctx.restore();
         <h3>Combining Shapes</h3>
         <p>
             Now that you're familiar with the basics, let's start off with a puzzle. Let's say we wanted to build a
-            long, "capsule" type shape. It has caps for circles at the ends, connected with a giant rectangle. How
-            can we <em>combine</em> shapes like this?
+            long, "capsule" type shape. It has caps for circles at the ends, connected with a giant rectangle in the middle.
+            Using the tools we have right now, can we <em>combine</em> them to make this new shape?
         </p>
 
         <div class="demo-slot" data-demo="rast2-coverage-editor-2"></div>
@@ -284,10 +287,29 @@ ctx.restore();
         <div class="demo-canvas" data-demo="rast2-transforms-1"></div>
 
         <p>
-            It becomes easy by changing our perspective. Instead of changing our shapes, we change the pixel grid.
-            To make an ellipse that's twice as long, we shrink the width of each pixel in our grid in half. The
-            mathematically perfect circle remains the same. This isn't actually changing the size of our pixels,
-            it's simply changing how we sample each shape.
+            It becomes easy by changing our perspective. Instead of changing our shapes, we change how we sample it.
+            To make an ellipse that's twice as long, we put our samples closer together along the X axis. You can also
+            think of this as "shrinking" our pixel grid. When we unshrink the pixel grid back to normal again, we find
+            an elongated circle.
+        </p>
+
+        <div class="demo-canvas" data-demo="rast2-transforms-2"></div>
+
+        <p>
+            We can actually implement a lot of different kinds of transformations this way. By morphing our grid in
+            weird ways, we can implement something along the lines of Photoshop filters to our shape. This functionality
+            isn't something usually provided in typical 2D graphics libraries. There, they restrict our ability to squash
+            and stretch to something a bit simpler to render, called a "linear transformation".
+        </p>
+        <p>
+            A <span class="definition">linear transformation</span> is one that only adds the inputs together, without
+            using anything like sines or divisions. Any linear equation can be normalized to take the form <code>x' = 1*x + 3*y</code>,
+            where we line up the variables in order and put the multiplicative terms. As a notational convenience,
+            we can drop the "template" part of the expression and just jot down the coefficients, in a sort of box shape.
+            The resulting box is known as a <span class="definition">matrix</span>. Matrices have lots of uses in math
+            and computer science and graphics but it's easy to forget that it means the same as the above set of
+            linear expressions. You might have seen these matrices before. If you're having trouble with matrices, try
+            converting them to expression form &mdash; I often find the expression form is easier to read and understand.
         </p>
         </section>
         <div class="nav-bottom"></div>

@@ -160,6 +160,7 @@
         }
     }
 
+    // The typical trick to compile a Worker from a string of source code.
     function compileWorkerFromParts(parts) {
         const blob = new Blob(parts, { type: 'text/javascript' });
         const url = window.URL.createObjectURL(blob);
@@ -225,33 +226,26 @@
     // XXX: I need better names for these variables.
 
     // The size of our rasterized buffer.
-    var BUFFER_WIDTH = 46, MIN_BUFFER_HEIGHT = 10;
+    const BUFFER_WIDTH = 46, MIN_BUFFER_HEIGHT = 10;
 
     // This rasterized buffer gets rendered so that each "picture element"
     // in it gets a giant 16x16 "cell" for demonstration purposes.
-    var DISPLAY_CELL_SIZE = 16;
+    const DISPLAY_CELL_SIZE = 16;
 
-    var DISPLAY_YPAD = 2;
+    const DISPLAY_YPAD = 2;
 
     // As such, the final size of the buffer, rendered on the canvas, is:
-    var DISPLAY_WIDTH = BUFFER_WIDTH * DISPLAY_CELL_SIZE;
+    const DISPLAY_WIDTH = BUFFER_WIDTH * DISPLAY_CELL_SIZE;
 
     // The size of our "demo slot" is 800px, which means we need some padding
     // on the left and right sides.
-    var DISPLAY_XPAD = (800 - DISPLAY_WIDTH) / 2;
+    const DISPLAY_XPAD = (800 - DISPLAY_WIDTH) / 2;
 
     // -- Demo Utilities --
 
     function bufferToDisplay(p) {
         p.x = p.x * DISPLAY_CELL_SIZE;
         p.y = p.y * DISPLAY_CELL_SIZE;
-        return p;
-    }
-
-    function displayToBuffer(p) {
-        p.x = p.x / DISPLAY_CELL_SIZE;
-        p.y = p.y / DISPLAY_CELL_SIZE;
-        return p;
     }
 
     // Path out a grid of strokes drawing a grid.
@@ -259,7 +253,7 @@
         const start = { x: 0, y: 0 };
         const end = { x: 0, y: 0 };
 
-        for (var x = 0; x <= width; x++) {
+        for (let x = 0; x <= width; x++) {
             start.x = end.x = x;
             start.y = 0; end.y = height;
             bufferToDisplay(start); bufferToDisplay(end);
@@ -267,7 +261,7 @@
             ctx.lineTo(end.x + 0.5, end.y);
         }
 
-        for (var y = 0; y <= height; y++) {
+        for (let y = 0; y <= height; y++) {
             start.y = end.y = y;
             start.x = 0; end.x = width;
             bufferToDisplay(start); bufferToDisplay(end);
@@ -283,43 +277,27 @@
         ctx.stroke();
     }
 
-    function collectCoverage(x1, y1, callback, args, options) {
-        if (!options)
-            options = {};
-
-        var bias = (options.bias !== undefined) ? options.bias : true;
-
-        // Antialias by default.
-        var numSubpixels = (options.numSubpixels !== undefined) ? numSubpixels :
-                           (options.aa == undefined || options.aa) ? 4 : 1;
-        var numSubpixelsX = numSubpixels;
-        var numSubpixelsY = numSubpixels;
-
-        var coverage = 0;
-        for (var subpixelY = 0; subpixelY < numSubpixelsY; subpixelY++) {
-            for (var subpixelX = 0; subpixelX < numSubpixelsX; subpixelX++) {
-                // Sample the center of the subpixel.
-
-                // We initially run this code in "no-bias mode" to demonstrate what a
-                // very naive sampler would do.
-                var sampleX, sampleY;
-                if (bias) {
-                    sampleX = x1 + (subpixelX + 0.5) / numSubpixelsX;
-                    sampleY = y1 + (subpixelY + 0.5) / numSubpixelsY;
-                } else {
-                    sampleX = x1 + (subpixelX) / numSubpixelsX;
-                    sampleY = y1 + (subpixelY) / numSubpixelsY;
-                }
-
-                coverage += callback(sampleX, sampleY, ...args);
-            }
-        }
-        coverage /= numSubpixelsX * numSubpixelsY;
-
-        return coverage;
-    }
-
+    // Runs in Worker scope! Needs to bundle all of its dependencies!
     function coverageWorker(global) {
+        function collectCoverage(x1, y1, callback, args) {
+            // Antialias by default.
+            const numSubpixels = 4;
+            const numSubpixelsX = numSubpixels;
+            const numSubpixelsY = numSubpixels;
+    
+            let coverage = 0;
+            for (let subpixelY = 0; subpixelY < numSubpixelsY; subpixelY++) {
+                for (let subpixelX = 0; subpixelX < numSubpixelsX; subpixelX++) {
+                    const sampleX = x1 + (subpixelX + 0.5) / numSubpixelsX;
+                    const sampleY = y1 + (subpixelY + 0.5) / numSubpixelsY;
+                    coverage += callback(sampleX, sampleY, ...args);
+                }
+            }
+            coverage /= numSubpixelsX * numSubpixelsY;
+
+            return coverage;
+        }
+
         global.onmessage = function(e) {
             const time = e.data.time;
             const w = e.data.width, h = e.data.height;
@@ -352,7 +330,7 @@
         constructor(canvas) {
             this._canvas = canvas;
             visibleRAF(this._canvas, this._redraw.bind(this), this._setActive.bind(this));
-
+            
             this._bufferHeightNext = 0;
             this._doubleBufferedWorker = new DoubleBufferedWorker();
             this._doubleBufferedWorker.onresult = this._workerResult.bind(this);
@@ -395,11 +373,10 @@
         _setActive(active) {
             this._active = active;
 
-            if (this._active) {
+            if (this._active)
                 this._createWorker();
-            } else {
+            else
                 this._doubleBufferedWorker.terminate();
-            }
         }
 
         setNextHeight(bufferHeight) {
@@ -420,7 +397,7 @@
             if (!this._source)
                 return;
 
-            const newWorker = compileWorkerFromParts([this._source, collectCoverage.toString(), coverageWorker.toString(), 'coverageWorker(this);']);
+            const newWorker = compileWorkerFromParts([this._source, coverageWorker.toString(), 'coverageWorker(this);']);
             this._doubleBufferedWorker.setPendingWorker(newWorker);
         }
 
@@ -430,9 +407,8 @@
         }
 
         _redraw(time) {
-            if (this._bufferHeightNext) {
+            if (this._bufferHeightNext)
                 this._bufferHeight = this._bufferHeightNext;
-            }
 
             const job = { time: time, width: BUFFER_WIDTH, height: this._bufferHeight };
             const sentJob = this._doubleBufferedWorker.sendJob(job);
