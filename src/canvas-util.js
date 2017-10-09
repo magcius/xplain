@@ -71,25 +71,7 @@
     };
 
     CanvasUtil.visibleRAF = function(elem, func, activateFunc) {
-        function isElemVisible(elem) {
-            var rect = elem.getBoundingClientRect();
-            if (rect.bottom < 0 || rect.top > window.innerHeight)
-                return false;
-            return true;
-        }
-
-        function update(t) {
-            func(t);
-
-            if (isRunning)
-                window.requestAnimationFrame(update);
-        }
-
-        function scrollHandler() {
-            setRunning(isElemVisible(elem));
-        }
-
-        var isRunning = false;
+        let isRunning = false;
         function setRunning(running) {
             if (isRunning == running)
                 return;
@@ -103,8 +85,44 @@
                 window.requestAnimationFrame(update);
         }
 
-        document.addEventListener('scroll', scrollHandler);
-        scrollHandler();
+        function update(t) {
+            func(t);
+
+            if (isRunning)
+                window.requestAnimationFrame(update);
+        }
+
+        function visibleRAF_impl_onscroll() {
+            function isElemVisible(elem) {
+                const rect = elem.getBoundingClientRect();
+                if (rect.bottom < 0 || rect.top > window.innerHeight)
+                    return false;
+                return true;
+            }
+
+            function scrollHandler() {
+                setRunning(isElemVisible(elem));
+            }
+
+            document.addEventListener('scroll', scrollHandler);
+            scrollHandler();
+        }
+
+        function visibleRAF_impl_IntersectionObserver() {
+            function callback(entries) {
+                const { intersectionRatio } = entries[0];
+                const shouldBeRunning = intersectionRatio > 0;
+                setRunning(shouldBeRunning);
+            }
+
+            const observer = new IntersectionObserver(callback);
+            observer.observe(elem);
+        }
+
+        if (window.IntersectionObserver)
+            visibleRAF_impl_IntersectionObserver();
+        else
+            visibleRAF_impl_onscroll();
     };
 
     exports.CanvasUtil = CanvasUtil;
