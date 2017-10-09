@@ -2,7 +2,7 @@
 
 (function(exports) {
 
-    var CanvasUtil = {};
+    const CanvasUtil = {};
 
     // Constructs a path on a <canvas>, given a Region.
     CanvasUtil.pathFromRegion = function(ctx, region) {
@@ -53,14 +53,14 @@
             srcY = 0;
         }
 
-        var mX = Math.max(srcX, destX);
+        const mX = Math.max(srcX, destX);
         if (mX >= ctx.canvas.width)
             return;
 
         if (mX + w > ctx.canvas.width)
             w = ctx.canvas.width - mX;
 
-        var mY = Math.max(srcY, destY);
+        const mY = Math.max(srcY, destY);
         if (mY >= ctx.canvas.height)
             return;
 
