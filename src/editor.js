@@ -235,6 +235,16 @@
             this._toplevel.appendChild(this._textarea);
 
             this._canvas = document.createElement('canvas');
+
+            this._ratio = window.devicePixelRatio;
+            window.matchMedia('screen and (min-resolution: 2dppx)').addListener(() => {
+                this._ratio = window.devicePixelRatio;
+                if (this._width)
+                    this._canvas.width = this._width * this._ratio;
+                if (this._height)
+                    this._canvas.height = this._height * this._ratio;
+            });
+
             this._toplevel.appendChild(this._canvas);
             this._onMouseDown = this._onMouseDown.bind(this);
             this._onMouseMove = this._onMouseMove.bind(this);
@@ -292,7 +302,9 @@
             if (h !== undefined)
                 this._minHeight = h;
             if (w !== undefined) {
-                this._canvas.width = w;
+                this._width = w;
+                this._canvas.width = w * this._ratio;
+                this._canvas.style.width = `${w}px`;
                 this._toplevel.style.width = `${w}px`;
                 // Calculate cols immediately.
                 this._cols = this._xyToRowCol(w, 0).col;
@@ -416,8 +428,9 @@
             const newHeight = Math.max(this._minHeight, this._rowHeight * (numLines + this._paddingTop + this._paddingBottom));
             if (newHeight !== this._height) {
                 this._height = newHeight;
-                this._canvas.height = this._height;
-                this._toplevel.style.height = this._height + 'px';
+                this._canvas.height = this._height * this._ratio;
+                this._canvas.style.height = `${this._height}px`;
+                this._toplevel.style.height = `${this._height}px`;
                 // Resize the textarea so the window doesn't scroll back in when we click on it...
                 this._textarea.style.height = (this._height - this._rowHeight) + 'px';
             }
@@ -704,7 +717,9 @@
             }
 
             const ctx = this._canvas.getContext('2d');
-
+            ctx.save();
+            ctx.scale(this._ratio, this._ratio);
+            
             const bgcolor = '#232323';
             ctx.fillStyle = bgcolor;
             ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
@@ -853,6 +868,7 @@
                 }
             }
 
+            ctx.restore();
             ctx.restore();
         }
     }    
