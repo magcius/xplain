@@ -226,10 +226,174 @@
     }
     // #endregion
 
+    // #region Editor Base Demo
+    // This is the main "base class" for all of the demos that stack a result canvas,
+    // a splitter, and an editor widget on top of each other. It's in charge of all
+    // three components as well as constructing the workers, collecting results, etc.
+    class CanvasEditorDemoBase {
+        constructor(source) {
+            this._toplevel = document.createElement('div');
+
+            const topHalf = document.createElement('div');
+            this._canvas = document.createElement('canvas');
+            this._canvas.getContext('2d', { 'alpha': false });
+            visibleRAF(this._canvas, this._redraw.bind(this), this._setActive.bind(this));
+            this._canvas.onmousemove = this._onMouseMove.bind(this);
+            this._canvas.onmouseout = this._onMouseOut.bind(this);
+            this._canvas.onmousedown = this._onMouseDown.bind(this);
+            this._canvas.onmouseup = this._onMouseUp.bind(this);
+            topHalf.appendChild(this._canvas);
+
+            this._splitter = new Splitter();
+            this._splitter.ondragstart = this._onSplitterDragStart.bind(this);
+            this._splitter.ondrag = this._onSplitterDrag.bind(this);
+            topHalf.appendChild(this._splitter.elem);
+
+            topHalf.style.backgroundColor = 'white';
+            topHalf.style.position = 'sticky';
+            // work around a dumb chrome issue
+            topHalf.style.top = '-1px';
+            topHalf.style.paddingTop = '1px';
+            topHalf.style.zIndex = '10';
+            this._toplevel.appendChild(topHalf);
+
+            this._editor = new Editor();
+            this._editor.setFontSize('12pt');
+            // Trim initial newline.
+            source = source.replace(/^\n+/, '');
+            source = source.replace(/\n+$/, '');
+            this._editor.onvaluechanged = this._onEditorValueChanged.bind(this);
+            this._editor.setValue(source);
+            this._toplevel.appendChild(this._editor.elem);
+
+            this._mouse = null;
+            this._bufferHeightNext = 0;
+            this._doubleBufferedWorker = new DoubleBufferedWorker();
+            this._doubleBufferedWorker.onresult = this._workerResult.bind(this);
+
+            this.elem = this._toplevel;
+        }
+        _onSplitterDragStart() {
+            this._splitterDragStartHeight = this._canvas.height;
+        }
+        _onSplitterDrag(dx, dy, e) {
+            this.setNextHeight(this._splitterDragStartHeight + dy);
+        }
+        _translateMouse(e) {
+            const x = (e.layerX - DISPLAY_XPAD) / DISPLAY_CELL_SIZE;
+            const y = (e.layerY - DISPLAY_YPAD) / DISPLAY_CELL_SIZE;
+            return { x, y };
+        }
+        _constrainHeight(height) {
+            const bufferHeight = Math.round((height - DISPLAY_YPAD * 2) / DISPLAY_CELL_SIZE);
+            const bufferHeightClamped = Math.max(bufferHeight, 1);
+            return bufferHeightClamped;
+        }
+        _onMouseMove(e) {
+            if (!this._mouse)
+                this._mouse = { pressed: false };
+            const { x, y } = this._translateMouse(e);
+            this._mouse.x = x;
+            this._mouse.y = y;
+        }
+        _onMouseOut(e) {
+            this._mouse = null;
+        }
+        _onMouseDown(e) {
+            e.preventDefault();
+            this._onMouseMove(e);
+            this._mouse.pressed = true;
+        }
+        _onMouseUp(e) {
+            this._onMouseMove(e);
+            this._mouse.pressed = false;
+        }
+        setWidth(width) {
+            this._canvas.width = width;
+            const ctx = this._canvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
+            this._editor.setSize(width, 250);
+        }
+        _setActive(active) {
+            this._active = active;
+
+            if (this._active)
+                this._createPendingWorker();
+            else
+                this._doubleBufferedWorker.terminate();
+        }
+        setNextHeight(bufferHeightRaw) {
+            const bufferHeight = this._constrainHeight(bufferHeightRaw);
+            if (this._bufferHeight === bufferHeight)
+                return;
+
+            this._bufferHeightNext = bufferHeight;
+        }
+        _createPendingWorker() {
+            const newWorker = this._createWorker(this._editor.getValue());
+            this._doubleBufferedWorker.setPendingWorker(newWorker);
+        }
+        _onEditorValueChanged() {
+            if (this._active)
+                this._createPendingWorker();
+        }
+        _calculateEnvironPrefix(environ) {
+            // Gross number formatting function used to lop unlucky floating points off...
+            // e.g. 12345.100000007 => '12345.1'
+            function formatDecimal(value, places = 2) {
+                let valueStr = value.toFixed(places);
+                while (valueStr.includes('.') && '.0'.includes(valueStr.slice(-1)))
+                    valueStr = valueStr.slice(0, -1);
+                return valueStr;
+            }
+
+            function jsonStringifyButItActuallyLooksGood(v) {
+                const r = jsonStringifyButItActuallyLooksGood;
+                // aesthetic
+                if (Array.isArray(v)) {
+                    return '[ ' + v.map(r).join(', ') + ' ]';
+                } else if (typeof v === 'object' && v) {
+                    return '{ ' + Object.keys(v).map((k) => `${k}: ${r(v[k])}`).join(', ') + ' }';
+                } else if (typeof v === 'number') {
+                    return formatDecimal(v);
+                } else {
+                    return JSON.stringify(v);
+                }
+            }
+
+            // Calculate fake globals line.
+            let prefix = '';
+            for (const key in environ) {
+                const value = jsonStringifyButItActuallyLooksGood(environ[key]);
+                prefix += `const ${key} = ${value};\n`;
+            }
+
+            return prefix;
+        }
+        _getJob(time) {
+            const mouse = this._mouse;
+            const imageSize = { width: BUFFER_WIDTH, height: this._bufferHeight };
+            return { time, imageSize, mouse };
+        }
+        _redraw(time) {
+            if (this._bufferHeightNext)
+                this._bufferHeight = this._bufferHeightNext;
+
+            const job = this._getJob(time);
+            this._setPrefixSuffix(job);
+            const sentJob = this._doubleBufferedWorker.sendJob(job);
+
+            if (!sentJob)
+                this._fallbackDraw();
+        }
+    }
+    // #endregion
+
     // XXX: I need better names for these variables.
 
     // The size of our rasterized buffer.
-    const BUFFER_WIDTH = 46, MIN_BUFFER_HEIGHT = 10;
+    const BUFFER_WIDTH = 46, INITIAL_BUFFER_HEIGHT = 10;
 
     // This rasterized buffer gets rendered so that each "picture element"
     // in it gets a giant 16x16 "cell" for demonstration purposes.
@@ -330,85 +494,13 @@
         };
     }
 
-    class CoverageDemo {
-        constructor(source) {
-            this._toplevel = document.createElement('div');
-
-            const topHalf = document.createElement('div');
-            this._canvas = document.createElement('canvas');
-            this._canvas.getContext('2d', { 'alpha': false });
-            visibleRAF(this._canvas, this._redraw.bind(this), this._setActive.bind(this));
-            this._canvas.onmousemove = this._onMouseMove.bind(this);
-            this._canvas.onmouseout = this._onMouseOut.bind(this);
-            this._canvas.onmousedown = this._onMouseDown.bind(this);
-            this._canvas.onmouseup = this._onMouseUp.bind(this);
-            topHalf.appendChild(this._canvas);
-
-            this._splitter = new Splitter();
-            this._splitter.ondragstart = this._onSplitterDragStart.bind(this);
-            this._splitter.ondrag = this._onSplitterDrag.bind(this);
-            topHalf.appendChild(this._splitter.elem);
-
-            topHalf.style.backgroundColor = 'white';
-            topHalf.style.position = 'sticky';
-            // work around a dumb chrome issue
-            topHalf.style.top = '-1px';
-            topHalf.style.paddingTop = '1px';
-            topHalf.style.zIndex = '10';
-            this._toplevel.appendChild(topHalf);
-
-            this._editor = new Editor();
-            this._editor.setFontSize('12pt');
-            // Trim initial newline.
-            source = source.replace(/^\n+/, '');
-            source = source.replace(/\n+$/, '');
-            this._editor.setValue(source);
-            this._editor.onvaluechanged = this._onEditorValueChanged.bind(this);
-            this._toplevel.appendChild(this._editor.elem);
-
-            this._mouse = null;
-            this._bufferHeightNext = 0;
-            this._doubleBufferedWorker = new DoubleBufferedWorker();
-            this._doubleBufferedWorker.onresult = this._workerResult.bind(this);
-
-            this.elem = this._toplevel;
+    class CoverageDemo extends CanvasEditorDemoBase {
+        _setPrefixSuffix(environ) {
+            const environPrefix = this._calculateEnvironPrefix(environ);
+            const prefix = `${environPrefix}\nfunction coverage(x, y) {\n`;
+            const suffix = `\n}`;
+            this._editor.setPrefixSuffix(prefix, suffix);
         }
-
-        _onSplitterDragStart() {
-            this._splitterDragStartHeight = this._canvas.height;
-        }
-        _onSplitterDrag(dx, dy, e) {
-            const rawHeight = this._splitterDragStartHeight + dy;
-            const bufferHeight = Math.round((rawHeight - DISPLAY_YPAD * 2) / DISPLAY_CELL_SIZE);
-            const bufferHeightClamped = Math.max(bufferHeight, MIN_BUFFER_HEIGHT);
-            this.setNextHeight(bufferHeightClamped);
-        }
-
-        _onMouseMove(e) {
-            const mx = (e.layerX - DISPLAY_XPAD) / DISPLAY_CELL_SIZE;
-            const my = (e.layerY - DISPLAY_YPAD) / DISPLAY_CELL_SIZE;
-            if (!this._mouse)
-                this._mouse = { pressed: false };
-            this._mouse.x = mx;
-            this._mouse.y = my;
-        }
-        _onMouseOut(e) {
-            this._mouse = null;
-        }
-        _onMouseDown(e) {
-            e.preventDefault();
-            this._onMouseMove(e);
-            this._mouse.pressed = true;
-        }
-        _onMouseUp(e) {
-            this._onMouseMove(e);
-            this._mouse.pressed = false;
-        }
-
-        getCanvas() {
-            return this._canvas;
-        }
-
         _drawGrid(buffer) {
             if (this._bufferHeightNext === this._bufferHeight) {
                 this._canvas.height = this._bufferHeight * DISPLAY_CELL_SIZE + DISPLAY_YPAD * 2;
@@ -439,111 +531,27 @@
             drawGrid(ctx, BUFFER_WIDTH, this._bufferHeight);
             ctx.restore();
         }
-
-        _setActive(active) {
-            this._active = active;
-
-            if (this._active)
-                this._createWorker();
-            else
-                this._doubleBufferedWorker.terminate();
+        _createWorker(value) {
+            const source = `function coverage(x, y) {\n${value}\n}`;
+            return compileWorkerFromParts([source, coverageWorker.toString(), 'coverageWorker(this);']);
         }
-
-        setWidth(width) {
-            this._canvas.width = width;
-            this._editor.setSize(width, 250);
-        }
-
-        setNextHeight(bufferHeight) {
-            if (this._bufferHeight === bufferHeight)
-                return;
-
-            this._bufferHeightNext = bufferHeight;
-        }
-
-        setSource(source) {
-            this._source = source;
-
-            if (this._active)
-                this._createWorker();
-        }
-
-        _createWorker() {
-            if (!this._source)
-                return;
-
-            const newWorker = compileWorkerFromParts([this._source, coverageWorker.toString(), 'coverageWorker(this);']);
-            this._doubleBufferedWorker.setPendingWorker(newWorker);
-        }
-
         _workerResult(data) {
             const buffer = data.buffer;
             this._drawGrid(buffer);
         }
-
-        _onEditorValueChanged() {
-            const value = this._editor.getValue();
-            const source = '\nfunction coverage(x, y) {\n' + value + '\n}';
-            this.setSource(source);
-        }
-        _setPrefixSuffix(job) {
-            // Gross number formatting function used to lop unlucky floating points off...
-            // e.g. 12345.100000007 => '12345.1'
-            function formatDecimal(value, places = 2) {
-                let valueStr = value.toFixed(places);
-                while (valueStr.includes('.') && '.0'.includes(valueStr.slice(-1)))
-                    valueStr = valueStr.slice(0, -1);
-                return valueStr;
-            }
-
-            function jsonStringifyButItActuallyLooksGood(v) {
-                const r = jsonStringifyButItActuallyLooksGood;
-                // aesthetic
-                if (Array.isArray(v)) {
-                    return '[ ' + v.map(r).join(', ') + ' ]';
-                } else if (typeof v === 'object' && v) {
-                    return '{ ' + Object.keys(v).map((k) => `${k}: ${r(v[k])}`).join(', ') + ' }';
-                } else if (typeof v === 'number') {
-                    return formatDecimal(v);
-                } else {
-                    return JSON.stringify(v);
-                }
-            }
-
-            // Calculate fake globals line.
-            let S = '';
-            for (const key in job) {
-                const value = jsonStringifyButItActuallyLooksGood(job[key]);
-                S += `const ${key} = ${value};\n`;
-            }
-
-            const prefix = `${S}\nfunction coverage(x, y) {\n`;
-            const suffix = `\n}`;
-            this._editor.setPrefixSuffix(prefix, suffix);
-        }
-        _redraw(time) {
-            if (this._bufferHeightNext)
-                this._bufferHeight = this._bufferHeightNext;
-
-            const imageSize = { width: BUFFER_WIDTH, height: this._bufferHeight };
-            const job = { time, imageSize, mouse: this._mouse };
-            this._setPrefixSuffix(job);
-            const sentJob = this._doubleBufferedWorker.sendJob(job);
-
-            // XXX: Should we draw a blank grid or keep the last known good compile there?
-            if (!sentJob)
-                this._drawGrid(null);
+        _fallbackDraw() {
+            this._drawGrid(null);
         }
     }
 
-    function runCoverageDemo(elem, initialHeight, source) {
+    function runCoverageDemo(elem, source) {
         const coverageDemo = new CoverageDemo(source);
         elem.appendChild(coverageDemo.elem);
         coverageDemo.setWidth(elem.clientWidth);
-        coverageDemo.setNextHeight(initialHeight);
+        coverageDemo.setNextHeight(INITIAL_BUFFER_HEIGHT * DISPLAY_CELL_SIZE);
     }
 
-    ArticleDemos.registerDemo('rast2-coverage-editor-1', (elem) => runCoverageDemo(elem, MIN_BUFFER_HEIGHT, `
+    ArticleDemos.registerDemo('rast2-coverage-editor-1', (elem) => runCoverageDemo(elem, `
     const centerX = imageSize.width / 2;
     const centerY = imageSize.height / 2;
 
@@ -565,7 +573,7 @@
     return Math.sqrt(dx*dx + dy*dy) <= radius;
 `));
 
-    ArticleDemos.registerDemo('rast2-coverage-editor-2', (elem) => runCoverageDemo(elem, MIN_BUFFER_HEIGHT, `
+    ArticleDemos.registerDemo('rast2-coverage-editor-2', (elem) => runCoverageDemo(elem, `
     function circle(cx, cy, radius) {
         const dx = cx - x, dy = cy - y;
         // Quick optimization trick to avoid the sqrt: square both sides.
@@ -709,7 +717,7 @@
             this._active = active;
 
             if (this._active)
-                this._createWorker();
+                this._createPendingWorker();
             else
                 this._doubleBufferedWorker.terminate();
         }
@@ -785,7 +793,7 @@
         transform();
     }
 
-    ArticleDemos.registerDemo('rast2-transforms-1', (elem) => runTransformDemo(elem, MIN_BUFFER_HEIGHT, `
+    ArticleDemos.registerDemo('rast2-transforms-1', (elem) => runTransformDemo(elem, INITIAL_BUFFER_HEIGHT, `
     const t = Math.sin(time / 1000) + 2;
     const newX = x;
     const newY = y;
