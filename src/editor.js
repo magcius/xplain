@@ -7,6 +7,25 @@
     // The monospace font we use...
     const MONOSPACE = '"Source Code Pro", "Droid Sans Mono", monospace';
 
+    // #region Color Utilities
+    function colorLerp(ca, cb, t) {
+        console.assert(ca[0] === '#' && ca.length === 7);
+        const ar = parseInt(ca.slice(1, 3), 16), ag = parseInt(ca.slice(3, 5), 16), ab = parseInt(ca.slice(5, 7), 16);
+        console.assert(cb[0] === '#' && cb.length === 7);
+        const br = parseInt(cb.slice(1, 3), 16), bg = parseInt(cb.slice(3, 5), 16), bb = parseInt(cb.slice(5, 7), 16);
+        const nr = ar+(br-ar)*t, ng = ag+(bg-ag)*t, nb = ab+(bb-ab)*t;
+        const r = (nr | 0).toString(16), g = (ng | 0).toString(16), b = (nb | 0).toString(16);
+        return `#${r}${g}${b}`;
+    }
+    function colorGrayscale(c) {
+        console.assert(c[0] === '#' && c.length === 7);
+        const r = parseInt(c.slice(1, 3), 16), g = parseInt(c.slice(3, 5), 16), b = parseInt(c.slice(5, 7), 16);
+        const ny = r*0.299 + g*0.587 + b*0.114;
+        const y = (ny | 0).toString(16);
+        return `#${y}${y}${y}`;
+    }
+    // #endregion
+
     // #region Cursor
     // Helper class to globally set a cursor.
     class CursorOverride {
@@ -41,20 +60,11 @@
 
     // Gross number formatting function used to lop unlucky floating points off...
     // e.g. 12345.100000007 => '12345.1'
-    function formatDecimal(value) {
-        let valueStr = value.toString();
-        const sides = valueStr.split('.');
-        const beforeDec = sides[0];
-        if (sides.length === 1)
-            return beforeDec;
-
-        let afterDec = sides[1].slice(0, 2);
-        if (afterDec[1] === '0') {
-            afterDec = afterDec.slice(0, 1);
-            if (afterDec[0] === '0')
-                return beforeDec;
-        }
-        return beforeDec + '.' + afterDec;
+    function formatDecimal(value, places = 2) {
+        let valueStr = value.toFixed(places);
+        while (valueStr.includes('.') && '.0'.includes(valueStr.slice(-1)))
+            valueStr = valueStr.slice(0, -1);
+        return valueStr;
     }
 
     // This is the fancy number slider controller that comes up from the editor.
@@ -76,6 +86,7 @@
             this._toplevel.style.marginLeft = '1em';
             this._toplevel.style.borderRadius = '6px';
             this._toplevel.style.boxShadow = 'rgba(0, 0, 0, .4) 0px 4px 16px';
+            this._toplevel.style.zIndex = '9999';
 
             this._segments = [];
             for (let exp = 2; exp >= -2; exp--) {
@@ -97,6 +108,7 @@
         }
 
         _onMouseMove(e) {
+            e.stopPropagation();
             const accel = 15;
             const dx = Math.round((e.clientX - this._anchorMouseX) / accel);
             const newValue = this._anchorValue + (dx * this._currentIncr);
@@ -132,7 +144,7 @@
             }
 
             this.onend();
-            document.documentElement.removeEventListener('mousemove', this._onMouseMove);
+            document.documentElement.removeEventListener('mousemove', this._onMouseMove, { capture: true });
             document.body.removeChild(this._toplevel);
         }
 
@@ -159,7 +171,7 @@
         _show() {
             this._showTimeout = 0;
             document.body.appendChild(this._toplevel);
-            document.documentElement.addEventListener('mousemove', this._onMouseMove);
+            document.documentElement.addEventListener('mousemove', this._onMouseMove, { capture: true });
         }
 
         show(value, e) {
@@ -239,6 +251,7 @@
             this._canvas.style.position = 'absolute';
 
             this._needsRecalculate = false;
+            this._valueChanged = false;
 
             // Redraw-internal state.
             this._redraw_cursorPosition = undefined;
@@ -255,6 +268,9 @@
 
         _setNeedsRecalculate() {
             this._needsRecalculate = true;
+        }
+        _setValueChanged() {
+            this._valueChanged = true;
         }
 
         // Sets a chunk of text at the beginning and end that the user cannot modify.
@@ -273,13 +289,17 @@
         // yet have scrolling, the Editor always expands to fill however many lines it
         // takes up...
         setSize(w, h) {
-            this._minHeight = h;
-            this._canvas.width = w;
-            this._toplevel.style.width = `${w}px`;
-            // Calculate cols immediately.
-            this._cols = this._xyToRowCol(w, 0).col;
-            this._textarea.style.width = `${this._cols}ch`;
-            this._setNeedsRecalculate();
+            if (h !== undefined)
+                this._minHeight = h;
+            if (w !== undefined) {
+                this._canvas.width = w;
+                this._toplevel.style.width = `${w}px`;
+                // Calculate cols immediately.
+                this._cols = this._xyToRowCol(w, 0).col;
+                this._textarea.style.width = `${this._cols}ch`;
+            }
+            if (w !== undefined || h !== undefined)
+                this._setNeedsRecalculate();
         }
 
         getValue() {
@@ -287,17 +307,17 @@
         }
         setValue(t) {
             this._textarea.value = t;
+            this._setValueChanged();
             this._setNeedsRecalculate();
         }
         getFullText() {
             return this._prefix + this._textarea.value + this._suffix;
         }
 
-        _isRowLocked(row) {
-            // XXX(WRAP): Assumes not word wrapping.
-            if (row < this._prefixRows)
+        _isLineLocked(line) {
+            if (line.lineno < this._prefixLines)
                 return true;
-            if (row >= this._suffixRows)
+            if (line.lineno >= this._suffixLines)
                 return true;
             return false;
         }
@@ -328,8 +348,8 @@
             }
             this._lineModel = lineModel;
 
-            this._prefixRows = this._prefix.split('\n').length - 1;
-            this._suffixRows = this._lineModel.length - (this._suffix.split('\n').length - 1);
+            this._prefixLines = this._prefix.split('\n').length - 1;
+            this._suffixLines = this._lineModel.length - (this._suffix.split('\n').length - 1);
 
             // Compute syntax highlights.
             const syntaxRuns = [];
@@ -357,6 +377,7 @@
                 syntaxRuns.push({ start: match.index, end: match.index + match[0].length, color: '#bc9458', style: 'italic' });
 
             syntaxRuns.sort((a, b) => a.start - b.start);
+
             this._syntaxRuns = syntaxRuns;
             this._draggableNumbers = draggableNumbers;
 
@@ -403,10 +424,24 @@
 
             this._needsRecalculate = false;
 
-            if (this.ontextchanged)
-                this.ontextchanged();
+            this._recalculateMouseIdx();
+
+            if (this._valueChanged && this.onvaluechanged)
+                this.onvaluechanged();
+            this._valueChanged = false;
+        }
+        _recalculateMouseIdx() {
+            if (this._mouseX === undefined || this._mouseY === undefined) {
+                this._mouseIdx = undefined;
+            } else {
+                const { row, col } = this._xyToRowCol(this._mouseX, this._mouseY);
+                const { line, idx } = this._rowColToLineIdx(row, col, true);
+                const isLineLocked = this._isLineLocked(line);
+                this._mouseIdx = isLineLocked ? undefined : idx;
+            }
         }
         _onInput() {
+            this._setValueChanged();
             this._setNeedsRecalculate();
         }
         _onKeyDown(e) {
@@ -421,18 +456,24 @@
                 e.preventDefault();
             }
         }
+        _setSelection(a, b) {
+            const start = Math.min(a, b), end = Math.max(a, b);
+            this._textarea.setSelectionRange(start, end);
+        }
+        _setCursor(a) {
+            this._textarea.setSelectionRange(a, a);
+        }
         _onMouseDown(e) {
             e.preventDefault();
             const { row, col } = this._xyToRowCol(e.layerX, e.layerY);
-            if (this._isRowLocked(row)) {
+            const { line } = this._rowColToLineIdx(row, 0, true);
+            if (this._isLineLocked(line)) {
                 this._textarea.blur();
             } else if (col === -1) {
-                const { line, idx } = this._rowColToLineIdx(row, 0, true);
-                this._textarea.setSelectionRange(this._idxToTextarea(line.start), this._idxToTextarea(line.end));
+                this._setSelection(this._idxToTextarea(line.start), this._idxToTextarea(line.end));
                 this._textarea.focus();
             } else {
-                const { line, idx } = this._rowColToLineIdx(row, col, true);
-                this._textarea.setSelectionRange(this._idxToTextarea(idx), this._idxToTextarea(idx));
+                const { idx } = this._rowColToLineIdx(row, col, true);
                 this._textarea.focus();
 
                 this._dragStartX = e.clientX;
@@ -440,49 +481,66 @@
 
                 const { idx: exactIdx } = this._rowColToLineIdx(row, col, false);
                 const draggableNumber = this._findDraggableNumber(exactIdx);
-                if (draggableNumber) {
-                    const { start, end } = draggableNumber;
-                    const value = +this.getValue().slice(this._idxToTextarea(start), this._idxToTextarea(end));
+                if (!e.shiftKey && draggableNumber) {
+                    const start = this._idxToTextarea(draggableNumber.start);
+                    const end = this._idxToTextarea(draggableNumber.end);
+                    const value = +this.getValue().slice(start, end);
                     this._draggingNumber = { start, end, value };
 
                     this._syncNumberDraggerPosition();
+                    this._setCursor(this._idxToTextarea(idx));
                     this._numberDragger.show(value, e);
                 } else {
-                    this._dragStartIdx = idx;
+                    if (e.shiftKey) {
+                        // If we don't have a selection, start a new one where the cursor is...
+                        // If we have an existing selection, just keep the current dragStartIdx,
+                        // since it's still valid.
+                        if (!this._hasSelection())
+                            this._dragStartIdx = this._textarea.selectionStart;
+                        this._setSelection(this._dragStartIdx, this._idxToTextarea(idx));
+                    } else {
+                        this._dragStartIdx = this._idxToTextarea(idx);
+                        this._setCursor(this._dragStartIdx);
+                    }
+
                     this._dragging = 'selection';
 
+                    document.documentElement.addEventListener('mousemove', this._onMouseMove, { capture: true });
                     document.documentElement.addEventListener('mouseup', this._onMouseUp);
-                    document.documentElement.addEventListener('mousemove', this._onMouseMove);
                 }
             }
         }
         _onMouseUp(e) {
             this._dragging = undefined;
 
+            document.documentElement.removeEventListener('mousemove', this._onMouseMove, { capture: true });
             document.documentElement.removeEventListener('mouseup', this._onMouseUp);
-            document.documentElement.removeEventListener('mousemove', this._onMouseMove);
         }
         _onMouseMove(e) {
-            const { row, col } = this._xyToRowCol(e.layerX, e.layerY);
+            e.stopPropagation();
+
+            this._mouseX = e.layerX;
+            this._mouseY = e.layerY;
+            this._recalculateMouseIdx();
+
+            const { row, col } = this._xyToRowCol(this._mouseX, this._mouseY);
             const { line, idx } = this._rowColToLineIdx(row, col, true);
-            this._mouseIdx = idx;
 
             if (this._dragging === 'selection') {
-                const startIdx = Math.min(this._dragStartIdx, idx);
-                const endIdx = Math.max(this._dragStartIdx, idx);
-                this._textarea.setSelectionRange(this._idxToTextarea(startIdx), this._idxToTextarea(endIdx));
+                this._setSelection(this._dragStartIdx, this._idxToTextarea(idx));
                 this._textarea.focus();
             }
 
             const { idx: exactIdx } = this._rowColToLineIdx(row, col, false);
+            const isLineLocked = this._isLineLocked(line);
 
             // Dragging takes priority.
             let cursor;
             if (this._dragging === 'selection') {
                 cursor = 'text';
-            } else if (col === -1 || this._isRowLocked(row)) {
+            } else if (col === -1 || isLineLocked) {
                 cursor = 'default';
-            } else if (this._findDraggableNumber(exactIdx)) {
+            } else if (!e.shiftKey && this._findDraggableNumber(exactIdx)) {
                 cursor = 'e-resize';
             } else {
                 cursor = 'text';
@@ -495,12 +553,13 @@
                 cursorOverride.setCursor(this, '');
         }
         _onMouseLeave(e) {
+            this._mouseX = undefined;
+            this._mouseY = undefined;
             this._mouseIdx = undefined;
         }
         _onNumberDraggerValue(newValue) {
             this._textarea.blur();
-            const start = this._idxToTextarea(this._draggingNumber.start);
-            const end = this._idxToTextarea(this._draggingNumber.end);
+            const { start, end } = this._draggingNumber;
             const newValueString = formatDecimal(newValue);
             this.setValue(this._spliceValue(start, end, newValueString));
             this._draggingNumber.end = this._draggingNumber.start + newValueString.length;
@@ -511,7 +570,7 @@
         }
         _syncNumberDraggerPosition() {
             const { start, end } = this._draggingNumber;
-            const endPos = this._getCharPos(end);
+            const endPos = this._getCharPos(this._textareaToIdx(end));
             const { x, y } = this._rowColToXY(endPos.row, endPos.col);
             const bbox = this._toplevel.getBoundingClientRect();
             const absX = bbox.left + x;
@@ -534,28 +593,27 @@
         _textareaToIdx(idx) {
             return idx + this._prefix.length;
         }
-        _rowColToLineIdx(row, col, clampCol) {
+        _rowColToLineIdx(row, col, clampIdx) {
             this._recalculate();
             let line;
             for (line of this._lineModel)
                 if (row >= line.startRow && row < line.startRow + line.rows)
                     break;
 
-            // We have our line. Find idx.
-            let idx = line.start;
-            if (clampCol)
-                col = Math.min(Math.max(col, 0), line.length);
-            else if (col > line.length)
-                idx = -1;
-
-            if (idx > -1) {
-                // Fast path.
-                if (line.rows === 1) {
-                    idx += col;
-                } else {
-                    idx += (row - line.startRow) * this._cols + col;
-                }
+            let lineIdx;
+            // Fast path.
+            if (line.rows === 1) {
+                lineIdx = col;
+            } else {
+                lineIdx = (row - line.startRow) * this._cols + col;
             }
+
+            if (clampIdx)
+                lineIdx = Math.min(Math.max(lineIdx, 0), line.length);
+            else if (lineIdx > line.length)
+                lineIdx = -1;
+
+            const idx = line.start + lineIdx;
 
             return { line, idx };
         }
@@ -625,6 +683,7 @@
 
             this._textarea.focus();
             document.execCommand('insertText', false, s);
+            this._setValueChanged();
             this._setNeedsRecalculate();
         }
         redraw(t) {
@@ -664,9 +723,6 @@
 
             // Gutter
             ctx.save();
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            ctx.shadowOffsetX = 4;
             ctx.fillStyle = '#445';
             ctx.fillRect(0, 0, this._gutterWidth, this._canvas.height);
             ctx.restore();
@@ -676,7 +732,7 @@
                 const line = this._lineModel[i];
                 const no = line.lineno + 1;
                 const y = (this._paddingTop + line.startRow) * this._rowHeight;
-                ctx.fillStyle = this._isRowLocked(line.startRow) ? '#888' : '#ccc';
+                ctx.fillStyle = this._isLineLocked(line) ? '#888' : '#ccc';
                 ctx.textBaseline = 'top';
                 ctx.textAlign = 'right';
                 ctx.fillText(no, this._gutterWidth - this._gutterMargin, this._charMarginTop + y);
@@ -713,10 +769,12 @@
 
             // Anything interesting under the mouse?
             let draggableNumber;
-            if (this._draggingNumber)
-                draggableNumber = this._draggingNumber;
-            else if (!this._dragging && this._mouseIdx > -1)
+            if (this._draggingNumber) {
+                const { start, end } = this._draggingNumber;
+                draggableNumber = { start: this._textareaToIdx(start), end: this._textareaToIdx(end) };
+            } else if (!this._dragging && this._mouseIdx > -1) {
                 draggableNumber = this._findDraggableNumber(this._mouseIdx);
+            }
 
             // Setting the font on a CanvasRenderingContext2D in Firefox is expensive, so try
             // to set it as little as possible by only setting it when it changes.
@@ -773,6 +831,10 @@
                             if (run.style)
                                 style = run.style;
                         }
+                    }
+
+                    if (this._isLineLocked(line)) {
+                        color = colorLerp(color, colorGrayscale(color), 0.75);
                     }
 
                     while (currentSyntaxRun < syntaxRuns.length && i >= syntaxRuns[currentSyntaxRun].end)
