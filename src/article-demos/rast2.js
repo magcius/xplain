@@ -294,8 +294,8 @@
             this.setNextHeight(this._splitterDragStartHeight + dy);
         }
         _translateMouse(e) {
-            const x = (e.layerX - DISPLAY_XPAD) / DISPLAY_CELL_SIZE;
-            const y = (e.layerY - DISPLAY_YPAD) / DISPLAY_CELL_SIZE;
+            const x = (e.offsetX - DISPLAY_XPAD) / DISPLAY_CELL_SIZE;
+            const y = (e.offsetY - DISPLAY_YPAD) / DISPLAY_CELL_SIZE;
             return { x, y };
         }
         _constrainHeight(height) {
