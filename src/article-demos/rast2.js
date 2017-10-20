@@ -36,6 +36,8 @@
         constructor(worker) {
             this._worker = worker;
             this._worker.onerror = (e) => {
+                if (this.onerror)
+                    this.onerror(e);
                 // Terminate on first sight of error.
                 this.terminate(`onerror: ${e.message}`);
             };
@@ -52,8 +54,6 @@
             if (this.terminated)
                 return;
 
-            if (reason)
-                console.error(reason);
             this.terminated = reason;
             this._worker.terminate();
             if (this.onterminated)
@@ -94,6 +94,8 @@
             this._pendingWorker = null;
 
             this.onresult = null;
+            this.onsuccess = null;
+            this.onerror = null;
         }
 
         setPendingWorker(pendingWorker) {
@@ -102,6 +104,7 @@
 
             this._pendingWorker = new WorkerWatchdog(pendingWorker);
             this._pendingWorker.onresult = this._pendingWorkerResult.bind(this);
+            this._pendingWorker.onerror = this._pendingWorkerError.bind(this);
         }
 
         sendJob(job) {
@@ -135,18 +138,27 @@
             const worker = this._pendingWorker;
             this._currentWorker = worker;
             worker.onresult = (data) => {
-                this._workerResult(worker, data);
+                this._currentWorkerResult(worker, data);
             };
 
             worker.onterminated = (e) => {
-                this._workerTerminated(worker, e);
+                this._currentWorkerTerminated(worker, e);
             };
 
             this._pendingWorker = null;
-            this._workerResult(worker, data);
+
+            if (this.onsuccess)
+                this.onsuccess();
+
+            this._currentWorkerResult(worker, data);
         }
 
-        _workerResult(worker, data) {
+        _pendingWorkerError(e) {
+            if (this.onerror)
+                this.onerror(e);
+        }
+
+        _currentWorkerResult(worker, data) {
             if (worker !== this._currentWorker) {
                 worker.terminate();
                 return;
@@ -155,7 +167,7 @@
             this.onresult(data);
         }
 
-        _workerTerminated(worker, e) {
+        _currentWorkerTerminated(worker, e) {
             // If the worker goes away, strip it.
             if (this._currentWorker === worker)
                 this._currentWorker = null;
@@ -270,6 +282,8 @@
             this._bufferHeightNext = 0;
             this._doubleBufferedWorker = new DoubleBufferedWorker();
             this._doubleBufferedWorker.onresult = this._workerResult.bind(this);
+            this._doubleBufferedWorker.onerror = this._workerError.bind(this);
+            this._doubleBufferedWorker.onsuccess = this._workerSuccess.bind(this);
 
             this.elem = this._toplevel;
         }
@@ -386,6 +400,13 @@
 
             if (!sentJob)
                 this._fallbackDraw();
+        }
+        _workerSuccess() {
+            this._editor.setLineFlairs([]);
+        }
+        _workerError(e) {
+            const lineno = e.lineno + this._editor._prefixLines - 2;
+            this._editor.setLineFlairs([{ lineno, color: '#662020' }]);
         }
     }
     // #endregion

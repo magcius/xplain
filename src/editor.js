@@ -295,6 +295,10 @@
             this._setNeedsRecalculate();
         }
 
+        setLineFlairs(lineFlairs) {
+            this._lineFlairs = lineFlairs;
+        }
+
         // Sets the size. The height here is actually a minimum height. Since we don't
         // yet have scrolling, the Editor always expands to fill however many lines it
         // takes up...
@@ -425,7 +429,7 @@
             this._gutterWidth = this._charWidth * Math.max(gutterChars, 2) + this._gutterMargin * 2;
             this._textMargin = 10;
 
-            const newHeight = Math.max(this._minHeight, this._rowHeight * (numLines + this._paddingTop + this._paddingBottom));
+            const newHeight = Math.ceil(Math.max(this._minHeight, this._rowHeight * (numLines + this._paddingTop + this._paddingBottom)));
             if (newHeight !== this._height) {
                 this._height = newHeight;
                 this._canvas.height = this._height * this._ratio;
@@ -448,17 +452,24 @@
                 this._mouseIdx = undefined;
             } else {
                 const { row, col } = this._xyToRowCol(this._mouseX, this._mouseY);
-                const { line, idx } = this._rowColToLineIdx(row, col, true);
+                const { line, idx } = this._rowColToLineIdx(row, col, false);
                 const isLineLocked = this._isLineLocked(line);
                 this._mouseIdx = isLineLocked ? undefined : idx;
             }
+        }
+        _calculateIndentedLineStart(line) {
+            const chars = this.getFullText();
+            let idx = line.start;
+            while (chars.charAt(idx) === ' ' && idx <= line.end)
+                idx++;
+            return idx;
         }
         _onInput() {
             this._setValueChanged();
             this._setNeedsRecalculate();
         }
         _onKeyDown(e) {
-            if (e.key === 'Tab' && !e.shift) {
+            if (e.key === 'Tab' && !e.shiftKey) {
                 // XXX: If we have a selection, then indent the selection.
                 if (!this._hasSelection()) {
                     this._insertAtCursor('    ');
@@ -467,18 +478,25 @@
             } else if (e.key === 'Tab' && e.shift) {
                 // XXX: If we have a selection, then unindent the selection.
                 e.preventDefault();
+            } else if (e.key === 'Home') {
+                // Move to the start of indentation.
+                const cursorIdx = this._getCursorIdx();
+                const { line, idx } = this._getCharPos(cursorIdx);
+                const indentedIdx = this._calculateIndentedLineStart(line);
+                if (cursorIdx !== indentedIdx) {
+                    if (e.shiftKey) {
+                        const [selectionPoint] = this._getSelection();
+                        this._setSelection(this._idxToTextarea(selectionPoint), this._idxToTextarea(indentedIdx));
+                    } else {
+                        this._setCursor(this._idxToTextarea(indentedIdx));
+                    }
+                    e.preventDefault();
+                }
             }
-        }
-        _setSelection(a, b) {
-            const start = Math.min(a, b), end = Math.max(a, b);
-            this._textarea.setSelectionRange(start, end);
-        }
-        _setCursor(a) {
-            this._textarea.setSelectionRange(a, a);
         }
         _onMouseDown(e) {
             e.preventDefault();
-            const { row, col } = this._xyToRowCol(e.layerX, e.layerY);
+            const { row, col } = this._xyToRowCol(e.offsetX, e.offsetY);
             const { line } = this._rowColToLineIdx(row, 0, true);
             if (this._isLineLocked(line)) {
                 this._textarea.blur();
@@ -532,8 +550,8 @@
         _onMouseMove(e) {
             e.stopPropagation();
 
-            this._mouseX = e.layerX;
-            this._mouseY = e.layerY;
+            this._mouseX = e.offsetX;
+            this._mouseY = e.offsetY;
             this._recalculateMouseIdx();
 
             const { row, col } = this._xyToRowCol(this._mouseX, this._mouseY);
@@ -687,7 +705,26 @@
             return this._textarea.selectionStart !== this._textarea.selectionEnd;
         }
         _getSelection() {
-            return [this._textareaToIdx(this._textarea.selectionStart), this._textareaToIdx(this._textarea.selectionEnd)];
+            const selStartIdx = this._textareaToIdx(this._textarea.selectionStart);
+            const selEndIdx = this._textareaToIdx(this._textarea.selectionEnd);
+            // [selectionStart, cursor]
+            if (this._textarea.selectionDirection === 'forward')
+                return [selStartIdx, selEndIdx];
+            else
+                return [selEndIdx, selStartIdx];
+        }
+        _getCursorIdx() {
+            const [selectionPointIdx, cursorIdx] = this._getSelection();
+            return cursorIdx;
+        }
+        _setSelection(a, b) {
+            // The selection starts at "a" and ends with the cursor position being at "b".
+            const start = Math.min(a, b), end = Math.max(a, b);
+            const direction = a < b ? 'forward' : 'backward';
+            this._textarea.setSelectionRange(start, end, direction);
+        }
+        _setCursor(a) {
+            this._textarea.setSelectionRange(a, a);
         }
         _insertAtCursor(s) {
             // XXX: Doesn't work in Firefox. :(
@@ -704,9 +741,9 @@
 
             const hasFocus = this._textarea.matches(':focus');
 
-            if (hasFocus && !this._hasSelection()) {
+            if (hasFocus) {
                 // Has a cursor.
-                const cursorPosition = this._textareaToIdx(this._textarea.selectionStart);
+                const cursorPosition = this._getCursorIdx();
                 if (this._redraw_cursorPosition !== cursorPosition) {
                     this._redraw_cursorPosition = cursorPosition;
                     // Set it blinking again.
@@ -727,13 +764,24 @@
             const textareaStyle = this._textareaStyle;
             ctx.font = `${textareaStyle.fontSize} ${textareaStyle.fontFamily}`;
 
-            // Highlight the current line before the gutter so the shadow interacts with it.
-            if (this._redraw_cursorPosition) {
-                const cursorPos = this._getCharPos(this._redraw_cursorPosition);
-                const row = cursorPos.row;
-                const y = (this._paddingTop + row) * this._rowHeight;
-                ctx.fillStyle = '#363430';
+            const drawFlair = (line, flair) => {
+                const y = (this._paddingTop + line.startRow) * this._rowHeight;
+                const height = line.rows * this._rowHeight;
+                ctx.fillStyle = flair.color;
                 ctx.fillRect(0, y, this._canvas.width, this._rowHeight);
+            };
+            if (this._redraw_cursorPosition) {
+                const { line } = this._getCharPos(this._redraw_cursorPosition);
+                drawFlair(line, { color: '#363430' });
+            }
+
+            if (this._lineFlairs) {
+                for (const flair of this._lineFlairs) {
+                    const line = this._lineModel[flair.lineno];
+                    if (!line)
+                        continue;
+                    drawFlair(line, flair);
+                }
             }
 
             // Gutter
@@ -762,9 +810,8 @@
             if (this._hasSelection()) {
                 // Draw selection bounds.
                 let inSelection = false;
-                const [selectionStart, selectionEnd] = this._getSelection();
-                const startPos = this._getCharPos(selectionStart);
-                const endPos = this._getCharPos(selectionEnd);
+                const startPos = this._getCharPos(this._textareaToIdx(this._textarea.selectionStart));
+                const endPos = this._getCharPos(this._textareaToIdx(this._textarea.selectionEnd));
 
                 for (let row = startPos.row; row <= endPos.row; row++) {
                     let colStart = (row === startPos.row) ? startPos.col : 0;
@@ -872,6 +919,5 @@
             ctx.restore();
         }
     }    
-
 
 })(window);
