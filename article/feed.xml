@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <title>Explanations</title>
+    <link href="http://magcius.github.io/xplain/article/feed.xml" rel="self" />
+    <link href="http://magcius.github.io/xplain/article/" />
+    <id>http://magcius.github.io/xplain/article/</id>
+    <author>
+        <name>Jasper St. Pierre</name>
+        <email>jstpierre@mecheye.net</email>
+    </author>
+    <updated>2017-10-28T07:47:13.168Z</updated>
+    <entry>
+        <title>Introduction &amp; Table of Contents</title>
+        <link href="http://magcius.github.io/xplain/article/index.html" type="text/html" />
+        <id>http://magcius.github.io/xplain/article/index.html</id>
+        <updated>2017-09-30T05:02:01.634Z</updated>
+    </entry>
+    <entry>
+        <title>X Window System Basics</title>
+        <link href="http://magcius.github.io/xplain/article/x-basics.html" type="text/html" />
+        <id>http://magcius.github.io/xplain/article/x-basics.html</id>
+        <updated>2017-09-30T05:02:51.903Z</updated>
+    </entry>
+    <entry>
+        <title>Advanced Window Techniques</title>
+        <link href="http://magcius.github.io/xplain/article/window-tree.html" type="text/html" />
+        <id>http://magcius.github.io/xplain/article/window-tree.html</id>
+        <updated>2017-09-30T05:02:47.345Z</updated>
+    </entry>
+    <entry>
+        <title>Adding Transparency</title>
+        <link href="http://magcius.github.io/xplain/article/composite.html" type="text/html" />
+        <id>http://magcius.github.io/xplain/article/composite.html</id>
+        <updated>2017-09-30T05:01:57.315Z</updated>
+    </entry>
+    <entry>
+        <title>Regional Geometry</title>
+        <link href="http://magcius.github.io/xplain/article/regions.html" type="text/html" />
+        <id>http://magcius.github.io/xplain/article/regions.html</id>
+        <updated>2017-09-30T05:02:41.470Z</updated>
+    </entry>
+    <entry>
+        <title>Basic 2D Rasterization</title>
+        <link href="http://magcius.github.io/xplain/article/rast1.html" type="text/html" />
+        <id>http://magcius.github.io/xplain/article/rast1.html</id>
+        <updated>2017-09-30T05:02:22.344Z</updated>
+    </entry>
+
+</feed>

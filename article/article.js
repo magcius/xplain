@@ -14,6 +14,7 @@
         { id: "regions", title: "Regional Geometry" },
         { id: "rast1", title: "Basic 2D Rasterization" },
     ];
+    exports.TOC = TOC;
 
     function findTOCEntryIndex(id) {
         for (let i = 0; i < TOC.length; i++)
@@ -107,19 +108,21 @@
         }
     };
 
-    window.onload = function() {
-        // Silly thing about current year in composite.
-        for (const yearElem of document.querySelectorAll('#current-year'))
-            yearElem.textContent = (new Date().getFullYear());
+    if (typeof window !== 'undefined') {
+        window.onload = function() {
+            // Silly thing about current year in composite.
+            for (const yearElem of document.querySelectorAll('#current-year'))
+                yearElem.textContent = (new Date().getFullYear());
 
-        generateTitle();
-        generateTOC();
-        generateNavButtons();
-        generateSectionLinks();
+            generateTitle();
+            generateTOC();
+            generateNavButtons();
+            generateSectionLinks();
 
-        // Run article demos.
-        if (window.ArticleDemos !== undefined)
-            ArticleDemos.runAllDemos();
-    };
+            // Run article demos.
+            if (window.ArticleDemos !== undefined)
+                ArticleDemos.runAllDemos();
+        };
+    }
 
-})(window);
+})(this['window'] || exports);
