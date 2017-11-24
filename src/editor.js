@@ -743,7 +743,7 @@
 
             if (hasFocus) {
                 // Has a cursor.
-                const cursorPosition = this._getCursorIdx();
+                const cursorPosition = this._idxToTextarea(this._getCursorIdx());
                 if (this._redraw_cursorPosition !== cursorPosition) {
                     this._redraw_cursorPosition = cursorPosition;
                     // Set it blinking again.
@@ -771,7 +771,7 @@
                 ctx.fillRect(0, y, this._canvas.width, this._rowHeight);
             };
             if (this._redraw_cursorPosition) {
-                const { line } = this._getCharPos(this._redraw_cursorPosition);
+                const { line } = this._getCharPos(this._textareaToIdx(this._redraw_cursorPosition));
                 drawFlair(line, { color: '#363430' });
             }
 
@@ -856,7 +856,7 @@
                     const char = chars.charAt(i);
                     const x = col * this._charWidth, y = (this._paddingTop + row) * this._rowHeight;
 
-                    if (i === this._redraw_cursorPosition) {
+                    if (i === this._textareaToIdx(this._redraw_cursorPosition)) {
                         // Draw cursor.
                         ctx.save();
                         ctx.fillStyle = '#fff';
