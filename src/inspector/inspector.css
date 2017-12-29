@@ -130,6 +130,10 @@
     background: #eeeeff;
 }
 
+.inspector .window-tree .window.draw-tree-root > .title {
+    background-color: #f7f899;
+}
+
 .inspector .window-tree .window.selected > .title {
     background-color: #0088ff;
 }

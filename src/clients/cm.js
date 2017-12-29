@@ -103,13 +103,9 @@
             this._renderer = null;
         }
 
-        _setX(x) {
-            this._geometry.x = x;
-        }
-
         _setNewGeometry(newGeometry) {
             if (newGeometry.x !== undefined)
-                this._setX(newGeometry.x);
+                this._geometry.x = newGeometry.x;
             if (newGeometry.y !== undefined)
                 this._geometry.y = newGeometry.y;
             if (newGeometry.width !== undefined)
@@ -234,7 +230,7 @@
             super(server, toplevelWindowId);
 
             this._renderer = new Canvas2DRenderer(this._triggerRedraw.bind(this));
-            
+
             this._display.selectInput({ windowId: toplevelWindowId,
                                         events: ["Expose"] });
             this._draw();
@@ -427,11 +423,12 @@ void main() {
             this._bend = 0;
         }
 
-        _setX(newX) {
-            var deltaX = newX - this._geometry.x;
-            this._bend -= deltaX;
-
-            super._setX(newX);
+        _setNewGeometry(geometry) {
+            const oldX = this._geometry.x;
+            super._setNewGeometry(geometry);
+            const newX = this._geometry.x;
+            this._bend -= newX - oldX;
+            this._allocatePixmap();
         }
 
         _stepBend() {
@@ -484,7 +481,7 @@ void main() {
         }
 
         _allocate() {
-            var gl = this._gl;
+            const gl = this._gl;
 
             this._vertShader = gl.createShader(gl.VERTEX_SHADER);
             gl.shaderSource(this._vertShader, this._getVertShaderSource());
@@ -499,13 +496,27 @@ void main() {
             gl.attachShader(this._shaderProgram, this._fragShader);
             gl.linkProgram(this._shaderProgram);
 
+            this._allocatePixmap();
+        }
+
+        _allocatePixmap() {
+            const gl = this._gl;
+
+            // You can't really resize textures in GL, need to create a new one...
+            if (this._texture)
+                gl.deleteTexture(this._texture);
+
             this._texture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, this._texture);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this._geometry.width + 2, this._geometry.height + 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+            // Add some blank pixels around the GL pixmap to prevent sampling issues.
+            const pixWidth = this._geometry.width + 2, pixHeight = this._geometry.height + 2;
+            const pixels = new Uint8Array(pixWidth * pixHeight * 4);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, pixWidth, pixHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
             this._imageDirty = true;
         }
 

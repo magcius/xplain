@@ -245,6 +245,7 @@
                     return this._setCursorWindow(event.oldCursorWindow, event.newCursorWindow);
                 case "ConfigureNotify":
                     return this._handleConfigureNotify(event);
+                case "X-DrawTreeNotify":
                 case "MapNotify":
                 case "UnmapNotify":
                 case "DestroyNotify":
@@ -293,11 +294,11 @@
                 this._windowTreeNodes[newId].classList.add("cursor-window");
         },
         selectWindow: function(xid) {
-            if (this._windowTreeNodes[this._selectedWindowId])
-                this._windowTreeNodes[this._selectedWindowId].classList.remove("selected");
             this._selectedWindowId = xid;
-            if (this._windowTreeNodes[this._selectedWindowId])
-                this._windowTreeNodes[this._selectedWindowId].classList.add("selected");
+            this._syncWindowTree();
+        },
+        _shouldHideWindow: function(xid) {
+            return !!this._display.getProperty({ windowId: xid, name: '_XJS_HIDE_INSPECTOR' });
         },
         _syncWindowTree: function() {
             var makeNodeForWindow = function(xid) {
@@ -314,8 +315,11 @@
                 // Recurse
                 var query = this._display.queryTree({ windowId: xid });
                 query.children.reverse().forEach(function(childXid) {
+                    if (this._shouldHideWindow(childXid))
+                        return;
+
                     childList.appendChild(makeNodeForWindow(childXid));
-                });
+                }.bind(this));
 
                 var attribs = this._display.getAttributes({ windowId: xid });
                 node.classList.toggle('viewable', attribs.mapState === 'Viewable');
@@ -347,8 +351,12 @@
             var pointerInfo = this._display.queryPointer();
             this._setCursorWindow(0, pointerInfo.child);
 
-            // Ensure that the node still appears selected
-            this.selectWindow(this._selectedWindowId);
+            if (this._selectedWindowId) {
+                this._windowTreeNodes[this._selectedWindowId].classList.add('selected');
+                const drawTreeRootId = this._display.getDrawTreeRoot({ windowId: this._selectedWindowId });
+                if (drawTreeRootId)
+                    this._windowTreeNodes[drawTreeRootId].classList.add('draw-tree-root');
+            }
         },
     });
 
@@ -574,6 +582,20 @@
 
                 this._attributes.content.appendChild(node);
             }
+
+            const drawTreeRootId = this._display.getDrawTreeRoot({ windowId: this._selectedWindowId });
+            const rootWindowId = this._display.rootWindowId;
+            node = document.createElement('div');
+            node.classList.add('attribute');
+            nameNode = document.createElement('span');
+            nameNode.classList.add('name');
+            nameNode.textContent = 'is-redirected';
+            node.appendChild(nameNode);
+            valNode = document.createElement('span');
+            valNode.classList.add('value');
+            valNode.textContent = (drawTreeRootId !== rootWindowId) ? "Yes" : "No";
+            node.appendChild(valNode);
+            this._attributes.content.appendChild(node);
         },
 
         _syncProperties: function() {

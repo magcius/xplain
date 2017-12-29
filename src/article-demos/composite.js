@@ -6,6 +6,8 @@
     "use strict";
 
     ArticleDemos.registerDemo("window-pixel-map", "height: 250px", function(res) {
+        DemoCommon.addInspector(res);
+
         var server = res.server;
         var connection = server.connect();
         var display = connection.display;
@@ -17,6 +19,7 @@
         var kitten2 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
         DemoCommon.centerWindow(display, kitten2, { x: -20, y: 40 });
         display.changeAttributes({ windowId: kitten2, backgroundColor: '#B24E48' });
+        display.changeProperty({ windowId: kitten2, name: 'WM_NAME', value: 'kitten2.png' });
         display.invalidateWindow({ windowId: kitten2 });
         display.mapWindow({ windowId: kitten2 });
 
@@ -24,6 +27,7 @@
         var kitten1 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
         DemoCommon.centerWindow(display, kitten1);
         display.changeAttributes({ windowId: kitten1, backgroundColor: '#F3FF5D' });
+        display.changeProperty({ windowId: kitten1, name: 'WM_NAME', value: 'kitten1.png' });
         display.invalidateWindow({ windowId: kitten1 });
         display.mapWindow({ windowId: kitten1 });
 
@@ -31,6 +35,8 @@
     });
 
     ArticleDemos.registerDemo("window-pixel-map-shaped", "height: 250px", function(res) {
+        DemoCommon.addInspector(res);
+
         var server = res.server;
         var connection = server.connect();
         var display = connection.display;
@@ -42,6 +48,7 @@
         var kitten2 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
         DemoCommon.centerWindow(display, kitten2, { x: -20, y: 40 });
         display.changeAttributes({ windowId: kitten2, backgroundColor: '#B24E48' });
+        display.changeProperty({ windowId: kitten2, name: 'WM_NAME', value: 'kitten2.png' });
         display.invalidateWindow({ windowId: kitten2 });
         display.mapWindow({ windowId: kitten2 });
 
@@ -49,6 +56,7 @@
         var kitten1 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
         DemoCommon.centerWindow(display, kitten1);
         display.changeAttributes({ windowId: kitten1, backgroundColor: '#F3FF5D' });
+        display.changeProperty({ windowId: kitten1, name: 'WM_NAME', value: 'kitten1.png' });
         display.invalidateWindow({ windowId: kitten1 });
 
         ClientUtil.loadImageAsPixmap(display, "kittencircle.png", function(pixmapId) {
@@ -67,6 +75,8 @@
     });
 
     ArticleDemos.registerDemo("naive-redirect", "height: 250px", function(res) {
+        DemoCommon.addInspector(res);
+
         var server = res.server;
         var connection = server.connect();
         var display = connection.display;
@@ -76,6 +86,7 @@
 
         // The shaking window that's behind.
         var kitten2 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
+        display.changeProperty({ windowId: kitten2, name: 'WM_NAME', value: 'kitten2.png' });
         DemoCommon.centerWindow(display, kitten2, { x: -20, y: 40 });
         ClientUtil.loadImageAsPixmap(display, "kitten2.png", function(pixmapId) {
             display.changeAttributes({ windowId: kitten2, backgroundPixmap: pixmapId });
@@ -85,6 +96,7 @@
 
         // The window on top that's obscuring the window behind it.
         var kitten1 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
+        display.changeProperty({ windowId: kitten1, name: 'WM_NAME', value: 'kitten1.png' });
         DemoCommon.centerWindow(display, kitten1);
         ClientUtil.loadImageAsPixmap(display, "kitten1.png", function(pixmapId) {
             display.changeAttributes({ windowId: kitten1, backgroundPixmap: pixmapId });
@@ -108,11 +120,15 @@
         //
         // ... I should add a COW at some point, shouldn't I... sigh.
         var bgWindow = display.createWindow({ x: 0, y: 0, width: 1000, height: 1000 });
+        display.changeProperty({ windowId: bgWindow, name: '_XJS_HIDE_INSPECTOR', value: true });
         display.changeAttributes({ windowId: bgWindow, backgroundColor: '#266FB2' });
         display.mapWindow({ windowId: bgWindow });
 
+        DemoCommon.addInspector(res);
+
         // The shaking window that's behind.
         var kitten2 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
+        display.changeProperty({ windowId: kitten2, name: 'WM_NAME', value: 'kitten2.png' });
         DemoCommon.centerWindow(display, kitten2, { x: -20, y: 40 });
         ClientUtil.loadImageAsPixmap(display, "kitten2.png", function(pixmapId) {
             display.changeAttributes({ windowId: kitten2, backgroundPixmap: pixmapId });
@@ -122,6 +138,7 @@
 
         // The window on top that's obscuring the window behind it.
         var kitten1 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
+        display.changeProperty({ windowId: kitten1, name: 'WM_NAME', value: 'kitten1.png' });
         display.changeProperty({ windowId: kitten1, name: 'OPACITY', value: 0.5 });
         DemoCommon.centerWindow(display, kitten1);
         ClientUtil.loadImageAsPixmap(display, "kitten1.png", function(pixmapId) {
@@ -144,45 +161,52 @@
         var width = serverSlot.clientWidth;
         var height = serverSlot.clientHeight;
 
+        var server = res.server;
+        var connection = server.connect();
+        var display = connection.display;
+
         var glCanvas = document.createElement("canvas");
         glCanvas.classList.add("overlay");
         glCanvas.width = width;
         glCanvas.height = height;
-        elem.appendChild(glCanvas);
+        server.elem.appendChild(glCanvas);
 
         var gl = glCanvas.getContext("webgl", { alpha: false });
         gl.$viewportWidth = width;
         gl.$viewportHeight = height;
         gl.viewport(0, 0, width, height);
 
-        var server = res.server;
-        var connection = server.connect();
-        var display = connection.display;
-
         // Rather than use a normal background on the root window, use a large background
         // window that gets redirected so the CM won't fight to paint on the root window.
         //
         // ... I should add a COW at some point, shouldn't I... sigh.
         var bgWindow = display.createWindow({ x: 0, y: 0, width: 1000, height: 1000 });
+        display.changeProperty({ windowId: bgWindow, name: '_XJS_HIDE_INSPECTOR', value: true });
         display.changeAttributes({ windowId: bgWindow, backgroundColor: '#266FB2' });
         display.mapWindow({ windowId: bgWindow });
 
+        DemoCommon.addInspector(res);
+
         // The shaking window that's behind.
         var kitten2 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
+        display.changeProperty({ windowId: kitten2, name: 'WM_NAME', value: 'kitten2.png' });
         DemoCommon.centerWindow(display, kitten2, { x: -20, y: 40 });
         ClientUtil.loadImageAsPixmap(display, "kitten2.png", function(pixmapId) {
             display.changeAttributes({ windowId: kitten2, backgroundPixmap: pixmapId });
             display.invalidateWindow({ windowId: kitten2 });
         });
+        display.mapWindow({ windowId: kitten2 });
 
         // The window on top that's obscuring the window behind it.
         var kitten1 = display.createWindow({ x: 0, y: 0, width: 125, height: 125 });
+        display.changeProperty({ windowId: kitten1, name: 'WM_NAME', value: 'kitten1.png' });
         display.changeProperty({ windowId: kitten1, name: 'OPACITY', value: 0.5 });
         DemoCommon.centerWindow(display, kitten1);
         ClientUtil.loadImageAsPixmap(display, "kitten1.png", function(pixmapId) {
             display.changeAttributes({ windowId: kitten1, backgroundPixmap: pixmapId });
             display.invalidateWindow({ windowId: kitten1 });
         });
+        display.mapWindow({ windowId: kitten1 });
 
         var dragger = new DemoCommon.WindowDragger(server, kitten1);
 
@@ -195,7 +219,7 @@
         // Disgusting hack to insert the triangle in the right spot.
         setTimeout(function() {
             var tri = new CompositingManager.TriangleActor(cm._renderer, cm._gl);
-            cm._renderer._actorStacking.splice(2, 0, tri);
+            cm._renderer._actorStacking.splice(3, 0, tri);
         }, 500);
     });
 

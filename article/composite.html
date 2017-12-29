@@ -100,7 +100,7 @@
         </p>
         <p>
             So, the first step to getting working compositing would be to have <em>some</em> way of keeping the
-            pixels that a window has drawn. This is where the X <span class="code-literal">COMPOSITE</span>
+            pixels that a window has drawn. This is where the X11 <span class="code-literal">COMPOSITE</span>
             extension first comes into play.
         </p>
         </section>
@@ -110,7 +110,7 @@
         <p>
             It turns out the solution here is astonishingly simple. If we'd prefer that all drawing a window does
             instead goes to some place in memory, we simply create some place in memory and <em>redirect</em> all
-            drawing the window to point there instead. And indeed, with the
+            drawing the window to point there instead. And indeed, with the <span class="code-literal">COMPOSITE</span> extension's
             <span class="code-literal">RedirectWindow</span> request, we can do exactly that: mark a window so that all
             its drawing operations are indeed <em>redirected</em> so they instead go to some place in memory.
         </p>
@@ -126,22 +126,22 @@
         <p>
             At this point, you might have another epiphany to bring it all together. I've been using the term "front
             buffer" when talking about where windows draw to. "Yes, yes, it's the place where windows borrow their
-            pixels from, and where nothing lasts for ever. We get it already" I hear you cry. But the front buffer also
+            pixels from, and where nothing lasts for ever. We get it already..." I hear you cry. But the front buffer also
             has to exist somewhere in the server's memory. So when we're drawing to the front buffer, we're actually
             drawing to some set of pixels somewhere in the server's memory as well. It turns out that the front buffer
             has another name: the "root pixmap". I'll let that sink in.
         </p>
         <p>
             Bear with me, because this next point is fairly confusing. Redirected windows send their drawing away
-            from the front buffer and into the window's backing pixmap. But the root window already has backing
+            from the front buffer and into the window's backing pixmap. But the root window already has a backing
             pixmap: the front buffer! So, in a sense, we can say that the root window was redirected, even before
-            the COMPOSITE extension was invented!
+            the <span class="code-literal">COMPOSITE</span> extension was invented!
         </p>
         <p>
             We also know that, in the normal drawing case, children of normal windows "borrow pixels" from the
             front buffer. With COMPOSITE, children of redirected windows actually borrow pixels from their redirected
             parent's backing pixmap instead. It's as if every redirected window has its own front buffer that
-            children borrow pixels from.
+            it and its children borrow pixels from.
         </p>
         <p>
             Without this history and this context, the choice of word "redirect" feels fairly bizarre. Normally,
@@ -149,9 +149,9 @@
             perspective is that windows that have been "redirected" draw to a thing they own, while windows that
             aren't are instead sending their drawing to some other window's backing pixmap. It's backwards! This
             very real confusion is one of the reasons that history and context are very important when trying to
-            understand X11: the legacy behaviors are embedded so deeply into the system and the engineers working
-            on it that we arrive at weird definitions like these. And if you've worked on X11 for a long time,
-            it all seems so natural.
+            understand X11: the legacy behaviors are embedded so deeply into the system that the engineers working
+            on it often arrive at weird definitions like these. If you've worked on X11 for a long time, it all
+            seems so natural.
         </p>
         <p>
             Phew. OK, enough talk. Let's take the kitten demo from the first article and redirect the window on the top
@@ -166,9 +166,9 @@
         </p>
         <p>
             By the way, I didn't cheat or anything and never create the window for the kitten or never map it or
-            something like that. This is just how redirection behaves. If you click in the vicinity of where the kitten
-            was in the original demo, you can even drag the kitten around. Redirection doesn't affect input... but
-            we'll talk more about that later.
+            something like that. This is just how redirection behaves. You can see this if you open the inspector.
+            If you click in the vicinity of where the kitten was in the original demo, you can even drag the kitten
+            around. Redirection doesn't affect input... but we'll talk more about that later.
         </p>
         </section>
 
@@ -210,12 +210,12 @@
             software rendering, perhaps with some
             <a href="http://git.enlightenment.org/apps/eterm.git/tree/src/mmx_cmod.S">state-of-the-art hand-written MMX
             code</a>, both of which are valid options, but thankfully another X11 extension can come to our rescue.
-            The <a href="http://cgit.freedesktop.org/xorg/proto/renderproto/tree/renderproto.txt">X RENDER extension</a>,
-            which supports a variety of advanced vector graphics including matrix transforms and gradients, provides
-            to us an operation that can do alpha blending for us, which is also (confusingly) named
-            <span class="code-literal">Composite</span>. Using this request to the X server instead of
-            <span class="code-literal">CopyArea</span>, we can finally apply our hard-earned alpha channel and
-            draw our windows semi-transparent.
+            The <a href="http://cgit.freedesktop.org/xorg/proto/renderproto/tree/renderproto.txt">X RENDER extension</a>
+            provides a variety of advanced vector graphics for us, including matrix transforms, gradients, and, just for us,
+            alpha blending! It provides this through the (confusingly) named <span class="code-literal">Composite</span>
+            request, which does <span class="definition">alpha compositing</span> or blending of two images.
+            Using this request to the X server instead of <span class="code-literal">CopyArea</span>, we can finally
+            apply our hard-earned alpha and draw our windows semi-transparent.
         </p>
         <p>
             Since we've redirected all windows on the desktop away to be able to blend them, the root window, and

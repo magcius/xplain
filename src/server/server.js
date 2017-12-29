@@ -73,15 +73,19 @@
     // that it keeps track of XIDs, and also exposes helper methods that
     // implement the "Drawable" interface.
     var ServerPixmap = new Class({
-        initialize: function(server, pixmap) {
+        initialize: function(server, pixmap, invisible) {
             this._server = server;
+            this._invisible = invisible;
             this.xid = this._server.registerXidObject(this);
             this._pixmap = pixmap.ref();
-            this._server.pixmapCreated(this);
+
+            if (!this._invisible)
+                this._server.pixmapCreated(this);
         },
         destroy: function() {
             this._pixmap.unref();
-            this._server.pixmapDestroyed(this);
+            if (!this._invisible)
+                this._server.pixmapDestroyed(this);
             this._server.xidDestroyed(this.xid);
         },
         canDraw: function() {
@@ -89,7 +93,8 @@
         },
         drawTo: function(func) {
             this._pixmap.drawTo(func);
-            this._server.pixmapUpdated(this);
+            if (!this._invisible)
+                this._server.pixmapUpdated(this);
         },
         getGeometry: function() {
             return { width: this._pixmap.canvas.width,
@@ -115,7 +120,7 @@
     var ServerWindowDrawTree = new Class({
         initialize: function(server, rootWindow) {
             this._server = server;
-            this._rootWindow = rootWindow;
+            this.rootWindow = rootWindow;
 
             this.pixmap = (new Pixmap()).ref();
             this.rootReconfigured();
@@ -126,7 +131,7 @@
         },
 
         rootReconfigured: function() {
-            this.pixmap.resize(this._rootWindow.width, this._rootWindow.height);
+            this.pixmap.resize(this.rootWindow.width, this.rootWindow.height);
         },
 
         // A helper method to send an Expose to a window's effective region.
@@ -184,7 +189,7 @@
                 inRegion.translate(serverWindow.drawTreeX, serverWindow.drawTreeY);
             }.bind(this);
 
-            recursivelyExpose(this._rootWindow, exposedRegion);
+            recursivelyExpose(this.rootWindow, exposedRegion);
         },
 
         // For a given window, return the region of the draw tree that the
@@ -241,6 +246,7 @@
         case "UnmapNotify":
         case "DestroyNotify":
         case "ConfigureNotify":
+        case "X-DrawTreeNotify":
             return true;
         }
         return false;
@@ -366,6 +372,8 @@
             this.children.forEach(function(child) {
                 child.syncDrawTree();
             });
+
+            this._server.sendEvent({ type: "X-DrawTreeNotify", windowId: this.xid });
         },
 
         canDraw: function() {
@@ -974,6 +982,10 @@
         // COMPOSITE
         'redirectWindow',
         'nameWindowPixmap',
+
+        // My extension -- returns the window with the backing pixmap
+        // that this window draws to. Could very well be the root window.
+        'getDrawTreeRoot',
     ];
 
     // Install the API method for every request.
@@ -1994,8 +2006,16 @@
                 throw clientError("BadMatch");
 
             var pixmap = serverWindow.drawTree.pixmap;
-            var serverPixmap = new ServerPixmap(this, pixmap);
+            var serverPixmap = new ServerPixmap(this, pixmap, true);
             return serverPixmap.xid;
+        },
+        _handle_getDrawTreeRoot: function(client, props) {
+            var serverWindow = this.getServerWindow(client, props.windowId);
+            if (serverWindow.drawTree === null) {
+                // Not viewable or the root window.
+                return null;
+            }
+            return serverWindow.drawTree.rootWindow.xid;
         },
 
         // This is called by ClientConnection above for each of its generated
