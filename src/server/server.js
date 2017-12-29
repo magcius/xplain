@@ -19,31 +19,31 @@
     // A Pixmap is essentially a wrapper around a <canvas>, as
     // that's the closest we have to an actual pixel buffer in
     // HTML5.
-    var Pixmap = new Class({
-        initialize: function() {
+    class Pixmap {
+        constructor() {
             this.canvas = document.createElement('canvas');
             this._ctx = this.canvas.getContext('2d');
             this._refCount = 0;
-        },
-        _destroy: function() {
+        }
+        _destroy() {
             this.canvas.width = 0;
             this.canvas.height = 0;
-        },
-        ref: function() {
+        }
+        ref() {
             this._refCount++;
             return this;
-        },
-        unref: function() {
+        }
+        unref() {
             if (--this._refCount == 0)
                 this._destroy();
-        },
-        drawTo: function(func) {
+        }
+        drawTo(func) {
             this._ctx.beginPath();
             this._ctx.save();
             func(this._ctx);
             this._ctx.restore();
-        },
-        resize: function(width, height) {
+        }
+        resize(width, height) {
             if (this.canvas.width == width && this.canvas.height == height)
                 return;
 
@@ -63,7 +63,7 @@
             tmpCanvas.width = 0;
             tmpCanvas.height = 0;
         }
-    });
+    }
 
     // The "wire" object for a Pixmap. Pixmaps are used internally in the
     // X server (for e.g. the root window contents), even when they don't
@@ -72,42 +72,45 @@
     // Thus, a ServerPixmap manages the wire form of a "Pixmap", which means
     // that it keeps track of XIDs, and also exposes helper methods that
     // implement the "Drawable" interface.
-    var ServerPixmap = new Class({
-        initialize: function(server, pixmap, invisible) {
+    class ServerPixmap {
+        constructor(server, pixmap, invisible) {
             this._server = server;
+            // An "invisible" pixmap is one that doesn't generate events.
+            // It's used for NameWindowPixmap pixmaps, since those are
+            // short-lived and the inspector really shouldn't see them.
             this._invisible = invisible;
             this.xid = this._server.registerXidObject(this);
             this._pixmap = pixmap.ref();
 
             if (!this._invisible)
                 this._server.pixmapCreated(this);
-        },
-        destroy: function() {
+        }
+        destroy() {
             this._pixmap.unref();
             if (!this._invisible)
                 this._server.pixmapDestroyed(this);
             this._server.xidDestroyed(this.xid);
-        },
-        canDraw: function() {
+        }
+        canDraw() {
             return true;
-        },
-        drawTo: function(func) {
+        }
+        drawTo(func) {
             this._pixmap.drawTo(func);
             if (!this._invisible)
                 this._server.pixmapUpdated(this);
-        },
-        getGeometry: function() {
+        }
+        getGeometry() {
             return { width: this._pixmap.canvas.width,
                      height: this._pixmap.canvas.height };
-        },
+        }
 
-        getImage: function() {
+        getImage() {
             return this._pixmap.canvas;
-        },
-        getPattern: function() {
+        }
+        getPattern() {
             return tmpCtx.createPattern(this._pixmap.canvas, 'repeat');
-        },
-    });
+        }
+    }
 
     // A draw tree manages a subtree of windows where the root owns
     // its own backing pixmap. By default, the only draw tree is
@@ -117,36 +120,36 @@
     // it is the root. Subwindows, instead of painting to the front
     // buffer pixmap, paint to this redirected pixmap instead using
     // the standard clipping semantics.
-    var ServerWindowDrawTree = new Class({
-        initialize: function(server, rootWindow) {
+    class ServerWindowDrawTree {
+        constructor(server, rootWindow) {
             this._server = server;
             this.rootWindow = rootWindow;
 
             this.pixmap = (new Pixmap()).ref();
             this.rootReconfigured();
-        },
-        destroy: function() {
+        }
+        destroy() {
             this.pixmap.unref();
             this.pixmap = null;
-        },
+        }
 
-        rootReconfigured: function() {
+        rootReconfigured() {
             this.pixmap.resize(this.rootWindow.width, this.rootWindow.height);
-        },
+        }
 
         // A helper method to send an Expose to a window's effective region.
-        exposeWindow: function(serverWindow, force, includeChildren) {
+        exposeWindow(serverWindow, force, includeChildren) {
             if (!serverWindow.viewable && !force)
                 return;
 
             var region = this.calculateVisibleRegionForWindow(serverWindow, includeChildren);
             this.exposeRegion(region);
             region.finalize();
-        },
+        }
 
         // Given a region, walk through the window tree and try to send
         // Expose events to all the windows that are in that region.
-        exposeRegion: function(exposedRegion) {
+        exposeRegion(exposedRegion) {
             // inRegion is a modification of inRegion that's translated into
             // serverWindow's parent's space, and clipped to the bounding
             // region of serverWindow's parent.
@@ -190,7 +193,7 @@
             }.bind(this);
 
             recursivelyExpose(this.rootWindow, exposedRegion);
-        },
+        }
 
         // For a given window, return the region of the draw tree that the
         // window can display pixels on. In the Xorg server parlance, this
@@ -201,7 +204,7 @@
         //
         // If includeChildren is false, the returned region also excludes
         // parts of serverWindow that children are occluding.
-        calculateVisibleRegionForWindow: function(serverWindow, includeChildren) {
+        calculateVisibleRegionForWindow(serverWindow, includeChildren) {
             var region = serverWindow.calculateTransformedBoundingRegion();
 
             var subtractWindow = function(aboveWindow) {
@@ -227,7 +230,7 @@
             }
             return region;
         }
-    });
+    }
 
     // Is this event something that's included in SubstructureRedirect?
     function isEventSubstructureRedirect(event) {
@@ -269,8 +272,8 @@
     // The server-side form of a Window. There's no split like Pixmap, since
     // the X server doesn't maintain any windows that aren't also exposed on the
     // wire in some form.
-    var ServerWindow = new Class({
-        initialize: function(server, props) {
+    class ServerWindow {
+        constructor(server, props) {
             this._server = server;
             this.xid = this._server.registerXidObject(this);
 
@@ -301,8 +304,8 @@
             this._inputOnly = !!props.inputOnly;
 
             this._configureWindow(props);
-        },
-        finalize: function() {
+        }
+        finalize() {
             this._unshapedBoundingRegion.finalize();
             this._unshapedBoundingRegion = null;
 
@@ -310,9 +313,9 @@
                 this._shapedBoundingRegion.finalize();
                 this._shapedBoundingRegion = null;
             }
-        },
+        }
 
-        getBoundingRegion: function() {
+        getBoundingRegion() {
             var boundingRegion = new Region();
 
             if (this._shapedBoundingRegion)
@@ -321,8 +324,8 @@
                 boundingRegion.copy(this._unshapedBoundingRegion);
 
             return boundingRegion;
-        },
-        calculateTransformedBoundingRegion: function() {
+        }
+        calculateTransformedBoundingRegion() {
             var region = this.getBoundingRegion();
             var serverWindow = this;
             while (serverWindow != null) {
@@ -333,9 +336,9 @@
                 serverWindow = serverWindow.drawTreeParent;
             }
             return region;
-        },
+        }
 
-        _syncDrawTreePosition: function() {
+        _syncDrawTreePosition() {
             if (this.drawTreeParent == null) {
                 this.drawTreeX = 0;
                 this.drawTreeY = 0;
@@ -343,8 +346,8 @@
                 this.drawTreeX = this.x;
                 this.drawTreeY = this.y;
             }
-        },
-        syncDrawTree: function() {
+        }
+        syncDrawTree() {
             var newDrawTree;
 
             if (this._redirectedDrawTree) {
@@ -374,12 +377,12 @@
             });
 
             this._server.sendEvent({ type: "X-DrawTreeNotify", windowId: this.xid });
-        },
+        }
 
-        canDraw: function() {
+        canDraw() {
             return this.viewable;
-        },
-        _getDrawOffset: function() {
+        }
+        _getDrawOffset() {
             var x = 0, y = 0;
             var serverWindow = this;
             while (serverWindow != null) {
@@ -388,8 +391,8 @@
                 serverWindow = serverWindow.drawTreeParent;
             }
             return { x: x, y: y };
-        },
-        _drawClippedToRegion: function(region, func) {
+        }
+        _drawClippedToRegion(region, func) {
             this.drawTree.pixmap.drawTo(function(ctx) {
                 CanvasUtil.pathFromRegion(ctx, region);
                 ctx.clip();
@@ -398,15 +401,15 @@
             }.bind(this));
 
             this._sendDamageEvents();
-        },
-        _sendDamageEvents: function() {
+        }
+        _sendDamageEvents() {
             var serverWindow = this;
             while (serverWindow != null) {
                 this._server.sendEvent({ type: "Damage", windowId: serverWindow.xid });
                 serverWindow = serverWindow.drawTreeParent;
             }
-        },
-        drawTo: function(func) {
+        }
+        drawTo(func) {
             var region = this.drawTree.calculateVisibleRegionForWindow(this, false);
             this._drawClippedToRegion(region, function(ctx) {
                 var pos = this._getDrawOffset();
@@ -414,8 +417,8 @@
                 func(ctx);
             }.bind(this));
             region.finalize();
-        },
-        _drawBackground: function(region) {
+        }
+        _drawBackground(region) {
             if (!this._backgroundPattern)
                 return;
 
@@ -426,8 +429,8 @@
                 ctx.fillStyle = this._backgroundPattern;
                 ctx.fillRect(0, 0, this.width, this.height);
             }.bind(this));
-        },
-        exposeRegion: function(region) {
+        }
+        exposeRegion(region) {
             if (region.is_empty())
                 return;
 
@@ -441,8 +444,8 @@
             // Sending an Expose event for a region is a guarantee that we always
             // draw the background for the window.
             this._drawBackground(region);
-        },
-        _syncBackgroundPattern: function(client) {
+        }
+        _syncBackgroundPattern(client) {
             var pattern;
             if (this._backgroundColor) {
                 pattern = this._backgroundColor;
@@ -453,8 +456,8 @@
                 pattern = null;
             }
             this._backgroundPattern = pattern;
-        },
-        getAttributes: function(client) {
+        }
+        getAttributes(client) {
             var mapState = (this.viewable ? "Viewable" :
                             this.mapped ? "Unviewable" : "Unmapped");
             return {
@@ -465,8 +468,8 @@
                 mapState: mapState,
                 inputOnly: this._inputOnly,
             };
-        },
-        changeAttributes: function(client, attributes) {
+        }
+        changeAttributes(client, attributes) {
             var newBackground = false;
             if (valueUpdated(attributes.backgroundColor, this._backgroundColor)) {
                 this._backgroundColor = attributes.backgroundColor || null;
@@ -489,8 +492,8 @@
                 this.cursor = attributes.cursor;
                 this._server.syncCursor();
             }
-        },
-        _shouldBeViewable: function() {
+        }
+        _shouldBeViewable() {
             // Unmapped windows are unviewable.
             if (!this.mapped)
                 return false;
@@ -506,8 +509,8 @@
                 // Windows without a parent are directly viewable.
                 return true;
             }
-        },
-        recalculateViewability: function() {
+        }
+        recalculateViewability() {
             var viewable = this._shouldBeViewable();
 
             if (!valueUpdated(viewable, this.viewable))
@@ -520,8 +523,8 @@
                 child.recalculateViewability();
             });
             this.drawTree.exposeWindow(this, true, false);
-        },
-        map: function(client) {
+        }
+        map(client) {
             if (this.mapped)
                 return;
 
@@ -543,8 +546,8 @@
                 this.recalculateViewability();
                 this._server.syncCursorWindow();
             }
-        },
-        unmap: function() {
+        }
+        unmap() {
             if (!this.mapped)
                 return false;
 
@@ -554,14 +557,14 @@
             this._server.syncCursorWindow();
             this.recalculateViewability();
             return true;
-        },
-        _unparentWindowInternal: function() {
+        }
+        _unparentWindowInternal() {
             var children = this.windowTreeParent.children;
             children.splice(children.indexOf(this), 1);
             this.windowTreeParent = null;
             this.syncDrawTree();
-        },
-        destroy: function() {
+        }
+        destroy() {
             this.unmap();
 
             this.children.forEach(function(child) {
@@ -574,8 +577,8 @@
             this._unparentWindowInternal();
             this._server.xidDestroyed(this.xid);
             this.finalize();
-        },
-        parentWindow: function(parent) {
+        }
+        parentWindow(parent) {
             var wasMapped = this.unmap();
 
             if (this.windowTreeParent)
@@ -587,30 +590,30 @@
 
             if (wasMapped)
                 this.map();
-        },
+        }
 
-        filterEvent: function(event) {
+        filterEvent(event) {
             // If we're an override redirect window and the event is a MapRequest
             // or a ConfigureRequest, make sure it doesn't go to any selected clients.
             if (this._overrideRedirect && isEventSubstructureRedirect(event))
                 return false;
             return true;
-        },
+        }
 
-        getProperty: function(name, value) {
+        getProperty(name, value) {
             return this._properties[name];
-        },
-        changeProperty: function(name, value) {
+        }
+        changeProperty(name, value) {
             this._properties[name] = value;
             this._server.sendEvent({ type: "PropertyChanged",
                                      windowId: this.xid,
                                      name: name, value: value });
-        },
-        listProperties: function() {
+        }
+        listProperties() {
             return Object.keys(this._properties);
-        },
+        }
 
-        _getInputRegion: function() {
+        _getInputRegion() {
             var inputRegion = new Region();
             if (this._shapedInputRegion)
                 inputRegion.intersect(this._shapedInputRegion, this._unshapedBoundingRegion);
@@ -620,13 +623,13 @@
                 inputRegion.copy(this._unshapedBoundingRegion);
 
             return inputRegion;
-        },
+        }
 
         // Recursively tries to find the window at the position given,
         // assuming we need to test for input (e.g. a mouse click).
         // That means we should ignore unmapped windows, and test against
         // the input region, not the bounding region.
-        pickInput: function(x, y) {
+        pickInput(x, y) {
             // Translate the passed-in coordinates to our own space.
             x -= this.x;
             y -= this.y;
@@ -658,7 +661,7 @@
             // coordinates, but the position was inside our input region,
             // so that means we are the child window.
             return this;
-        },
+        }
 
         // When the window reconfigures or changes its bounding region, we
         // need to send Expose events to any windows that might need to be
@@ -672,7 +675,7 @@
         // bounding region, copying the appropriate parts of the front buffer
         // from one place to another, and sending Expose events for windows
         // that need to be redrawn.
-        _wrapBoundingRegionChange: function(func) {
+        _wrapBoundingRegionChange(func) {
             // If we're not viewable, we still need to make sure we do the
             // change, but we won't send any exposes or need to resync the
             // cursor window.
@@ -740,12 +743,12 @@
 
             oldRegion.finalize();
             newRegion.finalize();
-        },
+        }
 
-        _siblingIndex: function(sibling) {
+        _siblingIndex(sibling) {
             return sibling.windowTreeParent.children.indexOf(sibling);
-        },
-        _insertIntoStack: function(sibling, mode) {
+        }
+        _insertIntoStack(sibling, mode) {
             var children = this.windowTreeParent.children;
             children.splice(children.indexOf(this), 1);
             switch (mode) {
@@ -767,9 +770,9 @@
                 break;
                 // TODO: TopIf, BottomIf, Opposite. Ever seen in practice?
             }
-        },
+        }
 
-        _configureWindow: function(props) {
+        _configureWindow(props) {
             if (props.x !== undefined)
                 this.x = props.x;
             if (props.y !== undefined)
@@ -781,8 +784,8 @@
 
             this._syncDrawTreePosition();
             this._unshapedBoundingRegion.init_rect(0, 0, this.width, this.height);
-        },
-        configureWindow: function(client, props) {
+        }
+        configureWindow(client, props) {
             function configureValue(newValue, existingValue) {
                 if (!valueUpdated(newValue, existingValue))
                     return undefined;
@@ -818,17 +821,17 @@
                 if (this.drawTree && !this.drawTreeParent)
                     this.drawTree.rootReconfigured();
             }
-        },
-        getGeometry: function() {
+        }
+        getGeometry() {
             return { x: this.x, y: this.y, width: this.width, height: this.height };
-        },
+        }
 
-        _sendShapeNotify: function(shapeType) {
+        _sendShapeNotify(shapeType) {
             this._server.sendEvent({ windowId: this.xid,
                                      type: "ShapeNotify",
                                      shapeType: shapeType });
-        },
-        _setInputRegion: function(region) {
+        }
+        _setInputRegion(region) {
             if (region) {
                 if (!this._shapedInputRegion)
                     this._shapedInputRegion = new Region();
@@ -839,8 +842,8 @@
                 this._shapedInputRegion = null;
             }
             this._sendShapeNotify("Input");
-        },
-        _setBoundingRegion: function(region) {
+        }
+        _setBoundingRegion(region) {
             if (region) {
                 if (!this._shapedBoundingRegion)
                     this._shapedBoundingRegion = new Region();
@@ -851,8 +854,8 @@
                 this._shapedBoundingRegion = null;
             }
             this._sendShapeNotify("Bounding");
-        },
-        setWindowShapeRegion: function(shapeType, region) {
+        }
+        setWindowShapeRegion(shapeType, region) {
             if (shapeType === "Bounding") {
                 this._wrapBoundingRegionChange(function() {
                     this._setBoundingRegion(region);
@@ -860,8 +863,8 @@
             } else if (shapeType === "Input") {
                 this._setInputRegion(region);
             }
-        },
-        getWindowShapeRegion: function(shapeType) {
+        }
+        getWindowShapeRegion(shapeType) {
             if (shapeType === "Bounding") {
                 if (this._shapedBoundingRegion) {
                     var region = new Region();
@@ -877,9 +880,9 @@
             } else {
                 throw clientError("Invalid shapeType");
             }
-        },
+        }
 
-        redirect: function() {
+        redirect() {
             if (this._redirectedDrawTree)
                 return;
 
@@ -888,43 +891,43 @@
 
             // Immediately expose the window on the new draw tree.
             this.drawTree.exposeWindow(this, false, false);
-        },
-        unredirect: function() {
+        }
+        unredirect() {
             if (!this._redirectedDrawTree)
                 return;
 
             this._redirectedDrawTree.destroy();
             this._redirectedDrawTree = null;
             this.syncDrawTree();
-        },
+        }
 
-        grabButton: function(button, grabInfo) {
+        grabButton(button, grabInfo) {
             this._passiveGrabs[button] = grabInfo;
-        },
-        ungrabButton: function(button) {
+        }
+        ungrabButton(button) {
             delete this._passiveGrabs[button];
-        },
-        getGrab: function(button) {
+        }
+        getGrab(button) {
             return this._passiveGrabs[button];
-        },
-    });
+        }
+    }
 
     // This is the object returned to the client when it calls "connect",
     // so this contains the user-facing Xlib-like API. These marshalling
     // methods are installed below.
-    var ClientConnection = new Class({
-        initialize: function(serverClient, server) {
+    class ClientConnection {
+        constructor(serverClient, server) {
             this._serverClient = serverClient;
             this._server = server;
             this.rootWindowId = this._server.rootWindowId;
-        },
+        }
 
-        disconnect: function() {
+        disconnect() {
             this._server.disconnect(this._serverClient);
             this._server = null;
             this._serverClient = null;
-        },
-    });
+        }
+    }
 
     var publicRequests = [
         'createWindow',
@@ -1037,8 +1040,8 @@
 
     // A ServerClient manages the server's internal state for every client.
     // Mostly contains things about events.
-    var ServerClient = new Class({
-        initialize: function(server) {
+    class ServerClient {
+        constructor(server) {
             this._server = server;
 
             // window id => list of event types
@@ -1046,13 +1049,13 @@
 
             this.clientPort = createMessagePort();
             this.display = new ClientConnection(this, server);
-        },
+        }
 
-        isInterestedInWindowEvent: function(windowId, eventType) {
+        isInterestedInWindowEvent(windowId, eventType) {
             var listeningFor = this._eventWindows[windowId];
             return listeningFor && listeningFor.indexOf(eventType) >= 0;
-        },
-        filterEvent: function(event) {
+        }
+        filterEvent(event) {
             var windowId = event.windowId;
             if (windowId === undefined)
                 return false;
@@ -1080,12 +1083,12 @@
             }
 
             return false;
-        },
-        sendEvent: function(event) {
+        }
+        sendEvent(event) {
             var flatEvent = flattenObject(event);
             this.clientPort.postMessage(flatEvent, "*");
-        },
-        selectInput: function(windowId, eventTypes) {
+        }
+        selectInput(windowId, eventTypes) {
             var listeningFor = this._eventWindows[windowId];
             if (!listeningFor)
                 listeningFor = this._eventWindows[windowId] = [];
@@ -1101,23 +1104,23 @@
                     listeningFor.push(eventType);
                 }
             });
-        },
-        makeGrabInfo: function(event) {
+        }
+        makeGrabInfo(event) {
             return { serverClient: this,
                      grabWindow: this._server.getServerWindow(null, event.windowId),
                      ownerEvents: false, // implement OwnerGrabEvents
                      events: this._eventWindows[event.windowId],
                      pointerMode: "Async",
                      cursor: null };
-        },
-    });
+        }
+    }
 
     // A ServerGrabClient manages what happens when somebody takes
     // a pointer or keyboard grab. It contains the frozen event queue
     // and associated logic for Sync grabs, as well as lots of other
     // fun grab-related things.
-    var ServerGrabClient = new Class({
-        initialize: function(server, grabInfo, isPassive) {
+    class ServerGrabClient {
+        constructor(server, grabInfo, isPassive) {
             this._server = server;
 
             this.serverClient = grabInfo.serverClient;
@@ -1132,22 +1135,22 @@
             this._clientEvent = null;
 
             this._pointerMode = grabInfo.pointerMode;
-        },
-        _isEventConsideredFrozen: function(event) {
+        }
+        _isEventConsideredFrozen(event) {
             switch (event.type) {
             case "ButtonPress":
             case "ButtonRelease":
                 return this._pointerMode == "Sync";
             }
             return false;
-        },
-        _flushFrozenEventQueue: function() {
+        }
+        _flushFrozenEventQueue() {
             while (this._frozenEventQueue.length > 0) {
                 var event = this._frozenEventQueue.shift();
                 this._server.sendEvent(event);
             }
-        },
-        allowEvents: function(pointerMode) {
+        }
+        allowEvents(pointerMode) {
             this._pointerMode = pointerMode;
 
             // this._frozenEventQueue only has undelivered events. The last
@@ -1173,8 +1176,8 @@
                 this._flushFrozenEventQueue();
                 break;
             }
-        },
-        _deliverEvent: function(event) {
+        }
+        _deliverEvent(event) {
             this._clientEvent = event;
 
             // If ownerEvents is true, that means that any events that would
@@ -1194,8 +1197,8 @@
                 this._server.setEventWindowForEvent(newEvent, this.grabWindow, null);
                 this.serverClient.sendEvent(newEvent);
             }
-        },
-        sendEvent: function(event) {
+        }
+        sendEvent(event) {
             // If we have a sync grab that's relevant to the current
             // event, and we already have an event in processing
             // by the client, save it for later.
@@ -1203,8 +1206,8 @@
                 this._frozenEventQueue.push(event);
             else
                 this._deliverEvent(event);
-        },
-    });
+        }
+    }
 
     // Is b a descendent of a?
     function isWindowDescendentOf(a, b) {
@@ -1231,8 +1234,8 @@
     }
 
     // The main part of the server.
-    var Server = new Class({
-        initialize: function() {
+    class Server {
+        constructor() {
             this._setupDOM();
             this.elem = this._container;
 
@@ -1254,18 +1257,18 @@
 
             this._focusServerWindow = this._rootWindow;
             this.syncCursorWindow();
-        },
+        }
 
-        _setupDOM: function() {
+        _setupDOM() {
             this._container = document.createElement("div");
             this._container.tabIndex = 0;
 
             // Allow querying with ".xserver.js"
             this._container.classList.add("xserver");
             this._container.classList.add("js");
-        },
+        }
 
-        _createRootDrawTree: function() {
+        _createRootDrawTree() {
             this._rootWindow = this._createWindowInternal({ x: 0, y: 0, width: 1, height: 1 });
             this._rootWindow.changeProperty('DEBUG_NAME', "Root Window");
             this.rootWindowId = this._rootWindow.xid;
@@ -1274,14 +1277,14 @@
             this._container.appendChild(this._rootDrawTree.pixmap.canvas);
             this._rootWindow.drawTree = this._rootDrawTree;
             this._rootWindow.map();
-        },
-        resize: function(width, height) {
+        }
+        resize(width, height) {
             this._container.style.width = width + "px";
             this._container.style.height = height + "px";
             this._rootWindow.configureWindow(null, { width: width, height: height });
-        },
+        }
 
-        _translateCoordinates: function(srcServerWindow, destServerWindow, x, y) {
+        _translateCoordinates(srcServerWindow, destServerWindow, x, y) {
             var serverWindow;
 
             serverWindow = srcServerWindow;
@@ -1299,9 +1302,9 @@
             }
 
             return { x: x, y: y };
-        },
+        }
 
-        syncCursor: function() {
+        syncCursor() {
             var cursor;
 
             if (this._grabClient && this._grabClient.cursor)
@@ -1310,17 +1313,17 @@
                 cursor = this._cursorServerWindow.cursor;
 
             this._container.dataset.cursor = cursor;
-        },
+        }
 
-        _hasServerClientInterestedInWindowEvent: function(windowId, eventType) {
+        _hasServerClientInterestedInWindowEvent(windowId, eventType) {
             for (var i = 0; i < this._clients.length; i++) {
                 var serverClient = this._clients[i];
                 if (serverClient.isInterestedInWindowEvent(windowId, eventType))
                     return true;
             }
             return false;
-        },
-        _getServerClientsForEvent: function(event, except) {
+        }
+        _getServerClientsForEvent(event, except) {
             var serverWindow = this.getServerWindow(null, event.windowId);
             if (!serverWindow.filterEvent(event))
                 return [];
@@ -1337,8 +1340,8 @@
                 clients.push(serverClient);
             }
             return clients;
-        },
-        sendEvent: function(event, except) {
+        }
+        sendEvent(event, except) {
             if (isEventPointerInputEvent(event) && this._grabClient) {
                 this._grabClient.sendEvent(event);
                 return true;
@@ -1353,9 +1356,9 @@
                 });
                 return clients.length > 0;
             }
-        },
+        }
 
-        _setupInputHandlers: function() {
+        _setupInputHandlers() {
             this._container.addEventListener("mousemove", this._handleInputMouseMove.bind(this));
             this._container.addEventListener("mousedown", this._handleInputButtonPress.bind(this));
             this._container.addEventListener("mouseup", this._handleInputButtonRelease.bind(this));
@@ -1364,9 +1367,9 @@
             this._container.addEventListener("contextmenu", function(event) {
                 event.preventDefault();
             })
-        },
+        }
 
-        syncCursorWindow: function(mode) {
+        syncCursorWindow(mode) {
             var serverWindow = this._rootWindow.pickInput(this._cursorX, this._cursorY);
             if (!serverWindow)
                 serverWindow = this._rootWindow;
@@ -1388,8 +1391,8 @@
                 this._cursorServerWindow = serverWindow;
                 this.syncCursor();
             }
-        },
-        _findEventAndChildWindow: function(eventType) {
+        }
+        _findEventAndChildWindow(eventType) {
             var findInterestedWindow = (function findInterestedWindow(window, eventType, until) {
                 while (window != until) {
                     if (this._hasServerClientInterestedInWindowEvent(window.xid, eventType))
@@ -1420,8 +1423,8 @@
 
             return { event: eventWindow,
                      child: childWindow };
-        },
-        setEventWindowForEvent: function(event, eventWindow, childWindow) {
+        }
+        setEventWindowForEvent(event, eventWindow, childWindow) {
             if (eventWindow) {
                 event.windowId = eventWindow.xid;
                 var winCoords = this._translateCoordinates(this._rootWindow, eventWindow, event.rootX, event.rootY);
@@ -1430,8 +1433,8 @@
             }
             if (childWindow)
                 event.childWindowId = childWindow.xid;
-        },
-        _handleInputBase: function(eventType, domEvent) {
+        }
+        _handleInputBase(eventType, domEvent) {
             // The X server should capture all input events.
             domEvent.preventDefault();
             domEvent.stopPropagation();
@@ -1445,8 +1448,8 @@
             this.setEventWindowForEvent(event, windows.event, windows.child);
 
             return event;
-        },
-        _updateCursor: function(domEvent) {
+        }
+        _updateCursor(domEvent) {
             var box = this._container.getBoundingClientRect();
             var rootCoords = { x: domEvent.clientX - box.left,
                                y: domEvent.clientY - box.top };
@@ -1463,15 +1466,15 @@
             this._cursorY = rootCoords.y;
             this.syncCursorWindow();
             return true;
-        },
-        _handleInputMouseMove: function(domEvent) {
+        }
+        _handleInputMouseMove(domEvent) {
             if (!this._updateCursor(domEvent))
                 return;
             var event = this._handleInputBase("Motion", domEvent);
             if (event)
                 this.sendEvent(event);
-        },
-        _handleInputButtonPress: function(domEvent) {
+        }
+        _handleInputButtonPress(domEvent) {
             this._container.focus();
 
             this._updateCursor(domEvent);
@@ -1517,8 +1520,8 @@
                 event.button = button;
                 this.sendEvent(event);
             }
-        },
-        _handleInputButtonRelease: function(domEvent) {
+        }
+        _handleInputButtonRelease(domEvent) {
             this._updateCursor(domEvent);
             var event = this._handleInputBase("ButtonRelease", domEvent);
             var button = domEvent.which;
@@ -1537,24 +1540,24 @@
 
             if (this._grabClient && this._grabClient.isPassive && this._buttonsDown.length == 0)
                 this.ungrabPointer();
-        },
-        _handleInputKeyPress: function(domEvent) {
+        }
+        _handleInputKeyPress(domEvent) {
             var event = this._handleInputBase("KeyPress", domEvent);
             if (event) {
                 event.charCode = domEvent.charCode;
                 this.sendEvent(event);
             }
-        },
-        _handleInputKeyRelease: function(domEvent) {
+        }
+        _handleInputKeyRelease(domEvent) {
             var event = this._handleInputBase("KeyRelease", domEvent);
             if (event) {
                 // XXX -- doesn't work for KeyRelease. What to do?
                 event.charCode = domEvent.charCode;
                 this.sendEvent(event);
             }
-        },
+        }
 
-        _sendCrossingEvents: function(eventBase, fromWin, toWin) {
+        _sendCrossingEvents(eventBase, fromWin, toWin) {
             // Adapted from Xorg server, a pre-MPX version of dix/enterleave.c
             // Under MIT license
 
@@ -1605,8 +1608,8 @@
                 EnterNotifies(common, toWin, "NonlinearVirtual");
                 EnterLeaveEvent("Enter", "Nonlinear", toWin, null);
             }
-        },
-        _sendFocusEvents: function(eventBase, fromWin, toWin) {
+        }
+        _sendFocusEvents(eventBase, fromWin, toWin) {
             // Adapted from Xorg server, a pre-MPX version of dix/events.c
             // Under MIT license
 
@@ -1657,8 +1660,8 @@
                 FocusInEvents(common, toWin, "NonlinearVirtual");
                 FocusEvent("FocusIn", "Nonlinear", toWin);
             }
-        },
-        _setInputFocus: function(focusWindow) {
+        }
+        _setInputFocus(focusWindow) {
             var event = { rootWindowId: this.rootWindowId,
                           rootX: this._cursorX,
                           rootY: this._cursorY };
@@ -1670,26 +1673,26 @@
                 this._sendFocusEvents(event, this._focusServerWindow, focusWindow);
                 this._focusServerWindow = focusWindow;
             }
-        },
-        _revertInputFocus: function() {
+        }
+        _revertInputFocus() {
             // Always revert to the parent window, like RevertToParent does.
             var parent = this._focusServerWindow;
             while (!parent.viewable)
                 parent = parent.windowTreeParent;
             this._setInputFocus(parent);
-        },
+        }
 
-        _grabPointer: function(grabInfo, isPassive) {
+        _grabPointer(grabInfo, isPassive) {
             this._grabClient = new ServerGrabClient(this, grabInfo, isPassive);
             this.syncCursorWindow("Grab");
             this.syncCursor();
-        },
-        ungrabPointer: function() {
+        }
+        ungrabPointer() {
             this._grabClient = null;
             this.syncCursorWindow("Ungrab");
             this.syncCursor();
-        },
-        viewabilityChanged: function(serverWindow) {
+        }
+        viewabilityChanged(serverWindow) {
             if (!serverWindow.viewable) {
                 // If a window is now unviewable and we have a grab on it,
                 // drop the grab.
@@ -1699,22 +1702,22 @@
                 if (this._focusServerWindow == serverWindow)
                     this._revertInputFocus();
             }
-        },
-        registerXidObject: function(obj) {
+        }
+        registerXidObject(obj) {
             var xid = ++this._nextXid;
             this._xidToObject[xid] = obj;
             return xid;
-        },
-        _createWindowInternal: function(props) {
+        }
+        _createWindowInternal(props) {
             return new ServerWindow(this, props);
-        },
-        _createPixmapInternal: function(props) {
+        }
+        _createPixmapInternal(props) {
             var pixmap = new Pixmap();
             pixmap.resize(props.width, props.height);
 
             return new ServerPixmap(this, pixmap);
-        },
-        _getXidObjectInternal: function(client, xid, error, types) {
+        }
+        _getXidObjectInternal(client, xid, error, types) {
             var obj = this._xidToObject[xid];
 
             var valid = obj && types.some(function(T) { return obj instanceof T; });
@@ -1727,81 +1730,81 @@
                 else
                     throw new Error("Internal " + error + " - should not happen");
             }
-        },
-        xidDestroyed: function(xid) {
+        }
+        xidDestroyed(xid) {
             this._xidToObject[xid] = null;
-        },
-        getServerWindow: function(client, windowId) {
+        }
+        getServerWindow(client, windowId) {
             return this._getXidObjectInternal(client, windowId, "BadWindow", [ServerWindow]);
-        },
-        getServerPixmap: function(client, pixmapId) {
+        }
+        getServerPixmap(client, pixmapId) {
             return this._getXidObjectInternal(client, pixmapId, "BadPixmap", [ServerPixmap]);
-        },
-        getDrawable: function(client, drawableId) {
+        }
+        getDrawable(client, drawableId) {
             return this._getXidObjectInternal(client, drawableId, "BadDrawable", [ServerWindow, ServerPixmap]);
-        },
-        _checkOtherClientsForEvent: function(windowId, eventType, except) {
+        }
+        _checkOtherClientsForEvent(windowId, eventType, except) {
             return this._clients.some(function(otherClient) {
                 if (otherClient === except)
                     return false;
 
                 return otherClient.isInterestedInWindowEvent(windowId, eventType);
             });
-        },
+        }
 
         // The inspector uses these events to update its list of pixmaps.
-        pixmapCreated: function(pixmap) {
+        pixmapCreated(pixmap) {
             this.sendEvent({ windowId: this.rootWindowId, type: "X-PixmapCreated", xid: pixmap.xid });
-        },
-        pixmapDestroyed: function(pixmap) {
+        }
+        pixmapDestroyed(pixmap) {
             this.sendEvent({ windowId: this.rootWindowId, type: "X-PixmapDestroyed", xid: pixmap.xid });
-        },
-        pixmapUpdated: function(pixmap) {
+        }
+        pixmapUpdated(pixmap) {
             this.sendEvent({ windowId: this.rootWindowId, type: "X-PixmapUpdated", xid: pixmap.xid });
-        },
+        }
 
         // Everything that starts with "_handle_" is a client request handler.
         // Most of these should be fairly simple and only call internal methods.
-        _handle_createWindow: function(client, props) {
+        _handle_createWindow(client, props) {
             var serverWindow = this._createWindowInternal(props);
             serverWindow.parentWindow(this._rootWindow);
             return serverWindow.xid;
-        },
-        _handle_changeAttributes: function(client, props) {
+        }
+        _handle_changeAttributes(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             delete props.windowId;
             serverWindow.changeAttributes(client, props);
-        },
-        _handle_getAttributes: function(client, props) {
+        }
+        _handle_getAttributes(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             return serverWindow.getAttributes();
-        },
-        _handle_destroyWindow: function(client, props) {
+        }
+        _handle_destroyWindow(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             serverWindow.destroy();
-        },
-        _handle_reparentWindow: function(client, props) {
+        }
+        _handle_reparentWindow(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             var newServerParentWindow = this.getServerWindow(client, props.newParentId);
             serverWindow.parentWindow(newServerParentWindow);
-        },
-        _handle_mapWindow: function(client, props) {
+        }
+        _handle_mapWindow(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             serverWindow.map(client);
-        },
-        _handle_unmapWindow: function(client, props) {
+        }
+        _handle_unmapWindow(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             serverWindow.unmap();
-        },
-        _handle_configureWindow: function(client, props) {
+        }
+        _handle_configureWindow(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             serverWindow.configureWindow(client, props);
-        },
-        _handle_getGeometry: function(client, props) {
+        }
+        _handle_getGeometry(client, props) {
             var drawable = this.getDrawable(client, props.drawableId);
             return drawable.getGeometry();
-        },
-        _handle_queryTree: function(client, props) {
+        }
+        _handle_queryTree(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             var reply = {};
             reply.root = this.rootWindowId;
@@ -1810,21 +1813,21 @@
                 return w.xid;
             }).reverse();
             return reply;
-        },
-        _handle_changeProperty: function(client, props) {
+        }
+        _handle_changeProperty(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             serverWindow.changeProperty(props.name, props.value);
-        },
-        _handle_getProperty: function(client, props) {
+        }
+        _handle_getProperty(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             return serverWindow.getProperty(props.name);
-        },
-        _handle_listProperties: function(client, props) {
+        }
+        _handle_listProperties(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             return serverWindow.listProperties();
-        },
+        }
 
-        _handle_grabPointer: function(client, props) {
+        _handle_grabPointer(client, props) {
             var grabWindow = this.getServerWindow(client, props.windowId);
 
             // TODO: keyboardMode
@@ -1863,12 +1866,12 @@
                              pointerMode: props.pointerMode,
                              cursor: props.cursor };
             this._grabPointer(grabInfo, false);
-        },
-        _handle_ungrabPointer: function(client, props) {
+        }
+        _handle_ungrabPointer(client, props) {
             if (this._grabClient && this._grabClient.serverClient == client)
                 this.ungrabPointer();
-        },
-        _handle_grabButton: function(client, props) {
+        }
+        _handle_grabButton(client, props) {
             var grabWindow = this.getServerWindow(client, props.windowId);
             var grabInfo = { serverClient: client,
                              grabWindow: grabWindow,
@@ -1877,15 +1880,15 @@
                              pointerMode: props.pointerMode,
                              cursor: props.cursor };
             grabWindow.grabButton(props.button, grabInfo);
-        },
-        _handle_ungrabButton: function(client, props) {
+        }
+        _handle_ungrabButton(client, props) {
             var grabWindow = this.getServerWindow(client, props.windowId);
             grabWindow.ungrabButton(props.button);
-        },
-        _handle_allowEvents: function(client, props) {
+        }
+        _handle_allowEvents(client, props) {
             this._grabClient.allowEvents(props.pointerMode);
-        },
-        _handle_queryPointer: function(client, props) {
+        }
+        _handle_queryPointer(client, props) {
             var coords = this._translateCoordinates(this._rootWindow, this._cursorServerWindow,
                                                     this._cursorX, this._cursorY);
             return {
@@ -1897,26 +1900,26 @@
                 winY: coords.y,
                 buttons: this._buttonsDown
             };
-        },
-        _handle_translateCoordinates: function(client, props) {
+        }
+        _handle_translateCoordinates(client, props) {
             var srcServerWindow = this.getServerWindow(client, props.srcWindowId);
             var destServerWindow = this.getServerWindow(client, props.destWindowId);
             return this._translateCoordinates(srcServerWindow, destServerWindow, props.x, props.y);
-        },
-        _handle_setInputFocus: function(client, props) {
+        }
+        _handle_setInputFocus(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             this._setInputFocus(serverWindow);
-        },
+        }
 
-        _handle_createPixmap: function(client, props) {
+        _handle_createPixmap(client, props) {
             var serverPixmap = this._createPixmapInternal(props);
             return serverPixmap.xid;
-        },
-        _handle_freePixmap: function(client, props) {
+        }
+        _handle_freePixmap(client, props) {
             var serverPixmap = this.getServerPixmap(client, props.drawableId);
             serverPixmap.destroy();
-        },
-        _handle_sendEvent: function(client, props) {
+        }
+        _handle_sendEvent(client, props) {
             var destinationId = props.destinationId;
             var destination;
 
@@ -1938,9 +1941,9 @@
             event.synthetic = true;
 
             this.sendEvent(event);
-        },
+        }
 
-        _handle_selectInput: function(client, props) {
+        _handle_selectInput(client, props) {
             var windowId = props.windowId;
             var events = props.events;
             var checkEvent = (function checkEvent(eventType) {
@@ -1952,23 +1955,23 @@
             checkEvent("ButtonPress");
 
             client.selectInput(windowId, events);
-        },
+        }
 
-        _handle_invalidateWindow: function(client, props) {
+        _handle_invalidateWindow(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             var includeChildren = !!props.includeChildren;
             serverWindow.drawTree.exposeWindow(serverWindow, false, includeChildren);
-        },
-        _handle_getVisibleRegion: function(client, props) {
+        }
+        _handle_getVisibleRegion(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             var includeChildren = !!props.includeChildren;
             return serverWindow.drawTree.calculateVisibleRegionForWindow(serverWindow, includeChildren);
-        },
-        _handle_getPixmapImage: function(client, props) {
+        }
+        _handle_getPixmapImage(client, props) {
             var pixmap = this.getServerPixmap(client, props.pixmapId);
             return pixmap.getImage();
-        },
-        _handle_listPixmaps: function(client, props) {
+        }
+        _handle_listPixmaps(client, props) {
             var pixmapXids = [];
             for (var xid in this._xidToObject) {
                 var obj = this._xidToObject[xid];
@@ -1976,17 +1979,17 @@
                     pixmapXids.push(xid);
             }
             return pixmapXids;
-        },
-        _handle_setWindowShapeRegion: function(client, props) {
+        }
+        _handle_setWindowShapeRegion(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             serverWindow.setWindowShapeRegion(props.shapeType, props.region);
-        },
-        _handle_getWindowShapeRegion: function(client, props) {
+        }
+        _handle_getWindowShapeRegion(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             return serverWindow.getWindowShapeRegion(props.shapeType);
-        },
+        }
 
-        _handle_redirectWindow: function(client, props) {
+        _handle_redirectWindow(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             if (props.mode == 'none') {
                 serverWindow.unredirect();
@@ -1996,8 +1999,8 @@
                 // There's really no point to supporting 'automatic'.
                 throw clientError("BadMatch");
             }
-        },
-        _handle_nameWindowPixmap: function(client, props) {
+        }
+        _handle_nameWindowPixmap(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
 
             // NameWindowPixmap is only allowed on redirected windows,
@@ -2008,46 +2011,46 @@
             var pixmap = serverWindow.drawTree.pixmap;
             var serverPixmap = new ServerPixmap(this, pixmap, true);
             return serverPixmap.xid;
-        },
-        _handle_getDrawTreeRoot: function(client, props) {
+        }
+        _handle_getDrawTreeRoot(client, props) {
             var serverWindow = this.getServerWindow(client, props.windowId);
             if (serverWindow.drawTree === null) {
                 // Not viewable or the root window.
                 return null;
             }
             return serverWindow.drawTree.rootWindow.xid;
-        },
+        }
 
         // This is called by ClientConnection above for each of its generated
         // requests, which marshalls and wraps each of the request handlers
         // above.
-        handleRequest: function(client, requestName, props) {
+        handleRequest(client, requestName, props) {
             var handler = this['_handle_' + requestName];
             return handler.call(this, client, props);
-        },
+        }
 
         // Called by the client to get a socket connection.
-        connect: function() {
+        connect() {
             var serverClient = new ServerClient(this);
             this._clients.push(serverClient);
             return { clientPort: serverClient.clientPort,
                      display: serverClient.display };
-        },
+        }
 
-        disconnect: function(serverClient) {
+        disconnect(serverClient) {
             var idx = this._clients.indexOf(serverClient);
             this._clients.splice(idx, 1);
-        },
+        }
 
         // See the note about this above in ClientConnection.prototype.drawTo.
-        drawTo: function(client, drawableId, func) {
+        drawTo(client, drawableId, func) {
             var drawable = this.getDrawable(client, drawableId);
             if (!drawable.canDraw())
                 throw clientError("BadDrawable");
 
             drawable.drawTo(func);
-        },
-    });
+        }
+    }
 
     exports.Server = Server;
 

@@ -6,8 +6,8 @@
 
     // A <canvas> that overlays the X server and highlights certain windows
     // by drawing semi-transparent boxes and anchor lines.
-    var InspectorHighlighter = new Class({
-        initialize: function(server) {
+    class InspectorHighlighter {
+        constructor(server) {
             this._server = server;
             var connection = server.connect();
 
@@ -28,19 +28,19 @@
             this._display.selectInput({ windowId: this._display.rootWindowId,
                                         events: ['SubstructureNotify'] });
             this._syncSize();
-        },
+        }
 
-        _syncSize: function() {
+        _syncSize() {
             var geom = this._display.getGeometry({ drawableId: this._display.rootWindowId });
             this._canvas.width = geom.width;
             this._canvas.height = geom.height;
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             this._draw();
-        },
+        }
 
-        _draw: function() {
+        _draw() {
             this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
 
             if (this._highlightedWindowId != null) {
@@ -96,9 +96,9 @@
                     this._ctx.beginPath();
                 }
             }
-        },
+        }
 
-        setWindowToHighlight: function(xid) {
+        setWindowToHighlight(xid) {
             if (this._highlightedWindowId)
                 this._display.selectInput({ windowId: this._highlightedWindowId,
                                             events: ['!ShapeNotify'] });
@@ -108,14 +108,14 @@
                                             events: ['ShapeNotify'] });
 
             this._draw();
-        },
-    });
+        }
+    }
 
     // A simple client that takes a pointer grab, allowing the user to click
     // on a window. It also takes a highlighter, which it will use to highlight
     // a specific window on hover.
-    var WindowChooser = new Class({
-        initialize: function(server, highlighter) {
+    class WindowChooser {
+        constructor(server, highlighter) {
             this._server = server;
             this._highlighter = highlighter;
 
@@ -129,17 +129,17 @@
             this._display.selectInput({ windowId: this._display.rootWindowId,
                                         events: ["X-CursorWindowChanged"] });
             this._cursorWindow = null;
-        },
+        }
 
-        grab: function() {
+        grab() {
             this._display.grabPointer({ windowId: this._display.rootWindowId,
                                         ownerEvents: true,
                                         events: ['ButtonRelease'],
                                         pointerMode: 'Async',
                                         cursor: 'x-cursor' });
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             switch (event.type) {
             case "ButtonRelease":
                 this._display.ungrabPointer();
@@ -152,9 +152,8 @@
                 this._highlighter.setWindowToHighlight(event.newCursorWindow);
                 return;
             }
-        },
-    });
-
+        }
+    }
 
     // A simple container to not litter the DOM...
     var tooltipsContainer = document.createElement('tooltips-container');
@@ -162,8 +161,8 @@
 
     // A simple custom-content tooltip that tracks the cursor when
     // the user hovers over the target element.
-    var Tooltip = new Class({
-        initialize: function(target) {
+    class Tooltip {
+        constructor(target) {
             this._target = target;
             this._target.addEventListener("mouseover", this._onTargetMouseOver.bind(this));
             this._target.addEventListener("mouseout", this._onTargetMouseOut.bind(this));
@@ -175,45 +174,45 @@
             tooltipsContainer.appendChild(this.elem);
 
             this._setVisible(false);
-        },
+        }
 
-        destroy: function() {
+        destroy() {
             // Assume target will be destroyed.
 
             tooltipsContainer.removeChild(this.elem);
             this.elem = null;
-        },
+        }
 
-        _setVisible: function(shown) {
+        _setVisible(shown) {
             this.elem.style.display = shown ? "block" : "none";
-        },
+        }
 
-        _updateForEvent: function(e) {
+        _updateForEvent(e) {
             this.elem.style.left = e.pageX + 'px';
             this.elem.style.top = e.pageY + 'px';
-        },
+        }
 
-        _onTargetMouseOver: function(e) {
+        _onTargetMouseOver(e) {
             this._setVisible(true);
             this._updateForEvent(e);
-        },
+        }
 
-        _onTargetMouseOut: function(e) {
+        _onTargetMouseOut(e) {
             this._setVisible(false);
-        },
+        }
 
-        _onTargetMouseMove: function(e) {
+        _onTargetMouseMove(e) {
             this._updateForEvent(e);
-        },
-    });
+        }
+    }
 
     function empty(node) {
         while (node.firstChild)
             node.removeChild(node.firstChild);
     }
 
-    var WindowTree = new Class({
-        initialize: function(server) {
+    class WindowTree {
+        constructor(server) {
             this._server = server;
             var connection = server.connect();
             this._display = connection.display;
@@ -229,17 +228,17 @@
                                         events: ['X-WindowTreeChanged', 'X-CursorWindowChanged'] });
 
             this.elem = this._toplevel;
-        },
+        }
 
-        _handleConfigureNotify: function(event) {
+        _handleConfigureNotify(event) {
             // The only thing that can change the window tree is a
             // restack. Resizes and moves won't change the window tree,
             // so don't rebuild it in that case.
             if (event.stackMode !== undefined)
                 this._syncWindowTree();
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             switch (event.type) {
                 case "X-CursorWindowChanged":
                     return this._setCursorWindow(event.oldCursorWindow, event.newCursorWindow);
@@ -251,9 +250,9 @@
                 case "DestroyNotify":
                     return this._syncWindowTree();
             }
-        },
+        }
 
-        _getDebugName: function(xid) {
+        _getDebugName(xid) {
             var debugName;
             if (!debugName)
                 debugName = this._display.getProperty({ windowId: xid, name: "DEBUG_NAME" });
@@ -263,8 +262,8 @@
                 debugName = "Unnamed Window";
 
             return debugName;
-        },
-        _makeWindowLabel: function(xid) {
+        }
+        _makeWindowLabel(xid) {
             var node = document.createElement("div");
             node.classList.add('title');
 
@@ -286,21 +285,21 @@
             emblems.appendChild(cursorWindowEmblem);
 
             return node;
-        },
-        _setCursorWindow: function(oldId, newId) {
+        }
+        _setCursorWindow(oldId, newId) {
             if (this._windowTreeNodes[oldId])
                 this._windowTreeNodes[oldId].classList.remove("cursor-window");
             if (this._windowTreeNodes[newId])
                 this._windowTreeNodes[newId].classList.add("cursor-window");
-        },
-        selectWindow: function(xid) {
+        }
+        selectWindow(xid) {
             this._selectedWindowId = xid;
             this._syncWindowTree();
-        },
-        _shouldHideWindow: function(xid) {
+        }
+        _shouldHideWindow(xid) {
             return !!this._display.getProperty({ windowId: xid, name: '_XJS_HIDE_INSPECTOR' });
-        },
-        _syncWindowTree: function() {
+        }
+        _syncWindowTree() {
             var makeNodeForWindow = function(xid) {
                 var node = document.createElement("div");
                 node.classList.add('window');
@@ -357,11 +356,11 @@
                 if (drawTreeRootId)
                     this._windowTreeNodes[drawTreeRootId].classList.add('draw-tree-root');
             }
-        },
-    });
+        }
+    }
 
-    var HeaderBox = new Class({
-        initialize: function(title) {
+    class HeaderBox {
+        constructor(title) {
             this._toplevel = document.createElement('div');
 
             this._header = document.createElement('div');
@@ -373,18 +372,18 @@
             this._toplevel.appendChild(this.content);
 
             this.elem = this._toplevel;
-        },
+        }
 
-        setVisible: function(visible) {
+        setVisible(visible) {
             this._toplevel.style.display = visible ? 'block' : 'none';
-        },
-    });
+        }
+    }
 
 
     // Creates a simple that shows a small pixmap, and shows the full
     // pixmap in a Tooltip when hovering over it.
-    var PixmapDisplay = new Class({
-        initialize: function(server, xid) {
+    class PixmapDisplay {
+        constructor(server, xid) {
             this._server = server;
             var connection = server.connect();
             this._display = connection.display;
@@ -409,17 +408,17 @@
             this.update();
 
             this.elem = this._toplevel;
-        },
+        }
 
-        destroy: function() {
+        destroy() {
             this._display.disconnect();
             this._display = null;
             empty(this.elem);
 
             this._tooltip.destroy();
-        },
+        }
 
-        update: function() {
+        update() {
             var image = this._display.getPixmapImage({ pixmapId: this._xid });
 
             function updateCanvas(canvas) {
@@ -432,13 +431,13 @@
             this._tooltipDescription.innerHTML = "<span>" + image.width + "</span>×<span>" + image.height + "</span>, XID <span>" + this._xid + "</span>";
             updateCanvas(this._thumbCanvas);
             updateCanvas(this._tooltipCanvas);
-        },
-    });
+        }
+    }
 
     // The right-hand pane of the inspector. It shows the window's geometry,
     // its attributes, and any custom properties.
-    var WindowDetails = new Class({
-        initialize: function(server) {
+    class WindowDetails {
+        constructor(server) {
             this._server = server;
             var connection = server.connect();
             this._display = connection.display;
@@ -470,10 +469,10 @@
             this.elem = this._toplevel;
 
             this._sync();
-        },
+        }
 
         // Creates a simple box/label to show a color.
-        _createColorDisplay: function(color) {
+        _createColorDisplay(color) {
             var node = document.createElement('span');
 
             var colorDisplay = document.createElement('span');
@@ -488,9 +487,9 @@
             node.appendChild(valueItem);
 
             return node;
-        },
+        }
 
-        _syncGeometry: function() {
+        _syncGeometry() {
             empty(this._geometry.content);
             var geometry = this._display.getGeometry({ drawableId: this._selectedWindowId });
 
@@ -503,9 +502,9 @@
             geometryPos.classList.add('geometry-position');
             geometryPos.innerHTML = '<span>' + geometry.x + '</span>, <span>' + geometry.y + '</span>';
             this._geometry.content.appendChild(geometryPos);
-        },
+        }
 
-        _syncAttributes: function() {
+        _syncAttributes() {
             empty(this._attributes.content);
             var attribs = this._display.getAttributes({ windowId: this._selectedWindowId });
 
@@ -596,9 +595,9 @@
             valNode.textContent = (drawTreeRootId !== rootWindowId) ? "Yes" : "No";
             node.appendChild(valNode);
             this._attributes.content.appendChild(node);
-        },
+        }
 
-        _syncProperties: function() {
+        _syncProperties() {
             empty(this._properties.content);
 
             var makeNodeForProperty = function(name, value) {
@@ -624,9 +623,9 @@
                 var node = makeNodeForProperty(name, value);
                 this._properties.content.appendChild(node);
             }.bind(this));
-        },
+        }
 
-        _sync: function() {
+        _sync() {
             var hasWindow = !!this._selectedWindowId;
             this._geometry.setVisible(hasWindow);
             this._attributes.setVisible(hasWindow);
@@ -638,9 +637,9 @@
                 this._syncAttributes();
                 this._syncProperties();
             }
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             switch (event.type) {
                 case 'ConfigureNotify':
                     this._syncGeometry();
@@ -653,9 +652,9 @@
                     this._syncProperties();
                 break;
             }
-        },
+        }
 
-        selectWindow: function(xid) {
+        selectWindow(xid) {
             if (this._selectedWindowId == xid)
                 return;
 
@@ -667,11 +666,11 @@
                 this._display.selectInput({ windowId: this._selectedWindowId,
                                             events: ['ConfigureNotify', 'PropertyNotify', 'MapNotify', 'UnmapNotify'] });
             this._sync();
-        },
-    });
+        }
+    }
 
-    var WindowsTab = new Class({
-        initialize: function(server) {
+    class WindowsTab {
+        constructor(server) {
             this.tabButton = document.createElement('div');
             this.tabButton.classList.add('inspector-tab-button');
             this.tabButton.textContent = "Windows";
@@ -697,16 +696,16 @@
             this._windowTree.onWindowSelected = function(xid) {
                 this.selectWindow(xid);
             }.bind(this);
-        },
+        }
 
-        selectWindow: function(xid) {
+        selectWindow(xid) {
             this._windowTree.selectWindow(xid);
             this._windowDetails.selectWindow(xid);
-        },
-    });
+        }
+    }
 
-    var PixmapsList = new Class({
-        initialize: function(server) {
+    class PixmapsList {
+        constructor(server) {
             this._server = server;
             var connection = server.connect();
             this._display = connection.display;
@@ -728,9 +727,9 @@
             }.bind(this));
 
             this.elem = this._toplevel;
-        },
+        }
 
-        _pixmapCreated: function(xid) {
+        _pixmapCreated(xid) {
             if (this._pixmaps[xid]) {
                 console.log("already have display for xid", xid);
                 return;
@@ -753,8 +752,8 @@
             elem.appendChild(xidLabel);
 
             this._toplevel.appendChild(elem);
-        },
-        _pixmapDestroyed: function(xid) {
+        }
+        _pixmapDestroyed(xid) {
             if (!this._pixmaps[xid]) {
                 console.log("don't have any display for xid", xid);
                 return;
@@ -763,17 +762,17 @@
             this._pixmaps[xid].display.destroy();
             this._toplevel.removeChild(this._pixmaps[xid].elem);
             this._pixmaps[xid] = null;
-        },
-        _pixmapUpdated: function(xid) {
+        }
+        _pixmapUpdated(xid) {
             if (!this._pixmaps[xid]) {
                 console.log("don't have any display for xid", xid);
                 return;
             }
 
             this._pixmaps[xid].display.update();
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             switch (event.type) {
                 case 'X-PixmapCreated':
                     return this._pixmapCreated(event.xid);
@@ -783,10 +782,10 @@
                     return this._pixmapUpdated(event.xid);
             }
         }
-    });
+    }
 
-    var PixmapsTab = new Class({
-        initialize: function(server) {
+    class PixmapsTab {
+        constructor(server) {
             this.tabButton = document.createElement('div');
             this.tabButton.classList.add('inspector-tab-button');
             this.tabButton.textContent = "Pixmaps";
@@ -799,10 +798,10 @@
 
             this.elem = this._toplevel;
         }
-    });
+    }
 
-    var Inspector = new Class({
-        initialize: function(server) {
+    class Inspector {
+        constructor(server) {
             this._server = server;
             var connection = server.connect();
             this._display = connection.display;
@@ -812,7 +811,7 @@
 
             this._toplevel.addEventListener("contextmenu", function(event) {
                 event.preventDefault();
-            });
+            })
 
             this._header = document.createElement('div');
             this._header.classList.add('header');
@@ -851,30 +850,30 @@
             this._highlighter = new InspectorHighlighter(server);
 
             this.elem = this._toplevel;
-        },
+        }
 
-        addButton: function(button) {
+        addButton(button) {
             this._buttons.push(button)
-        },
+        }
 
-        toggle: function() {
+        toggle() {
             this.elem.classList.toggle("visible");
             var visible = this.elem.classList.contains("visible");
             this._buttons.forEach(function(button) {
                 button.setShowing(visible);
-            });
-        },
+            })
+        }
 
-        _addTab: function(tab) {
+        _addTab(tab) {
             this._header.appendChild(tab.tabButton);
             this._toplevel.appendChild(tab.elem);
 
             tab.tabButton.addEventListener('click', function() {
                 this._selectTab(tab);
             }.bind(this));
-        },
+        }
 
-        _selectTab: function(tab) {
+        _selectTab(tab) {
             if (this._currentTab == tab)
                 return;
 
@@ -889,14 +888,14 @@
                 this._currentTab.tabButton.classList.add('selected');
                 this._currentTab.elem.classList.add('visible');
             }
-        },
+        }
 
-        _selectWindow: function(xid) {
+        _selectWindow(xid) {
             this._selectTab(this._windowsTab);
             this._windowsTab.selectWindow(xid);
-        },
+        }
 
-        _chooseWindow: function() {
+        _chooseWindow() {
             this._chooseWindowButton.classList.add("active");
             var chooser = new WindowChooser(this._server, this._highlighter);
             chooser.onChosen = function(xid) {
@@ -904,13 +903,13 @@
                 this._chooseWindowButton.classList.remove("active");
             }.bind(this);
             chooser.grab();
-        },
+        }
 
-        _redrawServer: function() {
+        _redrawServer() {
             this._display.invalidateWindow({ windowId: this._display.rootWindowId,
                                              includeChildren: true });
-        },
-    });
+        }
+    }
 
     exports.Inspector = Inspector;
 

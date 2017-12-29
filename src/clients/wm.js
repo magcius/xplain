@@ -7,8 +7,8 @@
 
     var FRAME_BORDER = { top: 30, left: 4, right: 4, bottom: 4 };
 
-    var WindowFrameButton = new Class({
-        initialize: function(frame, display, onClick) {
+    class WindowFrameButton {
+        initialize(frame, display, onClick) {
             this._frame = frame;
             this._display = display;
             this._onClick = onClick;
@@ -19,15 +19,15 @@
             this.windowId = this._display.createWindow({ x: 0, y: 0, width: size, height: size, inputOnly: true });
             this._display.selectInput({ windowId: this.windowId, events: ['Enter', 'Leave', 'ButtonPress', 'ButtonRelease'] });
             this._display.changeAttributes({ windowId: this.windowId, cursor: 'pointer' });
-        },
-        setVisible: function(visible) {
+        }
+        setVisible(visible) {
             this.visible = visible;
             if (this.visible)
                 this._display.mapWindow({ windowId: this.windowId });
             else
                 this._display.unmapWindow({ windowId: this.windowId });
-        },
-        handleEvent: function(event) {
+        }
+        handleEvent(event) {
             switch (event.type) {
             case "Enter":
                 this.hover = true;
@@ -38,13 +38,13 @@
             case "ButtonRelease":
                 return this._onClick();
             }
-        },
-    });
+        }
+    }
 
     // Don't extend Window as this needs to be in the
     // WM client, not its own client.
-    var WindowFrame = new Class({
-        initialize: function(wm, display, windowId) {
+    class WindowFrame {
+        initialize(wm, display, windowId) {
             this._wm = wm;
             this._display = display;
             this._clientWindowId = windowId;
@@ -57,9 +57,9 @@
             this._frameGeometry = {};
 
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
-        },
+        }
 
-        _constrainNewSize: function(clientGeometry) {
+        _constrainNewSize(clientGeometry) {
             var normalHints = this._display.getProperty({ windowId: this._clientWindowId, name: 'WM_NORMAL_HINTS' });
             if (!normalHints)
                 return;
@@ -72,9 +72,9 @@
                 clientGeometry.width = Math.min(clientGeometry.width, normalHints.maxWidth);
             if (clientGeometry.height !== undefined && normalHints.maxHeight !== undefined)
                 clientGeometry.height = Math.min(clientGeometry.height, normalHints.maxHeight);
-        },
+        }
 
-        _updateGeometry: function(clientGeometry) {
+        _updateGeometry(clientGeometry) {
             var border = FRAME_BORDER;
             var positionUpdated = false;
             var sizeUpdated = false;
@@ -143,34 +143,34 @@
                 this._display.sendEvent({ destinationId: this._clientWindowId,
                                           event: configureEvent });
             }
-        },
+        }
 
-        _makeButton: function(onClick) {
+        _makeButton(onClick) {
             var size = 16;
             var button = new WindowFrameButton(this, this._display, onClick);
             this._display.reparentWindow({ windowId: button.windowId,
                                            newParentId: this._frameWindowId });
             this._wm.register(button.windowId, this);
             return button;
-        },
+        }
 
-        _syncButtonActions: function() {
+        _syncButtonActions() {
             var actions = this._display.getProperty({ windowId: this._clientWindowId, name: '_XJS_ACTIONS' });
             var shouldShowClose = !actions || actions.hasClose === true;
             this._closeButton.setVisible(shouldShowClose);
-        },
-        _onCloseClicked: function() {
+        }
+        _onCloseClicked() {
             return this.destroy();
-        },
+        }
 
-        _getGravity: function() {
+        _getGravity() {
             var normalHints = this._display.getProperty({ windowId: this._clientWindowId, name: 'WM_NORMAL_HINTS' });
             if (normalHints && normalHints.winGravity)
                 return normalHints.winGravity;
             else
                 return "NorthWest";
-        },
-        _adjustForGravity: function(geom, gravity) {
+        }
+        _adjustForGravity(geom, gravity) {
             // The input here is 
             // We're trying to calculate the position of the client window, in *root* coordinates.
             // This is exactly what StaticGravity is, so if we're asked to calculate StaticGravity,
@@ -213,9 +213,9 @@
             var childY = FRAME_BORDER.top;
             geom.x += childX;
             geom.y += childY;
-        },
+        }
 
-        construct: function() {
+        construct() {
             this._wm.register(this._clientWindowId, this);
             this._display.grabButton({ windowId: this._clientWindowId,
                                        button: 1,
@@ -251,13 +251,13 @@
             this._updateGeometry(geom);
 
             this._display.mapWindow({ windowId: this._frameWindowId });
-        },
-        _unregister: function() {
+        }
+        _unregister() {
             this._wm.unregister(this._frameWindowId);
             this._wm.unregister(this._clientWindowId);
             this._wm.unregister(this._closeButton.windowId);
-        },
-        destroy: function() {
+        }
+        destroy() {
             this._destroyed = true;
 
             // Force the window unmapped, and then reparent it to the root so
@@ -268,26 +268,26 @@
             this._display.destroyWindow({ windowId: this._frameWindowId });
             this._unregister();
             this._wm.focusDefaultWindow();
-        },
-        frameWasReceiver: function(event) {
+        }
+        frameWasReceiver(event) {
             // The frame has several internal helper windows for buttons, etc.
             // that we want to respond to. Just check if it's the client window
             // ID or not.
             return event.windowId != this._clientWindowId;
-        },
+        }
 
-        _configureRequestStack: function(event) {
+        _configureRequestStack(event) {
             this._display.configureWindow({ windowId: this._frameWindowId,
                                             stackMode: event.detail });
-        },
-        configureRequest: function(event) {
+        }
+        configureRequest(event) {
             this._adjustForGravity(event, this._getGravity());
             this._updateGeometry(event);
 
             if (event.detail !== undefined)
                 this._configureRequestStack(event);
-        },
-        _handleFrameEvent: function(event) {
+        }
+        _handleFrameEvent(event) {
             switch (event.type) {
             case "ButtonPress":
                 return this._frameButtonPress(event);
@@ -302,8 +302,8 @@
             case "Expose":
                 return this._frameExpose(event);
             }
-        },
-        _getControlInner: function(x, y) {
+        }
+        _getControlInner(x, y) {
             var topBorder = 4;
             var xDirection, yDirection;
 
@@ -341,8 +341,8 @@
 
             // client area, shouldn't ever happen
             return "";
-        },
-        _getControl: function(x, y) {
+        }
+        _getControl(x, y) {
             var control = this._getControlInner(x, y);
             var normalHints = this._display.getProperty({ windowId: this._clientWindowId, name: 'WM_NORMAL_HINTS' });
 
@@ -355,8 +355,8 @@
                 return "";
 
             return control;
-        },
-        _frameButtonPress: function(event) {
+        }
+        _frameButtonPress(event) {
             if (event.button != 1)
                 return false;
 
@@ -391,8 +391,8 @@
                                         pointerMode: "Async",
                                         cursor: cursor });
             return true;
-        },
-        _frameButtonRelease: function(event) {
+        }
+        _frameButtonRelease(event) {
             if (event.button != 1)
                 return;
 
@@ -401,8 +401,8 @@
             this._grabControl = null;
             this._origMousePos = null;
             this._origWindowGeom = null;
-        },
-        _grabbedMotion: function(event) {
+        }
+        _grabbedMotion(event) {
             if (!this._grabControl) {
                 var cursor;
                 var control = this._getControl(event.winX, event.winY);
@@ -458,8 +458,8 @@
             }
 
             this._updateGeometry({ x: x, y: y, width: w, height: h });
-        },
-        _notGrabbedMotion: function(event) {
+        }
+        _notGrabbedMotion(event) {
             var cursor;
             var control = this._getControl(event.winX, event.winY);
             if (control == "titlebar")
@@ -468,31 +468,31 @@
                 cursor = control;
 
             this._display.changeAttributes({ windowId: this._frameWindowId, cursor: cursor });
-        },
-        _frameMotion: function(event) {
+        }
+        _frameMotion(event) {
             if (this._grabControl)
                 return this._grabbedMotion(event);
             else
                 return this._notGrabbedMotion(event);
-        },
-        redraw: function() {
+        }
+        redraw() {
             if (this._destroyed)
                 return;
             this._display.invalidateWindow({ windowId: this._frameWindowId });
-        },
-        _frameFocusIn: function(event) {
+        }
+        _frameFocusIn(event) {
             this._frameHasFocus = true;
             this.redraw();
-        },
-        _frameFocusOut: function(event) {
+        }
+        _frameFocusOut(event) {
             // Don't lose focus when it's simply going to a child window.
             if (event.detail == "Inferior")
                 return;
 
             this._frameHasFocus = false;
             this.redraw();
-        },
-        _draw: function() {
+        }
+        _draw() {
             this._display.drawTo(this._frameWindowId, function(ctx) {
                 this._exposeHandler.clip(ctx);
 
@@ -555,26 +555,26 @@
                     ctx.fill();
                 }
             }.bind(this));
-        },
-        _frameExpose: function(event) {
+        }
+        _frameExpose(event) {
             this._exposeHandler.handleExpose(event);
-        },
-        handleEvent: function(event) {
+        }
+        handleEvent(event) {
             if (event.windowId == this._closeButton.windowId)
                 return this._closeButton.handleEvent(event);
             if (event.windowId == this._frameWindowId)
                 return this._handleFrameEvent(event);
-        },
-        raise: function() {
+        }
+        raise() {
             this._display.configureWindow({ windowId: this._frameWindowId, stackMode: "Above" });
-        },
-        focus: function() {
+        }
+        focus() {
             this._display.setInputFocus({ windowId: this._clientWindowId });
-        },
-    });
+        }
+    }
 
-    var WindowManager = new Class({
-        initialize: function(server) {
+    class WindowManager {
+        initialize(server) {
             var connection = server.connect();
             this._port = connection.clientPort;
             this._port.addEventListener("message", function(messageEvent) {
@@ -586,9 +586,9 @@
 
             // window ID => WindowFrame
             this._windowFrames = {};
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             var frame = this._windowFrames[event.windowId];
             var frameWasReceiver = frame && frame.frameWasReceiver(event);
 
@@ -622,8 +622,8 @@
                 if (frame)
                     return frame.handleEvent(event);
             }
-        },
-        _configureRequest: function(event, frame) {
+        }
+        _configureRequest(event, frame) {
             // If we don't have a frame for a window, it was never
             // mapped, simply re-configure the window with whatever
             // it requested.
@@ -636,8 +636,8 @@
                 // client coordinates.
                 frame.configureRequest(event);
             }
-        },
-        _wantsFrame: function(windowId) {
+        }
+        _wantsFrame(windowId) {
             var windowType = this._display.getProperty({ windowId: windowId,
                                                          name: "_NET_WM_WINDOW_TYPE" });
 
@@ -651,8 +651,8 @@
             case "_NET_WM_WINDOW_TYPE_NORMAL":
                 return true;
             }
-        },
-        _mapRequest: function(event) {
+        }
+        _mapRequest(event) {
             if (this._wantsFrame(event.windowId)) {
                 var frame = new WindowFrame(this, this._display, event.windowId);
 
@@ -670,15 +670,15 @@
                 this._display.mapWindow({ windowId: event.windowId });
                 this.focusDefaultWindow();
             }
-        },
-        register: function(windowId, frame) {
+        }
+        register(windowId, frame) {
             this._windowFrames[windowId] = frame;
-        },
-        unregister: function(windowId) {
+        }
+        unregister(windowId) {
             this._windowFrames[windowId] = null;
-        },
+        }
 
-        _getDefaultWindow: function() {
+        _getDefaultWindow() {
             var tree = this._display.queryTree({ windowId: this._display.rootWindowId });
             var children = tree.children;
             if (!children.length)
@@ -688,14 +688,14 @@
             if (!frame)
                 return null;
             return frame;
-        },
-        focusDefaultWindow: function() {
+        }
+        focusDefaultWindow() {
             var frame = this._getDefaultWindow();
             if (!frame)
                 return;
             frame.focus();
-        },
-    });
+        }
+    }
 
     exports.WindowManager = WindowManager;
 

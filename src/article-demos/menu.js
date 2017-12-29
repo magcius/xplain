@@ -10,8 +10,8 @@
     var BACKGROUND_SELECTED = '#aaccff';
     var FOREGROUND_SELECTED = '#000';
 
-    var DropdownMenuPopup = new Class({
-        initialize: function(connection, items, onPopdown, x, y) {
+    class DropdownMenuPopup {
+        constructor(connection, items, onPopdown, x, y) {
             // A weird quirk of dropdown menus is that for hover switching
             // correctly, they *need* to be on the same client as the dropdown
             // menu, since the grab encompasses everything. So, the dropdown
@@ -34,16 +34,16 @@
             this._exposeHandler = new ClientUtil.ExposeHandler(this._draw.bind(this));
             this._selectedItemIndex = -1;
             this._isPressed = false;
-        },
+        }
 
-        _setSelectedItemIndex: function(selectedItemIndex) {
+        _setSelectedItemIndex(selectedItemIndex) {
             if (this._selectedItemIndex === selectedItemIndex)
                 return;
             this._selectedItemIndex = selectedItemIndex;
             this._display.invalidateWindow({ windowId: this.windowId });
-        },
+        }
 
-        _handleEvent: function(event) {
+        _handleEvent(event) {
             switch(event.type) {
             case "Expose":
                 return this._handleExpose(event);
@@ -56,15 +56,15 @@
             case "Leave":
                 return this._handleLeave(event);
             }
-        },
-        _handleExpose: function(event) {
+        }
+        _handleExpose(event) {
             if (event.windowId !== this.windowId)
                 return;
 
             this._exposeHandler.handleExpose(event);
-        },
+        }
 
-        _handleButtonPress: function(event) {
+        _handleButtonPress(event) {
             if (event.windowId !== this.windowId) {
                 if (this._isPressed)
                     this.popdown(true);
@@ -73,14 +73,14 @@
 
             this._isPressed = true;
             this._display.invalidateWindow({ windowId: this.windowId });
-        },
-        _handleButtonRelease: function(event) {
+        }
+        _handleButtonRelease(event) {
             if (!this._isPressed)
                 return;
 
             this.popdown(true);
-        },
-        _handleMotion: function(event) {
+        }
+        _handleMotion(event) {
             if (event.windowId !== this.windowId)
                 return;
 
@@ -96,15 +96,15 @@
 
             var selectedItemIndex = (event.winY / this.heightPerItem) | 0;
             this._setSelectedItemIndex(selectedItemIndex);
-        },
-        _handleLeave: function(event) {
+        }
+        _handleLeave(event) {
             if (event.windowId !== this.windowId)
                 return;
 
             this._setSelectedItemIndex(-1);
-        },
+        }
 
-        _draw: function() {
+        _draw() {
             var geom = this._display.getGeometry({ drawableId: this.windowId });
             var width = geom.width, height = geom.height;
 
@@ -156,23 +156,23 @@
                 ctx.strokeStyle = '#aaa';
                 ctx.strokeRect(0, 0, width, height);
             }.bind(this));
-        },
-        _grab: function() {
+        }
+        _grab() {
             this._display.grabPointer({ windowId: this.windowId,
                                         ownerEvents: true,
                                         events: [],
                                         pointerMode: "Async" });
-        },
-        _ungrab: function() {
+        }
+        _ungrab() {
             this._display.ungrabPointer({ windowId: this.windowId });
-        },
-        popup: function() {
+        }
+        popup() {
             this._selectedItemIndex = -1;
             this._display.configureWindow({ windowId: this.windowId, stackMode: "Above" });
             this._display.mapWindow({ windowId: this.windowId });
             this._grab();
-        },
-        popdown: function(callCallback) {
+        }
+        popdown(callCallback) {
             this._isPressed = false;
             this._ungrab();
             this._display.unmapWindow({ windowId: this.windowId });
@@ -185,11 +185,11 @@
 
             if (callCallback)
                 this._onPopdown();
-        },
-    });
+        }
+    }
 
-    var DropdownMenuBar = new Class({
-        initialize: function(server, items) {
+    class DropdownMenuBar {
+        constructor(server, items) {
             var connection = server.connect();
             this._connection = connection;
             this._display = connection.display;
@@ -209,8 +209,8 @@
             this._selectedItemIndex = -1;
             this._currentPopupItemIndex = -1;
             this._shouldMenuBeOpen = false;
-        },
-        _handleEvent: function(event) {
+        }
+        _handleEvent(event) {
             if (event.windowId !== this.windowId)
                 return;
 
@@ -224,9 +224,9 @@
             case "Leave":
                 return this._handleLeave(event);
             }
-        },
+        }
 
-        _createItems: function(items) {
+        _createItems(items) {
             // We create a canvas and context here so we can call measureText...
             // the web doesn't have a nicer way to do this, does it?
 
@@ -254,17 +254,17 @@
 
             // We also, for convenience, set the width of the entire bar here.
             this._width = Math.ceil(x);
-        },
-        _handlePopdown: function() {
+        }
+        _handlePopdown() {
             this._currentPopup = null;
             this._shouldMenuBeOpen = false;
             this._setSelectedItemIndex(-1);
             this._syncPopup();
-        },
-        _getPopupClass: function() {
+        }
+        _getPopupClass() {
             return DropdownMenuPopup;
-        },
-        _makePopup: function(item) {
+        }
+        _makePopup(item) {
             var popupX = item.x;
             var geom = this._display.getGeometry({ drawableId: this.windowId });
             var popupY = geom.height;
@@ -274,8 +274,8 @@
                                                               x: popupX, y: popupY });
             var popupClass = this._getPopupClass();
             return new popupClass(this._connection, item.popupItems, this._handlePopdown.bind(this), coords.x, coords.y);
-        },
-        _syncPopup: function() {
+        }
+        _syncPopup() {
             if (this._shouldMenuBeOpen)
                 var newPopup = this._selectedItemIndex;
             else
@@ -298,34 +298,34 @@
             }
 
             this._display.invalidateWindow({ windowId: this.windowId });
-        },
-        _setSelectedItemIndex: function(selectedItemIndex) {
+        }
+        _setSelectedItemIndex(selectedItemIndex) {
             if (this._selectedItemIndex === selectedItemIndex)
                 return;
             this._selectedItemIndex = selectedItemIndex;
             this._display.invalidateWindow({ windowId: this.windowId });
             this._syncPopup();
-        },
-        _findItemByX: function(x) {
+        }
+        _findItemByX(x) {
             for (var i = this._items.length - 1; i >= 0; i--) {
                 var item = this._items[i];
                 if (x > item.x)
                     return i;
             }
             return -1;
-        },
-        _handleButtonPress: function(event) {
+        }
+        _handleButtonPress(event) {
             this._shouldMenuBeOpen = !this._shouldMenuBeOpen;
             this._syncPopup();
-        },
-        _handleMotion: function(event) {
+        }
+        _handleMotion(event) {
             this._setSelectedItemIndex(this._findItemByX(event.winX));
-        },
-        _handleLeave: function(event) {
+        }
+        _handleLeave(event) {
             if (!this._shouldMenuBeOpen)
                 this._setSelectedItemIndex(-1);
-        },
-        _draw: function(ctx) {
+        }
+        _draw(ctx) {
             var geom = this._display.getGeometry({ drawableId: this.windowId });
             var width = geom.width, height = geom.height;
 
@@ -362,8 +362,8 @@
                     }
                 }.bind(this));
             }.bind(this));
-        },
-    });
+        }
+    }
 
     var EXAMPLE_MENU_ITEMS = [
         ["File", ["New", "-", "Open...", "Save", "Save as...", "-", "Quit"]],
@@ -371,8 +371,8 @@
         ["View", ["Always on Top"]],
     ];
 
-    var Kitten = new Class({
-        initialize: function(server) {
+    class Kitten {
+        constructor(server) {
             var connection = server.connect();
             this._display = connection.display;
             var port = connection.clientPort;
@@ -404,23 +404,23 @@
             }.bind(this));
 
             DemoCommon.centerWindow(this._display, this.windowId);
-        },
-        _configureNotify: function(event) {
+        }
+        _configureNotify(event) {
             // Invalidate the entire window when we get resized, as we need
             // to repaint all contents to fit the new size.
             if (event.width !== undefined || event.height !== undefined)
                 this._display.invalidateWindow({ windowId: this.windowId });
-        },
-        _handleEvent: function(event) {
+        }
+        _handleEvent(event) {
             switch(event.type) {
             case "Expose":
                 return this._exposeHandler.handleExpose(event);
             case "ConfigureNotify":
                 return this._configureNotify(event);
             }
-        },
+        }
 
-        _draw: function() {
+        _draw() {
             var geom = this._display.getGeometry({ drawableId: this.windowId });
             var width = geom.width, height = geom.height;
 
@@ -464,8 +464,8 @@
                     ctx.strokeRect(centerX+.5, centerY+.5, drawWidth, drawHeight);
                 }
             }.bind(this));
-        },
-    });
+        }
+    }
 
     ArticleDemos.registerDemo("example-kitten", "height: 400px", function(res) {
         DemoCommon.addInspector(res);
@@ -483,8 +483,8 @@
         display.mapWindow({ windowId: menu.windowId });
     });
 
-    var ExampleHarness = new Class({
-        initialize: function(server, menubar) {
+    class ExampleHarness {
+        constructor(server, menubar) {
             var connection = server.connect();
             this._display = connection.display;
             var port = connection.clientPort;
@@ -508,12 +508,11 @@
             this._display.mapWindow({ windowId: this._menuBar.windowId });
 
             DemoCommon.centerWindow(this._display, this.windowId);
-        },
-    });
+        }
+    }
 
-    var SubmenuDropdownMenuBar = new Class({
-        Extends: DropdownMenuBar,
-        _makePopup: function(item) {
+    class SubmenuDropdownMenuBar extends DropdownMenuBar {
+        _makePopup(item) {
             var popupX = item.x;
             var geom = this._display.getGeometry({ drawableId: this.windowId });
             var popupY = geom.height;
@@ -522,8 +521,8 @@
             var query = this._display.queryTree({ windowId: this.windowId });
             this._display.reparentWindow({ windowId: popup.windowId, newParentId: query.parent });
             return popup;
-        },
-    });
+        }
+    }
 
     ArticleDemos.registerDemo("subwindow", "height: 180px", function(res) {
         DemoCommon.addInspector(res);
@@ -541,14 +540,13 @@
         display.mapWindow({ windowId: menu.windowId });
     });
 
-    var DumbToplevelDropdownMenuBar = new Class({
-        Extends: DropdownMenuBar,
-        _makePopup: function(item) {
-            var popup = this.parent(item);
+    class DumbToplevelDropdownMenuBar extends DropdownMenuBar {
+        _makePopup(item) {
+            var popup = super._makePopup(item);
             this._display.changeAttributes({ windowId: popup.windowId, overrideRedirect: false });
             return popup;
-        },
-    });
+        }
+    }
 
     ArticleDemos.registerDemo("dumb-toplevel-attempt", "height: 180px", function(res) {
         DemoCommon.addInspector(res);
@@ -566,18 +564,16 @@
         display.mapWindow({ windowId: menu.windowId });
     });
 
-    var DumbORDropdownMenuPopup = new Class({
-        Extends: DropdownMenuPopup,
-        _grab: function() {},
-        _ungrab: function() {},
-    });
+    class DumbORDropdownMenuPopup extends DropdownMenuPopup{
+        _grab() {}
+        _ungrab() {}
+    }
 
-    var DumbORDropdownMenuBar = new Class({
-        Extends: DropdownMenuBar,
-        _getPopupClass: function() {
+    class DumbORDropdownMenuBar extends DropdownMenuBar {
+        _getPopupClass() {
             return DumbORDropdownMenuPopup;
-        },
-    });
+        }
+    }
 
     ArticleDemos.registerDemo("dumb-or-attempt", "height: 350px", function(res) {
         DemoCommon.addInspector(res);
