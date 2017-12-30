@@ -23,12 +23,12 @@
         <p>
             Up until now, we've been exploring the X11 Window System from a somewhat high level.
             We've talked about Windows and Drawables and Pixmaps but we're always talking about them
-            in terms of the protocol. Like, you can "draw with on a Drawable on protocol extension RENDER".
-            Or you can "configure a window with the protocol request ConfigureWindow". But I haven't really
-            told you about how that's done. I think it's about time we dropped from the abstract to the
-            concrete. Today's article won't be about X11, or even the data structures that are inside of it.
-            Today, we're going to start to unravel 2D Graphics. You can explore the things I'm going to talk
-            about on any operating system, in any programming language, or even on paper.
+            in terms of the protocol. "You draw on a Drawable with protocol extension RENDER," or
+            "you can configure a window with the protocol request ConfigureWindow", but I haven't really gone
+            into any detail about how that's implemented. I think it's about time we dropped from the abstract
+            to the concrete. Today's article won't be about X11, or even the data structures that are inside of
+            it. Today, we're going to start to unravel 2D Graphics. You can explore the things I'm going to talk
+            about on any operating system, in any programming language, and even on paper.
         </p>
         <p>
             I often see comments like "oh, if only SVG was implemented with WebGL, then it would be fast",
@@ -39,13 +39,16 @@
             won't come today.
         </p>
         <p>
-            Even though fast, good-looking 2D graphics rendering being extremely difficult, the basics and
-            principles behind it aren't: they're simple enough that you can write a toy renderer in the span
-            it takes you to read this article.
-            Today, we will be exploring the basics of 2D graphics by writing a software rasterizer
-            of our very own, from the ground up. All of the code you see here was written for this article,
-            from nothing more than basic principles and ideas. It's <a href="https://github.com/magcius/xplain/blob/gh-pages/src/article-demos/rast1.js">open source on GitHub</a>, and I've tried
-            to comment it well as a source to learn from. I encourage you to study it.
+            Even though fast, good-looking 2D graphics rendering is an extremely difficult problem, the basics
+            and principles behind it aren't. Today, we will be exploring the basics of 2D graphics by writing
+            a software rasterizer of our very own, from the ground up. You should be able to write one of your
+            very own at the end of this article! All of the code you see here was written
+            for this article, from nothing more than basic principles and ideas. It's
+            <a href="https://github.com/magcius/xplain/blob/gh-pages/src/article-demos/rast1.js">open source on GitHub</a>,
+            and I've tried to and document it well as a source to learn from.
+        </p>
+        <p>
+            I hope you're as excited as I am to get started! So, without further ado...
         </p>
         </section>
 
@@ -59,15 +62,12 @@
         <div class="demo-canvas" data-demo="rast1-demo"></div>
 
         <p>
-            ... on the pixel grid. If you can peel your eyes away from the absolute graphical marvel I've
-            created enough to read on, hopefully you (yes, you!) can learn how to create one of these of
-            your very own. If not, I hope you have a better appreciation for the concepts underlying 2D
-            graphics rasterization.
-        </p>
-        <p>
-            This series will go on for multiple parts. Today, we're going to start with the basics of 2D
-            graphics: the graphics buffer and its layout, abstract shapes, a basic introduction to sampling
-            theory, lerping and blending colors, transparency, and end it off by adding a bit of antialiasing!
+            ... on the pixel grid! If you can peel your eyes away from the absolute graphical marvel I've
+            created above, we're going to dig into exactly what's going on inside those little squares,
+            and how they interact. This series will go on for multiple parts. Today, we're going to start
+            with the basics of 2D graphics: the graphics buffer and its layout, abstract shapes, a basic
+            introduction to sampling theory, lerping and blending colors, transparency, and end it off by
+            adding a bit of antialiasing!
         </p>
         <p>
             A bit of note about the interactive demos on display in here today. First, I'm presenting a
@@ -108,11 +108,10 @@
         </p>
         <p>
             Buffer layouts in the real world have a lot of subtleties: stride alignment, endianness, pixel formats.
-            If you don't know what any of those things are, don't worry, I'll explain them later, though perhaps
-            not in this specific article. In this article series,
+            If you don't know what any of those things are, don't worry, I'll explain them later. In this article series,
             we'll be using the convention established by HTML5's
             <a class="code-literal" href="https://developer.mozilla.org/en-US/docs/Web/API/ImageData">ImageData</a>
-            API. We see this pixel grid as a giant, one-dimensional array of bytes, with each pixel taking four
+            API. It sees this pixel grid as a giant, one-dimensional array of bytes, with each pixel taking four
             bytes: red, green, blue, alpha, in that order.
         </p>
 
@@ -206,7 +205,6 @@ function fillRectangle(imageData, x1, y1, width, height) {
             the first value. 1 gives you the second value. 0.5 gives you the value halfway in between both.
         </p>
 
-        <div class="demo-canvas" data-demo="rast1-fillrect-lerp"></div>
 <pre><code class="javascript">function lerp(a, b, t) {
     return (a * (1.0 - t)) + (b * t);
 
@@ -224,6 +222,7 @@ function draw(imageData, secs) {
     fillRectangle(imageData, x, y, 8, 8);
 }
 </code></pre>
+        <div class="demo-canvas" data-demo="rast1-fillrect-lerp"></div>
         <p>
             A few more notes. This time variable is often called "t", but I've also seen "position" or "pos",
             and "alpha". I don't like "position" because I use that to mean a point on our pixel grid,
@@ -238,7 +237,6 @@ function draw(imageData, secs) {
             through a famous easing curve known as "<a href="https://en.wikipedia.org/wiki/Smoothstep">smoothstep</a>":
         </p>
 
-        <div class="demo-canvas" data-demo="rast1-fillrect-lerp-smoothstep"></div>
 <pre><code class="javascript">function lerp(a, b, t) {
     return (a * (1.0 - t)) + (b * t);
 }
@@ -256,12 +254,14 @@ function draw(imageData, secs) {
     fillRectangle(imageData, x, y, 8, 8);
 }
 </code></pre>
+        <div class="demo-canvas" data-demo="rast1-fillrect-lerp-smoothstep"></div>
 
         <p>
-            ... which looks a bit easier on the eyes. Even though "t" stems from the word "time", as in the
-            math-y "f(t)" sense of the word, it's important to realize that we can use it for more than just
-            time, and we can lerp more than just the rectangle's position. For instance, we can lerp between
-            two colors with just a bit more code.
+            ... which looks a bit easier on the eyes. The etymology behind the time "t" parameter is derived
+            from the math-y "f(t)" sense of the word "time". We don't have to use an input that corresponds
+            to time passing in the real world: we can use any value between 0 and 1 as the input. We also can
+            choose to lerp things other than position. For instance, we can lerp between two colors with just
+            a bit more code.
         </p>
 <pre><code class="javascript">function newRGB(r, g, b) {
     return { r: r, g: g, b: b };
@@ -288,8 +288,8 @@ function lerpRGB(color1, color2, t) {
 }
 
 function fillRectangle(imageData, rgb, x1, y1, width, height) {
-    for (var y = y1; y < y1 + height; y++)
-        for (var x = x1; x < x1 + width; x++)
+    for (var y = y1; y &lt; y1 + height; y++)
+        for (var x = x1; x &lt; x1 + width; x++)
             fillPixel(imageData, x, y, rgb);
 }
 
@@ -300,7 +300,7 @@ function draw(imageData) {
 
     var red = newRGB(255, 0, 0);
     var blue = newRGB(0, 0, 255);
-    for (var x = startX; x < endX; x++) {
+    for (var x = startX; x &lt; endX; x++) {
         var t = (x - startX) / (endX - startX);
         var rgb = lerpRGB(red, blue, t);
         fillRectangle(imageData, rgb, x, y, width, height);
@@ -316,12 +316,12 @@ function draw(imageData) {
         <section id="gradients">
         <h3>Styling our Rectangle</h3>
         <p></p>
-        <div class="demo-canvas" data-demo="rast1-gradients"></div>
         <p>
             Let's try applying this knowledge to our rectangle drawing code. The biggest change here is that
             we'll need to modify what colors we draw based on the position in the image. To help us out, let's
-            introduce a new concept, known as the "fill style". We pass the fill style our position, and it
-            returns a color for that position.
+            introduce a new concept, known as the "fill style". This is a function that takes a position, and
+            returns a color for that position. The simplest possible fill style is a radial gradient, whose
+            color depends on the position from the center.
         </p>
 <pre><code class="javascript">// Basic fill style.
 function newSolidFill(rgb) {
@@ -354,34 +354,25 @@ function newRadialGradient(centerX, centerY, radius, centerRGB, edgeRGB) {
 // and custom colors.
 
 function fillRectangle(imageData, fillStyle, x1, y1, width, height) {
-    for (var y = y1; y < y1 + height; y++) {
-        for (var x = x1; x < x1 + width; x++) {
+    for (var y = y1; y &lt; y1 + height; y++) {
+        for (var x = x1; x &lt; x1 + width; x++) {
             var rgb = fillStyle(x, y);
             fillPixel(imageData, x, y, rgb);
         }
     }
 }
 
-function draw(imageData, secs) {
-    var startX = 1;
-    var endX = 38;
-    var smoothSecs = smoothstep(secs);
-    var x = Math.floor(lerp(startX, endX, smoothSecs));
-    var y = 1;
-    fillRectangle(imageData, x, y, 8, 8);
-}
-
 function draw(imageData) {
-    var x = 20 + Math.floor(Math.cos(t / 500) * 16);
+    var x = 19;
     var y = 1;
     var red = newRGB(255, 0, 0), blue = newRGB(0, 0, 255);
     var gradient = newRadialGradient(x + 4, y + 4, 6, red, blue);
     fillRectangle(imageData, gradient, x, y, 8, 8);
 }
 </code></pre>
+        <div class="demo-canvas" data-demo="rast1-gradients"></div>
         <p>
-            After we have this ability to lerp between two different colors, the rest of the complexity here is
-            dedicated to figuring out which time "t" we should be using. In the case of a radial gradient,
+            The biggest complexity here is figuring out which "t" to use. In the case of a radial gradient,
             it's actually just the distance from the center point, normalized against the radius.
         </p>
         <p>
@@ -394,26 +385,27 @@ function draw(imageData) {
         <h3>Drawing Other Shapes</h3>
         <p>
             Now that we've become familiarized with the concepts of rendering boxes and fills, let's try our
-            hand at something a tad bit more fancy &mdash; rendering other shapes. To start with, we'll actually
-            just draw the shape we just taught ourselves how to draw above: circles. We just learned above how
-            to calculate the time "t" of a point x, y against any circle, and you can visualize that a real circle
-            is simply a bunch of those points where we're inside the radius. So we can just run over our pixel
-            grid, test when we're "inside" the circle, and if so, choose to fill in the pixel.
+            hand at something a tad bit more fancy &mdash; rendering other shapes. To start with, let's try
+            a circle. We just learned above how to calculate the distance of a point x, y against the center
+            of a circle with any radius. Once we have that, we can just run over our pixel grid, test when
+            we're "inside" the circle, and if so, choose to fill in the pixel.
         </p>
         <p>
             The only complication here is that we have to pick some start and end bounds for where we start
             iterating. We could use our <em>entire</em> pixel grid, but we know a bunch of pixels will never be
-            filled in. We need a tight set of pixels. Thankfully, for a circle, it's quite easy to compute: it has
-            a width and height of twice the radius.
+            filled in. We need a tight set of pixels. Thankfully, for a circle, it's quite easy to compute.
+            By definition, the left edge ("x1", since it is the left X coordinate) is the X coordinate of the
+            circle's center minus the radius, and the right edge ("x2") is the center plus the radius. The same
+            thing happens for the top and bottom edges.
         </p>
 <pre><code class="javascript">function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
     var x1 = centerX - radius, y1 = centerY - radius;
     var x2 = centerX + radius, y2 = centerY + radius;
-    for (var y = y1; y < y2; y++) {
-        for (var x = x1; x < x2; x++) {
+    for (var y = y1; y &lt; y2; y++) {
+        for (var x = x1; x &lt; x2; x++) {
             var distX = (x - centerX), distY = (y - centerY);
             var distance = Math.sqrt(distX*distX + distY*distY);
-            if (distance <= radius) {
+            if (distance &lt;= radius) {
                 var rgb = fillStyle(x, y);
                 fillPixel(imageData, x, y, rgb);
             }
@@ -423,17 +415,20 @@ function draw(imageData) {
 </code></pre>
         <div class="demo-canvas" data-demo="rast1-circle"></div>
         <p>
-            Oof. What happened here? This doesn't look very... circular. At this point, it might be tempting
-            to just try to brute force your way through the code: changing the <span class="code-literal">&lt;=</span>
-            above to a single <span class="code-literal">&lt;</span>, adding various <span class="code-literal">+ 1</span>
-            and <span class="code-literal">-1</span>s throughout.
+            Oof. What happened here? This doesn't look very... circular. Is it an off-by-one error? It looks like it might be.
+            It's tempting to brute force your way to a possible fix: changing the <span class="code-literal">&lt;=</span>
+            above to a single <span class="code-literal">&lt;</span>, peppering various <span class="code-literal">+ 1</span>
+            and <span class="code-literal">-1</span>s throughout. But, trust me on this, this approach won't net you anything.
+            It's actually not an off-by-one error, it's an off-by-0.5 error.
         </p>
         <p>
-            There is actually nothing wrong with the above code in the abstract. Instead of this being a simple
-            implementation detail change, the issue with this algorithm is actually a more fundamental and
-            conceptual one, one that causes us to rethink a bit about how we're viewing the pixel grid.
-            You might also have spotted it above in the radial gradient example: the gradient isn't centered,
-            it's sort of down and to the right. These are both related problems.
+            "Wha?" I hear some of you cry.
+        </p>
+        <p>
+            There is actually nothing wrong with the above code in the abstract. Instead of this being a simple implementation
+            detail change, the issue with this algorithm is actually a more fundamental and conceptual one, one that causes us
+            to rethink a bit about how we're imagining the pixel grid. You might also have spotted it above in the radial
+            gradient example: the gradient isn't centered, it's sort of down and to the right. These are both related problems.
         </p>
         <p>
         </section>
@@ -441,8 +436,8 @@ function draw(imageData) {
         <section id="sampling">
         <h3>Sample Location</h3>
         <p>
-            When we do something like the above when we draw &mdash; iterate over a bunch of pixels, and then test
-            whether a pixel should be in or out, we're making use of a concept known as <span class="definition">sampling</span>.
+            When we do something like the algorithm above &mdash; iterate over a bunch of pixels, and then test whether a pixel
+            should be in or out, we're making use of a concept known as <span class="definition">sampling</span>.
             Basically, we have some functional concept of a shape, like a circle, and we can give it different x and y
             points and it tells us whether they are inside or outside of the circle. But what do these points actually mean?
         </p>
@@ -462,46 +457,45 @@ function draw(imageData) {
         <p>
             Maybe the revelation is clear now about what's actually going on. If not, don't worry. Right now, when
             we test each pixel against the abstract space circle, we've been testing whether the <em>top left</em>
-            of the square is inside the abstract circle. When you think about it, though, that doesn't quite make sense.
-            Really, what we're trying to ask is "is more than 50% of the pixel square inside the circle".
-            Using something like the pixel's center would more accurately answer that question.
+            of each pixel's square is inside the abstract circle. When you think about it, though, that doesn't
+            quite make sense. Really, what we're trying to ask is "is more than 50% of the pixel square inside the
+            circle". Using something like the pixel's center would more accurately answer that question.
         </p>
-        <p>
-            We can do this by adjusting our <span class="code-literal">fillCircle</span> function to test distance
-            against the pixel's <em>center</em> in the abstract space. Since pixel centers are halfway between pixels,
-            all we need to do is add <span class="code-literal">0.5</span> to both dimensions before calculating the
-            distance.
-        </p>
-<pre><code class="javascript">function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
-    var x1 = centerX - radius, y1 = centerY - radius;
-    var x2 = centerX + radius, y2 = centerY + radius;
-    for (var y = y1; y < y2; y++) {
-        for (var x = x1; x < x2; x++) {
-            var distX = (x - centerX<strong> + 0.5</strong>), distY = (y - centerY<strong> + 0.5</strong>);
-            var distance = Math.sqrt(distX*distX + distY*distY);
-            if (distance <= radius) {
-                var rgb = fillStyle(x, y);
-                fillPixel(imageData, x, y, rgb);
-            }
-        }
-    }
-}
-</code></pre>
         <div class="demo-canvas" data-demo="rast1-circle-overlay-fixed"></div>
+        <pre><code class="javascript">function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
+                var x1 = centerX - radius, y1 = centerY - radius;
+                var x2 = centerX + radius, y2 = centerY + radius;
+                for (var y = y1; y < y2; y++) {
+                    for (var x = x1; x < x2; x++) {
+                        var distX = (x - centerX<strong> + 0.5</strong>), distY = (y - centerY<strong> + 0.5</strong>);
+                        var distance = Math.sqrt(distX*distX + distY*distY);
+                        if (distance <= radius) {
+                            var rgb = fillStyle(x, y);
+                            fillPixel(imageData, x, y, rgb);
+                        }
+                    }
+                }
+            }
+            </code></pre>
         <p>
-            That looks a lot better. This also explains the bizarre gradient bug we were seeing earlier.
-            When we were comparing distances in the gradients, we were also comparing distances with the
-            top left of the pixel, rather than the pixel's center. I'll leave it as an exercise to the
-            reader to fix that one.
+            And indeed it does! By adjusting our <span class="code-literal">fillCircle</span> function to test distance
+            against the pixel's <em>center</em> in the abstract space, we get something that looks a lot more circular.
+            Since pixel centers are halfway between pixels, all we need to do is add 0.5 to both dimensions before
+            calculating the distance.
         </p>
         <p>
-            If you've worked with graphics APIs before, like HTML5 &lt;canvas&gt;, you might have had to add
-            these 0.5 increments yourselves, e.g. to lines, to make the resulting line look sharp.
-            This is because a line is basically a "thin" rectangle which is <em>lineWidth</em> wide, and
-            <em>centered</em> upon the position you give it. HTML5 &lt;canvas&gt; also uses this "pixel center"
-            sampling strategy. Giving it a bit of thought (imagine a vertical rectangle "growing" in width
-            from a pixel's center), and it should be obvious why you need to add 0.5 offsets yourself, and
-            why using a <span class="code">lineWidth</span> on offsets without the 0.5 looked acceptable.
+            This also explains the bizarre gradient bug we were seeing earlier. When we were comparing distances in the
+            gradients, we were also comparing distances with the top left of the pixel, rather than the pixel's center.
+            I'll leave it as an exercise to the reader to add the necessary <span class="code-literal">+ 0.5</span>s to
+            fix that one.
+        </p>
+        <p>
+            If you've worked with graphics APIs before like HTML5 &lt;canvas&gt;, you might have had to add these 0.5
+            increments yourselves, e.g. to lines, to make the resulting line look sharp. This is because a line is basically
+            a "thin" rectangle which is <em>lineWidth</em> wide, and <em>centered</em> upon the position you give it.
+            HTML5 &lt;canvas&gt; also uses this "pixel center" sampling strategy. Giving it a bit of thought (imagine a tall,
+            skinny rectangle "growing" in width from a pixel's center until it becomes two pixels wide), and it should be
+            obvious why you need to add 0.5 offsets yourself.
         </p>
         </section>
 
@@ -519,11 +513,14 @@ function draw(imageData) {
         </p>
         <p>
             For our toy implementation, we'll make some simplifications. Our resulting pixel grid is designed
-            to be displayed directly on my monitor. Since my monitor isn't transparent (at least <a href="https://www.theverge.com/2016/1/7/10733626/panasonic-transparent-screen-display-ces-2016">not yet!</a>),
+            to be displayed directly on my monitor. Since my monitor isn't transparent (at least <a href="https://www.theverge.com/2016/1/7/10733626/panasonic-transparent-screen-display-ces-2016">isn't yet!</a>),
             we won't bother changing its storage, and just assume it's full opaque. However, we'll add a new
             parameter to our fill color: <span class="definition">alpha</span>, or the "A" in "RGBA".
             Alpha is commonly taken to be identical with "transparency", though this isn't fully accurate,
-            as we'll see later (and one of my personal pet peeves)!
+            as we'll see later (and one of my personal pet peeves)! If we wanted to take an image we rendered
+            and then reuse it, transparency and all, it would definitely be appropriate to retain the alpha
+            channel. This makes the math a bit too complicated for this basic introduction though, so I'll cheat
+            and omit it for now.
         </p>
         <p>
             We'll also be a bit more formal about our fill parameters. We'll call the fill pattern the
@@ -537,12 +534,15 @@ function draw(imageData) {
 
 function getPixel(imageData, x, y) {
     var idx = indexForPixelLocation(imageData, x, y);
+    // Reminder: ImageData stores things as a giant array with bytes
+    // in "RGBA" order.  So index 0 = R, index 1 = G, and index 2 = B.
     return newRGB(imageData.data[idx + 0],
                   imageData.data[idx + 1],
                   imageData.data[idx + 2]);
 }
 
 function blendPixel(imageData, x, y, src) {
+    // Retrieve the existing pixel in the destination image.
     var dst = getPixel(imageData, x, y);
     // Lerp using the src's alpha to blend.
     var blended = lerpRGBA(dst, src, src.a);
@@ -561,12 +561,12 @@ function blendPixel(imageData, x, y, src) {
         <h3>Anti-aliasing</h3>
         <p>
             So, this is looking a lot better. We have shapes, we have colors and gradients. But it still doesn't
-            look great. The edges are all "jaggies", like you might see out of the Pencil tool in Photoshop
-            or something made entirely in MS Paint. Looking at the zoomed in pixel grid vs. the abstract one,
-            it should be obvious what the problem is: the pixel grid is much, much coarser than the abstract grid!
-            In signal processing terms, we're <a href="https://en.wikipedia.org/wiki/Aliasing" class="definition">aliased</a>:
-            to construct our pixel grid, we're sampling from a much <span definition="definition">higher frequency</span> space, the abstract grid,
-            and that results in aliasing artifacts.
+            look great. The edges are all "jaggies", like you might see out of something made entirely in MS Paint.
+            Looking at the zoomed in pixel grid vs. the abstract one, it should be obvious what the problem is:
+            the pixel grid is much, much coarser than the abstract grid! In signal processing terms, we're
+            <a href="https://en.wikipedia.org/wiki/Aliasing" class="definition">aliased</a>: to construct our pixel
+            grid, we're sampling from a much <span definition="definition">higher frequency</span> space, the
+            abstract grid, and that results in aliasing artifacts.
         </p>
         <p>
             ... OK. If that was a bit too technical, here's a quick signal processing intro:
@@ -591,24 +591,24 @@ function blendPixel(imageData, x, y, src) {
         </p>
 
         <p>
-            ... OK. That might have been a bit technical. Let's back to code. The easiest way to sample at a high
+            If that was a bit too abstract for you, let's try writing this in code. The easiest way to sample at a high
             frequency is to literally just sample more. This is an approach known as <a href="https://en.wikipedia.org/wiki/Supersampling">supersampling</a>,
-            since we're sampling at a higher, or "more super", frequency. Before we do it though, we're going to need to
-            refactor our code a bit and introduce a bit of infrastructure so we can sample at arbitrary points.
+            since we're sampling at a higher, or "more super", frequency. In order to do that, we're going to need to
+            refactor our code a bit and introduce a bit of infrastructure so we can sample at arbitrary positions.
             The first thing we're going to do is take that if statement testing if the point is inside the circle,
             and move it out into a new function.
         </p>
         <pre><code class="javascript">function insideCircle(centerX, centerY, radius, sampleX, sampleY) {
     var distX = (sampleX - centerX), distY = (sampleY - centerY);
     var distance = Math.sqrt(distX*distX + distY*distY);
-    return (distance <= radius);
+    return (distance &lt;= radius);
 }
 </code></pre>
         <p>
-            We also remove the "center pixel" 0.5 bias, because this will be part of our passed in sample point.
-            This gives us a nice functional sampling test. Now, for each pixel, we're going to sample it 16
-            different times, and collect the results. Watch closely. The code is going to be a bit hairy, but
-            I'll explain it afterwards.
+            We also remove the "center pixel" 0.5 bias now, because this will be part of our passed in sample
+            point. This gives us a nice functional sampling test. Now, for each pixel, we're going to sample
+            it 16 different times, and collect the results. Watch closely. The code below might be a bit dense,
+            but read it line-by-line and it should make sense.
         </p>
         <pre><code class="javascript">function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
     // Sample the shape 16 times in a 4x4 grid.
@@ -617,13 +617,13 @@ function blendPixel(imageData, x, y, src) {
 
     var x1 = Math.floor(centerX - radius), y1 = Math.floor(centerY - radius);
     var x2 = Math.ceil(centerX + radius), y2 = Math.ceil(centerY + radius);
-    for (var y = y1; y < y2; y++) {
-        for (var x = x1; x < x2; x++) {
+    for (var y = y1; y &lt; y2; y++) {
+        for (var x = x1; x &lt; x2; x++) {
             // Compute the coverage by sampling the circle at "subpixel"
             // locations and counting the number of subpixels turned on.
             var coverage = 0;
-            for (var subpixelY = 0; subpixelY < nSubpixelsY; subpixelY++) {
-                for (var subpixelX = 0; subpixelX < nSubpixelsX; subpixelX++) {
+            for (var subpixelY = 0; subpixelY &lt; nSubpixelsY; subpixelY++) {
+                for (var subpixelX = 0; subpixelX &lt; nSubpixelsX; subpixelX++) {
                     // Sample the center of the subpixel.
                     var sampX = x + ((subpixelX + 0.5) / nSubpixelsX);
                     var sampY = y + ((subpixelY + 0.5) / nSubpixelsY);
@@ -631,6 +631,7 @@ function blendPixel(imageData, x, y, src) {
                         coverage += 1;
                 }
             }
+            // Take the average of all subpixels.
             coverage /= nSubpixelsY * nSubpixelsY;
 
             // Quick optimization: if we're fully outside the circle,
@@ -649,10 +650,11 @@ function blendPixel(imageData, x, y, src) {
         <div class="demo-canvas" data-demo="rast1-circle-aa"></div>
         <p>
             There's quite a lot to go through here, but the core important idea is that for each pixel,
-            we're sampling the abstract grid 16 times, and then using that as an average to figure out
-            "how solid" this pixel should be. In essence, we're faking a more compact pixel grid by adding
-            a bit of fuzziness to the edges. There's a few more important conceptual details here: first, we
-            can't represent all colors with these "fuzzed edges". We are trading color depth for the
+            we're sampling the abstract grid 16 times, and figuring out how much of the abstract circle this
+            square pixel contains. Once we know this, we compensate by making the pixel more transparent.
+            This makes some intuitive sense: if a circle only covers half of a pixel, the other half should be
+            occupied by what's underneath it, so the two colors get merged into one. This, unfortunately, has
+            a cost: we still only have 8 bits per channel to work with. We are trading color depth for the
             appearance of more space. This is why it's hard to "un-anti-alias" pictures in Photoshop if
             you've ever tried to remove a background or similar: because some of the original color was lost!
         </p>
@@ -675,11 +677,10 @@ function blendPixel(imageData, x, y, src) {
         <p>
             You might also notice that the animation still seems a bit "jerky". This is because I'm drawing
             the circle locked to the pixel grid with a <code>Math.floor</code>. But now we can represent
-            arbitrary sample points thanks to proper antialiasing. Taking the <code>Math.floor</code> lets
-            us draw with something like <code>drawCircle(3.5, 2.32, 6.7);</code>, to pull some numbers at
-            a hat. Our abstract grid can represent fractions of pixels just perfectly, and, with us taking
-            multiple samples, our circle should look a lot more... well... circular, with fractional
-            sample positions.
+            arbitrary sample points thanks to proper antialiasing. Taking the <code>Math.floor</code> out lets
+            us draw something like <code>drawCircle(3.5, 2.32, 6.7);</code>, to pull some numbers out of a hat.
+            Our abstract grid can represent fractions of pixels just perfectly, and, with us taking multiple
+            samples, our circle should look a lot more... well... circular, with fractional sample positions.
         </p>
         <div class="demo-canvas" data-demo="rast1-circle-aa-smooth"></div>
         <p>
@@ -691,7 +692,7 @@ function blendPixel(imageData, x, y, src) {
             the bounding box to help accomodate this. Note the additions of <code>Math.floor</code> and
             <code>Math.ceil</code> above; I sneakily put those in there, but they are required for this to work
             correctly. Otherwise, the X and Y values we pass to <code>blendImage</code> would be fractional,
-            and our attempts at setting the memory array would fail on fractional indexes.
+            and our attempts at setting the ImageData array would fail on fractional indexes.
         </p>
         <p>
             And last, I should mention. Super- or multisampling are not the only approaches to doing antialasing.

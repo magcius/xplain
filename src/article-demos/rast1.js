@@ -622,16 +622,13 @@
                     fillPixel(imageData, x, y);
         }
 
-        function update(t) {
-            var x = 20 + Math.floor(Math.cos(t / 500) * 16);
-            var y = 1;
+        var x = 19;
+        var y = 1;
 
-            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
-            fillRectangle(imageData, x, y, 8, 8);
-            rastDemoDraw(ctx, imageData);
-        }
+        var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
+        fillRectangle(imageData, x, y, 8, 8);
 
-        visibleRAF(canvas, update);
+        rastDemoDraw(ctx, imageData);
     });
 
     ArticleDemos.registerDemo("rast1-fillrect-lerp", STYLE, function(res) {
@@ -708,18 +705,14 @@
         var ctx = canvas.getContext('2d');
         ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
-        function draw(t) {
-            var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
+        var imageData = newImageData(BUFFER_WIDTH, BUFFER_HEIGHT);
 
-            var x = 20 + Math.floor(Math.cos(t / 500) * 16);
-            var y = 1;
-            var grad = newRadialGradient(x + 4, y + 4, 6, newRGB(255, 0, 0), newRGB(0, 0, 255));
-            fillRectangle(imageData, grad, x, y, 8, 8, { aa: false });
+        var x = 19;
+        var y = 1;
+        var grad = newRadialGradient(x + 4, y + 4, 6, newRGB(255, 0, 0), newRGB(0, 0, 255));
+        fillRectangle(imageData, grad, x, y, 8, 8, { aa: false });
 
-            rastDemoDraw(ctx, imageData);
-        }
-
-        visibleRAF(canvas, draw);
+        rastDemoDraw(ctx, imageData);
     });
 
     ArticleDemos.registerDemo("rast1-circle", STYLE, function(res) {
