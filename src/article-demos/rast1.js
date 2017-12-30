@@ -637,6 +637,7 @@
     ArticleDemos.registerDemo("rast1-fillrect-lerp", STYLE, function(res) {
         var canvas = res.canvas;
         var ctx = canvas.getContext('2d');
+        ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
 
         function draw(imageData, secs) {
             var startX = 1;
