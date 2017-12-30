@@ -272,14 +272,14 @@
             this._gl = gl;
         }
 
-        draw() {
+        draw(dt) {
             var gl = this._gl;
 
             gl.enable(gl.BLEND);
             gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA,
                                  gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             this._actorStacking.forEach(function(actor) {
-                actor.draw();
+                actor.draw(dt);
             });
             gl.disable(gl.BLEND);
 
@@ -365,7 +365,7 @@ void main() {
             gl.linkProgram(this._shaderProgram);
         }
 
-        draw() {
+        draw(dt) {
             var gl = this._gl;
 
             var buffer = gl.createBuffer();
@@ -382,7 +382,7 @@ void main() {
             var mv = new Float32Array(16);
             matIdentity(mv);
 
-            var angle = (this._time++ / 100) * Math.PI;
+            var angle = ((this._time += dt) / 100) * Math.PI;
             mv[0] = Math.cos(angle);
             mv[12] = -0.15;
             mv[13] = 0.15;
@@ -431,9 +431,9 @@ void main() {
             this._allocatePixmap();
         }
 
-        _stepBend() {
+        _stepBend(dt) {
             var DAMPEN = 0.9;
-            this._bend *= DAMPEN;
+            this._bend *= Math.pow(DAMPEN, dt);
             if (Math.abs(this._bend) < 1)
                 this._bend = 0;
 
@@ -541,7 +541,7 @@ void main() {
             super._damaged();
         }
 
-        draw() {
+        draw(dt) {
             var gl = this._gl;
 
             gl.bindTexture(gl.TEXTURE_2D, this._texture);
@@ -560,7 +560,7 @@ void main() {
             var x1upoffs = 1;
             var x2upoffs = x1upoffs + this._geometry.width;
 
-            var bend = this._stepBend();
+            var bend = this._stepBend(dt);
 
             if (bend > 0) {
                 x2 += bend;
@@ -633,10 +633,13 @@ void main() {
             this._gl = gl;
             this._renderer = new GLRenderer(this._triggerRedraw.bind(this), this._gl);
             this._redirectChildren();
+            this._time = 0;
         }
 
-        _draw() {
-            this._renderer.draw();
+        _draw(time) {
+            const dt = (time - this._time) / 10;
+            this._time = time;
+            this._renderer.draw(dt);
         }
 
         _triggerRedraw() {
