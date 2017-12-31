@@ -20,6 +20,7 @@
     function colorGrayscale(c) {
         console.assert(c[0] === '#' && c.length === 7);
         const r = parseInt(c.slice(1, 3), 16), g = parseInt(c.slice(3, 5), 16), b = parseInt(c.slice(5, 7), 16);
+        // NTSC primaries.
         const ny = r*0.299 + g*0.587 + b*0.114;
         const y = (ny | 0).toString(16);
         return `#${y}${y}${y}`;
@@ -136,6 +137,7 @@
         _onMouseUp(e) {
             cursorOverride.setCursor(this, '');
             document.documentElement.removeEventListener('mouseup', this._onMouseUp);
+            this.onend();
 
             if (this._showTimeout) {
                 clearTimeout(this._showTimeout);
@@ -143,7 +145,6 @@
                 return;
             }
 
-            this.onend();
             document.documentElement.removeEventListener('mousemove', this._onMouseMove, { capture: true });
             document.body.removeChild(this._toplevel);
         }
@@ -772,7 +773,7 @@
             };
             if (this._redraw_cursorPosition) {
                 const { line } = this._getCharPos(this._textareaToIdx(this._redraw_cursorPosition));
-                drawFlair(line, { color: '#363430' });
+                drawFlair(line, { color: '#2f2a34' });
             }
 
             if (this._lineFlairs) {

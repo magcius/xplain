@@ -279,36 +279,32 @@
             this._toplevel.appendChild(this._editor.elem);
 
             this._mouse = null;
-            this._bufferHeightNext = 0;
             this._doubleBufferedWorker = new DoubleBufferedWorker();
             this._doubleBufferedWorker.onresult = this._workerResult.bind(this);
             this._doubleBufferedWorker.onerror = this._workerError.bind(this);
             this._doubleBufferedWorker.onsuccess = this._workerSuccess.bind(this);
 
             this.elem = this._toplevel;
+
+            // We contain two grid geometry parameters: one is the "next" set of sizes
+            // sent to the job, the other is set upon job success. This ensures a smooth draw.
+            this._bufferGeometryToSend = {};
+            this._bufferGeometryToDraw = {};
         }
         _onSplitterDragStart() {
             this._splitterDragStartHeight = this._canvas.height;
         }
         _onSplitterDrag(dx, dy, e) {
-            this.setNextHeight(this._splitterDragStartHeight + dy);
-        }
-        _translateMouse(e) {
-            const x = (e.offsetX - DISPLAY_XPAD) / DISPLAY_CELL_SIZE;
-            const y = (e.offsetY - DISPLAY_YPAD) / DISPLAY_CELL_SIZE;
-            return { x, y };
-        }
-        _constrainHeight(height) {
-            const bufferHeight = Math.round((height - DISPLAY_YPAD * 2) / DISPLAY_CELL_SIZE);
+            const displayHeight = this._splitterDragStartHeight + dy;
+            const bufferHeight = Math.round((displayHeight - this._displayYpad * 2) / this._bufferGeometryToSend.displayCellSize);
             const bufferHeightClamped = Math.max(bufferHeight, 1);
-            return bufferHeightClamped;
+            this.setBufferGeometry(undefined, bufferHeightClamped, undefined);
         }
         _onMouseMove(e) {
             if (!this._mouse)
                 this._mouse = { pressed: false };
-            const { x, y } = this._translateMouse(e);
-            this._mouse.x = x;
-            this._mouse.y = y;
+            this._mouse.x = e.offsetX;
+            this._mouse.y = e.offsetY;
         }
         _onMouseOut(e) {
             this._mouse = null;
@@ -337,12 +333,24 @@
             else
                 this._doubleBufferedWorker.terminate();
         }
-        setNextHeight(bufferHeightRaw) {
-            const bufferHeight = this._constrainHeight(bufferHeightRaw);
-            if (this._bufferHeight === bufferHeight)
-                return;
-
-            this._bufferHeightNext = bufferHeight;
+        _calculateAutoBufferWidth(cellSize) {
+            const numCellsPadding = 2; // Two cells worth of padding on each side.
+            const bufferWidth = Math.floor(this._canvas.width / cellSize) - numCellsPadding * 2;
+            return bufferWidth;
+        }
+        setBufferGeometry(bufferWidth, bufferHeight, displayCellSize) {
+            if (bufferHeight !== undefined) {
+                this._bufferGeometryToSend.bufferHeight = bufferHeight;
+            }
+            if (displayCellSize !== undefined) {
+                this._bufferGeometryToSend.displayCellSize = displayCellSize;
+            }
+            if (bufferWidth !== undefined) {
+                if (bufferWidth === "auto") {
+                    bufferWidth = this._calculateAutoBufferWidth(this._bufferGeometryToSend.displayCellSize);
+                }
+                this._bufferGeometryToSend.bufferWidth = bufferWidth;
+            }
         }
         _createPendingWorker() {
             const newWorker = this._createWorker(this._editor.getValue());
@@ -386,20 +394,27 @@
             return prefix;
         }
         _getJob(time) {
-            const mouse = this._mouse;
-            const imageSize = { width: BUFFER_WIDTH, height: this._bufferHeight };
+            const imageSize = {
+                width: this._bufferGeometryToSend.bufferWidth,
+                height: this._bufferGeometryToSend.bufferHeight,
+            }
+            let mouse = null;
+            if (this._mouse) {
+                const displayXpad = this._getDisplayXpad(this._bufferGeometryToSend);
+                const displayYpad = this._displayYpad;
+                mouse = {
+                    x: (this._mouse.x - displayXpad) / this._bufferGeometryToSend.displayCellSize,
+                    y: (this._mouse.y - displayYpad) / this._bufferGeometryToSend.displayCellSize,
+                    pressed: this._mouse.pressed,
+                };
+            }
             return { time, imageSize, mouse };
         }
         _redraw(time) {
-            if (this._bufferHeightNext)
-                this._bufferHeight = this._bufferHeightNext;
-
             const job = this._getJob(time);
             this._setPrefixSuffix(job);
+            job.bufferGeometry = this._bufferGeometryToSend;
             const sentJob = this._doubleBufferedWorker.sendJob(job);
-
-            if (!sentJob)
-                this._fallbackDraw();
         }
         _workerSuccess() {
             this._editor.setLineFlairs([]);
@@ -411,59 +426,7 @@
     }
     // #endregion
 
-    // XXX: I need better names for these variables.
-
-    // The size of our rasterized buffer.
-    const BUFFER_WIDTH = 46, INITIAL_BUFFER_HEIGHT = 10;
-
-    // This rasterized buffer gets rendered so that each "picture element"
-    // in it gets a giant 16x16 "cell" for demonstration purposes.
-    const DISPLAY_CELL_SIZE = 16;
-
-    const DISPLAY_YPAD = 2;
-
-    // As such, the final size of the buffer, rendered on the canvas, is:
-    const DISPLAY_WIDTH = BUFFER_WIDTH * DISPLAY_CELL_SIZE;
-
-    // The size of our "demo slot" is 800px, which means we need some padding
-    // on the left and right sides.
-    const DISPLAY_XPAD = (800 - DISPLAY_WIDTH) / 2;
-
-    // -- Demo Utilities --
-
-    function bufferToDisplay(p) {
-        p.x = p.x * DISPLAY_CELL_SIZE;
-        p.y = p.y * DISPLAY_CELL_SIZE;
-    }
-
-    // Path out a grid of strokes drawing a grid.
-    function gridPath(ctx, width, height) {
-        const start = { x: 0, y: 0 };
-        const end = { x: 0, y: 0 };
-
-        for (let x = 0; x <= width; x++) {
-            start.x = end.x = x;
-            start.y = 0; end.y = height;
-            bufferToDisplay(start); bufferToDisplay(end);
-            ctx.moveTo(start.x + 0.5, start.y);
-            ctx.lineTo(end.x + 0.5, end.y);
-        }
-
-        for (let y = 0; y <= height; y++) {
-            start.y = end.y = y;
-            start.x = 0; end.x = width;
-            bufferToDisplay(start); bufferToDisplay(end);
-            ctx.moveTo(start.x, start.y + 0.5);
-            ctx.lineTo(end.x, end.y + 0.5);
-        }
-    }
-
-    function drawGrid(ctx, width, height) {
-        ctx.beginPath();
-        gridPath(ctx, width, height);
-        ctx.strokeStyle = 'rgba(127, 127, 127, 0.4)';
-        ctx.stroke();
-    }
+    // Coverage worker.
 
     // Runs in Worker scope! Needs to bundle all of its dependencies!
     function coverageWorker(global) {
@@ -489,14 +452,15 @@
             Object.assign(global, e.data);
             const time = global.time;
 
-            const w = e.data.imageSize.width, h = e.data.imageSize.height;
-            const array = new Uint8Array(w*h);
+            const bufferGeometry = e.data.bufferGeometry;
+            const bufferWidth = bufferGeometry.bufferWidth, bufferHeight = bufferGeometry.bufferHeight;
+            const array = new Uint8Array(bufferWidth * bufferHeight);
 
             let i = 0;
             let error;
             outer:
-            for (let y = 0; y < h; y++) {
-                for (let x = 0; x < w; x++) {
+            for (let y = 0; y < bufferHeight; y++) {
+                for (let x = 0; x < bufferWidth; x++) {
                     let value;
                     try {
                         value = collectCoverage(x, y, coverage);
@@ -508,10 +472,13 @@
                 }
             }
 
-            if (error !== undefined)
+            if (error !== undefined) {
                 global.postMessage({ time: time, error: error.message });
-            else
-                global.postMessage({ time: time, buffer: array.buffer }, [array.buffer]);
+                return;
+            }
+
+            // Success!
+            global.postMessage({ time, bufferGeometry, buffer: array.buffer }, [array.buffer]);
         };
     }
 
@@ -522,46 +489,82 @@
             const suffix = `\n}`;
             this._editor.setPrefixSuffix(prefix, suffix);
         }
-        _drawGrid(buffer) {
-            if (this._bufferHeightNext === this._bufferHeight) {
-                this._canvas.height = this._bufferHeight * DISPLAY_CELL_SIZE + DISPLAY_YPAD * 2;
-                this._bufferHeightNext = 0;
+        _workerResult(data) {
+            this._setDrawBufferGeometry(data.bufferGeometry);
+            this._drawCoverageBuffer(data.buffer);
+        }
+        _getDisplayXpad(geometry) {
+            const displayWidth = geometry.bufferWidth * geometry.displayCellSize;
+            return (this._canvas.width - displayWidth) / 2;
+        }
+        _setDrawBufferGeometry(geometry) {
+            if (this._bufferGeometryToDraw.displayCellSize !== geometry.displayCellSize) {
+                this._bufferGeometryToDraw.displayCellSize = geometry.displayCellSize;
             }
-
+            if (this._bufferGeometryToDraw.bufferWidth !== geometry.bufferWidth) {
+                this._bufferGeometryToDraw.bufferWidth = geometry.bufferWidth;
+                this._displayXpad = this._getDisplayXpad(this._bufferGeometryToDraw);
+            }
+            if (this._bufferGeometryToDraw.bufferHeight !== geometry.bufferHeight) {
+                this._bufferGeometryToDraw.bufferHeight = geometry.bufferHeight;
+                this._displayYpad = 2;
+                // Resize canvas to match.
+                this._canvas.height = this._bufferGeometryToDraw.bufferHeight * this._bufferGeometryToDraw.displayCellSize + this._displayYpad * 2;
+            }
+        }
+        _drawCoverageBuffer(buffer) {
             const ctx = this._canvas.getContext('2d');
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
             ctx.save();
-            ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
+            ctx.translate(this._displayXpad, this._displayYpad);
 
-            const px = { x: 0, y: 0 };
             if (buffer) {
                 const array = new Uint8Array(buffer);
                 let i = 0;
-                for (let y = 0; y < this._bufferHeight; y++) {
-                    for (let x = 0; x < BUFFER_WIDTH; x++) {
+                for (let y = 0; y < this._bufferGeometryToDraw.bufferHeight; y++) {
+                    for (let x = 0; x < this._bufferGeometryToDraw.bufferWidth; x++) {
                         const coverage = array[i++] / 255;
                         const color = `rgba(0, 0, 0, ${coverage})`;
                         ctx.fillStyle = color;
-                        px.x = x; px.y = y; bufferToDisplay(px);
-                        ctx.fillRect(px.x, px.y, DISPLAY_CELL_SIZE, DISPLAY_CELL_SIZE);
+                        const cellSize = this._bufferGeometryToDraw.displayCellSize;
+                        const displayX = x * cellSize;
+                        const displayY = y * cellSize;
+                        ctx.fillRect(displayX, displayY, cellSize, cellSize);
                     }
                 }
             }
 
-            drawGrid(ctx, BUFFER_WIDTH, this._bufferHeight);
+            this._drawGridLines(ctx);
             ctx.restore();
+        }
+        _drawGridLines(ctx) {
+            const width = this._bufferGeometryToDraw.bufferWidth;
+            const height = this._bufferGeometryToDraw.bufferHeight;
+            const cellSize = this._bufferGeometryToDraw.displayCellSize;
+
+            ctx.beginPath();
+
+            for (let x = 0; x <= width; x++) {
+                const startX = x * cellSize, endX = x * cellSize;
+                const startY = 0, endY = height * cellSize;
+                ctx.moveTo(startX + 0.5, startY);
+                ctx.lineTo(endX + 0.5, endY);
+            }
+
+            for (let y = 0; y <= height; y++) {
+                const startY = y * cellSize, endY = y * cellSize;
+                const startX = 0, endX = width * cellSize;
+                ctx.moveTo(startX, startY + 0.5);
+                ctx.lineTo(endX, endY + 0.5);
+            }
+
+            ctx.strokeStyle = 'rgba(127, 127, 127, 0.4)';
+            ctx.stroke();
         }
         _createWorker(value) {
             const source = `function coverage(x, y) {\n${value}\n}`;
             return compileWorkerFromParts([source, coverageWorker.toString(), 'coverageWorker(this);']);
-        }
-        _workerResult(data) {
-            const buffer = data.buffer;
-            this._drawGrid(buffer);
-        }
-        _fallbackDraw() {
-            this._drawGrid(null);
         }
     }
 
@@ -569,7 +572,7 @@
         const coverageDemo = new CoverageDemo(source);
         elem.appendChild(coverageDemo.elem);
         coverageDemo.setWidth(elem.clientWidth);
-        coverageDemo.setNextHeight(INITIAL_BUFFER_HEIGHT * DISPLAY_CELL_SIZE);
+        coverageDemo.setBufferGeometry("auto", 20, 8);
     }
 
     ArticleDemos.registerDemo('rast2-coverage-editor-1', (elem) => runCoverageDemo(elem, `
@@ -631,193 +634,6 @@
 
     const width = x2 - x1;
     return capsule(x1, cy, width, height);
-`));
-
-    // Runs in Worker scope! Needs to bundle all of its dependencies!
-    function transformWorker(global) {
-        global.onmessage = function(e) {
-            const time = e.data.time;
-            const w = e.data.width, h = e.data.height;
-            const numSubpixelsX = e.data.numSubpixelsX;
-            const numSubpixelsY = e.data.numSubpixelsY;
-            const array = new Float32Array(w*h*numSubpixelsX*numSubpixelsY*2);
-
-            let i = 0;
-            let error;
-            outer:
-            for (let y = 0; y < h; y++)
-                for (let yy = 0; yy < numSubpixelsY; yy++)
-                    for (let x = 0; x < w; x++)
-                        for (let xx = 0; xx < numSubpixelsX; xx++) {
-                            const sampleX = x + xx / numSubpixelsX;
-                            const sampleY = y + yy / numSubpixelsY;
-                            try {
-                                const { newX, newY } = transform(sampleX, sampleY);
-                                array[i++] = newX;
-                                array[i++] = newY;
-                            } catch(e) {
-                                error = e;
-                                break outer;
-                            }
-                        }
-
-            if (error !== undefined)
-                global.postMessage({ time: time, error: error.message });
-            else
-                global.postMessage({ time: time, buffer: array.buffer }, [array.buffer]);
-        };
-    }
-
-    class TransformDrawer {
-        constructor() {
-            this._canvas = document.createElement('canvas');
-            visibleRAF(this._canvas, this._redraw.bind(this), this._setActive.bind(this));
-
-            this._bufferHeightNext = 0;
-            this._doubleBufferedWorker = new DoubleBufferedWorker();
-            this._doubleBufferedWorker.onresult = this._workerResult.bind(this);
-
-            this.elem = this._canvas;
-        }
-
-        getCanvas() {
-            return this._canvas;
-        }
-
-        _drawGrid(meshBuffer) {
-            if (this._bufferHeightNext === this._bufferHeight) {
-                this._canvas.height = this._bufferHeight * DISPLAY_CELL_SIZE + DISPLAY_YPAD * 2;
-                this._bufferHeightNext = 0;
-            }
-
-            const ctx = this._canvas.getContext('2d');
-            ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
-            ctx.save();
-            ctx.translate(DISPLAY_XPAD, DISPLAY_YPAD);
-
-            const array = new Float32Array(meshBuffer);
-            const numSubpixelsX = 4, numSubpixelsY = 4;
-            ctx.strokeStyle = 'rgba(127, 127, 127, 0.4)';
-            let i;
-            // This is complicated.
-            //
-            // First, draw the horizontal lines.
-            for (let y = 0; y < this._bufferHeight; y++) {
-                ctx.beginPath();
-                for (let x = 0; x < BUFFER_WIDTH; x++) {
-                    for (let xx = 0; xx < numSubpixelsX; xx++) {
-                        const yy = 0;
-                        const idx = ((y*numSubpixelsY+yy)*BUFFER_WIDTH*numSubpixelsX + x*numSubpixelsX+xx) * 2;
-                        const px = (array[idx+0]) * DISPLAY_CELL_SIZE;
-                        const py = (array[idx+1]) * DISPLAY_CELL_SIZE + 0.5;
-                        ctx.lineTo(px, py);
-                    }
-                }
-                ctx.stroke();
-            }
-            // Vertical lines.
-            for (let x = 0; x < BUFFER_WIDTH; x++) {
-                ctx.beginPath();
-                for (let y = 0; y < this._bufferHeight; y++) {
-                    for (let yy = 0; yy < numSubpixelsY; yy++) {
-                        const xx = 0;
-                        const idx = ((y*numSubpixelsY+yy)*BUFFER_WIDTH*numSubpixelsX + x*numSubpixelsX+xx) * 2;
-                        const px = (array[idx+0]) * DISPLAY_CELL_SIZE + 0.5;
-                        const py = (array[idx+1]) * DISPLAY_CELL_SIZE;
-                        ctx.lineTo(px, py);
-                    }
-                }
-                ctx.stroke();
-            }
-            // XXX: Now fill these things with coverage.
-
-            ctx.restore();
-        }
-
-        _setActive(active) {
-            this._active = active;
-
-            if (this._active)
-                this._createPendingWorker();
-            else
-                this._doubleBufferedWorker.terminate();
-        }
-
-        setWidth(width) {
-            this._canvas.width = width;
-        }
-
-        setNextHeight(bufferHeight) {
-            if (this._bufferHeight === bufferHeight)
-                return;
-
-            this._bufferHeightNext = bufferHeight;
-        }
-
-        setSource(source) {
-            this._source = source;
-
-            if (this._active)
-                this._createWorker();
-        }
-
-        _createWorker() {
-            if (!this._source)
-                return;
-
-            const newWorker = compileWorkerFromParts([this._source, transformWorker.toString(), 'transformWorker(this);']);
-            this._doubleBufferedWorker.setPendingWorker(newWorker);
-        }
-
-        _workerResult(data) {
-            const buffer = data.buffer;
-            this._drawGrid(buffer);
-        }
-
-        _redraw(time) {
-            if (this._bufferHeightNext)
-                this._bufferHeight = this._bufferHeightNext;
-
-            const width = BUFFER_WIDTH, height = this._bufferHeight;
-            const numSubpixelsX = 4, numSubpixelsY = 4;
-            const job = { time, width, height, numSubpixelsX, numSubpixelsY };
-            const sentJob = this._doubleBufferedWorker.sendJob(job);
-
-            // XXX: Should we draw a blank grid or keep the last known good compile there?
-            if (!sentJob)
-                this._drawGrid(null);
-        }
-    }
-
-    function runTransformDemo(elem, initialHeight, source) {
-        const transformDrawer = new TransformDrawer();
-        transformDrawer.setWidth(elem.clientWidth);
-        transformDrawer.setNextHeight(initialHeight);
-        elem.appendChild(transformDrawer.elem);
-
-        const editor = new Editor();
-        editor.setFontSize('12pt');
-        editor.setSize(elem.clientWidth, 250);
-        editor.setPrefixSuffix('function transform(x, y, time) {\n', '\n    return { newX, newY };\n}');
-        // Trim initial newline.
-        source = source.replace(/^\n+/, '');
-        source = source.replace(/\n+$/, '');
-        editor.setValue(source);
-
-        elem.appendChild(editor.elem);
-
-        function transform() {
-            transformDrawer.setSource(editor.getFullText());
-        }
-
-        editor.onvaluechanged = transform;
-        transform();
-    }
-
-    ArticleDemos.registerDemo('rast2-transforms-1', (elem) => runTransformDemo(elem, INITIAL_BUFFER_HEIGHT, `
-    const t = Math.sin(time / 1000) + 2;
-    const newX = x;
-    const newY = y;
 `));
 
 })(window);
