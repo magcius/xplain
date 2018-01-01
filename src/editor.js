@@ -237,15 +237,6 @@
 
             this._canvas = document.createElement('canvas');
 
-            this._ratio = window.devicePixelRatio;
-            window.matchMedia('screen and (min-resolution: 2dppx)').addListener(() => {
-                this._ratio = window.devicePixelRatio;
-                if (this._width)
-                    this._canvas.width = this._width * this._ratio;
-                if (this._height)
-                    this._canvas.height = this._height * this._ratio;
-            });
-
             this._toplevel.appendChild(this._canvas);
             this._onMouseDown = this._onMouseDown.bind(this);
             this._onMouseMove = this._onMouseMove.bind(this);
@@ -308,7 +299,6 @@
                 this._minHeight = h;
             if (w !== undefined) {
                 this._width = w;
-                this._canvas.width = w * this._ratio;
                 this._canvas.style.width = `${w}px`;
                 this._toplevel.style.width = `${w}px`;
                 // Calculate cols immediately.
@@ -433,7 +423,6 @@
             const newHeight = Math.ceil(Math.max(this._minHeight, this._rowHeight * (numLines + this._paddingTop + this._paddingBottom)));
             if (newHeight !== this._height) {
                 this._height = newHeight;
-                this._canvas.height = this._height * this._ratio;
                 this._canvas.style.height = `${this._height}px`;
                 this._toplevel.style.height = `${this._height}px`;
                 // Resize the textarea so the window doesn't scroll back in when we click on it...
@@ -740,6 +729,10 @@
         redraw(t) {
             this._recalculate();
 
+            const ratio = window.devicePixelRatio;
+            this._canvas.width = this._width * ratio;
+            this._canvas.height = this._height * ratio;
+
             const hasFocus = this._textarea.matches(':focus');
 
             if (hasFocus) {
@@ -756,7 +749,7 @@
 
             const ctx = this._canvas.getContext('2d');
             ctx.save();
-            ctx.scale(this._ratio, this._ratio);
+            ctx.scale(ratio, ratio);
             
             const bgcolor = '#232323';
             ctx.fillStyle = bgcolor;

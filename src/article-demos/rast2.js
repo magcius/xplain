@@ -292,7 +292,7 @@
             this._bufferGeometryToDraw = {};
         }
         _onSplitterDragStart() {
-            this._splitterDragStartHeight = this._canvas.height;
+            this._splitterDragStartHeight = this._height;
         }
         _onSplitterDrag(dx, dy, e) {
             const displayHeight = this._splitterDragStartHeight + dy;
@@ -319,10 +319,8 @@
             this._mouse.pressed = false;
         }
         setWidth(width) {
-            this._canvas.width = width;
-            const ctx = this._canvas.getContext('2d');
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
+            this._width = width;
+            this._canvas.style.width = `${width}px`;
             this._editor.setSize(width, 250);
         }
         _setActive(active) {
@@ -335,7 +333,7 @@
         }
         _calculateAutoBufferWidth(cellSize) {
             const numCellsPadding = 2; // Two cells worth of padding on each side.
-            const bufferWidth = Math.floor(this._canvas.width / cellSize) - numCellsPadding * 2;
+            const bufferWidth = Math.floor(this._width / cellSize) - numCellsPadding * 2;
             return bufferWidth;
         }
         setBufferGeometry(bufferWidth, bufferHeight, displayCellSize) {
@@ -495,7 +493,7 @@
         }
         _getDisplayXpad(geometry) {
             const displayWidth = geometry.bufferWidth * geometry.displayCellSize;
-            return (this._canvas.width - displayWidth) / 2;
+            return (this._width - displayWidth) / 2;
         }
         _setDrawBufferGeometry(geometry) {
             if (this._bufferGeometryToDraw.displayCellSize !== geometry.displayCellSize) {
@@ -509,13 +507,20 @@
                 this._bufferGeometryToDraw.bufferHeight = geometry.bufferHeight;
                 this._displayYpad = 2;
                 // Resize canvas to match.
-                this._canvas.height = this._bufferGeometryToDraw.bufferHeight * this._bufferGeometryToDraw.displayCellSize + this._displayYpad * 2;
+                this._height = this._bufferGeometryToDraw.bufferHeight * this._bufferGeometryToDraw.displayCellSize + this._displayYpad * 2;
+                this._canvas.style.height = `${this._height}px`;
             }
         }
         _drawCoverageBuffer(buffer) {
+            const ratio = window.devicePixelRatio;
+            this._canvas.width = this._width * ratio;
+            this._canvas.height = this._height * ratio;
+
             const ctx = this._canvas.getContext('2d');
+            ctx.scale(ratio, ratio);
+
             ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
+            ctx.fillRect(0, 0, this._width, this._height);
             ctx.save();
             ctx.translate(this._displayXpad, this._displayYpad);
 
@@ -572,7 +577,7 @@
         const coverageDemo = new CoverageDemo(source);
         elem.appendChild(coverageDemo.elem);
         coverageDemo.setWidth(elem.clientWidth);
-        coverageDemo.setBufferGeometry("auto", 20, 8);
+        coverageDemo.setBufferGeometry("auto", 10, 8);
     }
 
     ArticleDemos.registerDemo('rast2-coverage-editor-1', (elem) => runCoverageDemo(elem, `
