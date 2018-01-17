@@ -62,7 +62,7 @@
             the <a href="https://en.wikipedia.org/wiki/Interpress">Interpress</a>! PARC, obviously, was unable to sell it,
             so the inventors jumped ship and founded a small, scrappy startup named "Adobe". They took Interpress with them
             and tweaked it until was no longer recognizable as Interpress, and they renamed it PostScript.
-            Besides the cute, turing-complete stack-language language it comes with to calculate its shapes, the original
+            Besides the cute, Turing-complete stack-language language it comes with to calculate its shapes, the original
             <a href="http://www.adobe.com/content/dam/acom/en/devnet/actionscript/articles/PLRM.pdf">PostScript Language Reference</a>
             marks up an Imaging Model in Chapter 4, near-identical to the APIs we widely see today. Example 4.1
             of the manual has a code example which can be translated to HTML5 &lt;canvas&gt; nearly line-by-line:
@@ -134,7 +134,7 @@ ctx.restore();
             "PDF" for short. A quote from the
             <a href="http://www.adobe.com/content/dam/acom/en/devnet/acrobat/pdfs/pdf_reference_1-7.pdf#page=34">PDF specification, Chapter 2.1, "Imaging Model"</a>:
             <q>At the heart of PDF is its ability to describe the appearance of sophisticated graphics and
-            typography. This ability is achieved thruogh the use of the <i>Adobe imaging model</i>, the same high-level,
+            typography. This ability is achieved through the use of the <i>Adobe imaging model</i>, the same high-level,
             device-independent representation used in the PostScript page description language.</q>
             By the time the W3C wanted to develop a 2D graphics markup language for the web, Adobe championed the XML-based
             <a href="https://www.w3.org/TR/1998/NOTE-PGML-19980410">PGML</a>, which had the PostScript graphics model
@@ -155,8 +155,8 @@ ctx.restore();
             onto film, to be <a href="https://en.wikipedia.org/wiki/Phototypesetting">printed photochemically</a>. In 1977,
             Donald Knuth showed the world what could be with his <a href="https://en.wikipedia.org/wiki/Metafont">METAFONT</a>
             system, introduced together with his typesetting application TeX, but it didn't catch on. It required the user
-            to describe fonts in analytically, using brushes and curves, which wasn't a feat that most typographers really
-            strived to accomplish. And such fancy curves turned into mush at small sizes: the printers of the time did not
+            to describe fonts analytically, using brushes and curves, which wasn't a skill that most typographers really
+            wanted to learn. And such fancy curves turned into mush at small sizes: the printers of the time did not
             have dots small enough, so they tended to bleed and blur into each other. Adobe's PostScript proposed a novel
             solution to this: an algorithm to "snap" these paths to the coarser grids that printers had. This is known as
             "grid-fitting". To prevent the geometry from getting too distorted, they allowed fonts to specify "hints" about
@@ -182,14 +182,14 @@ ctx.restore();
             of paying licensing fees to Adobe, they invented an alternate method for their font file competitor,
             <a href="https://developer.apple.com/fonts/TrueType-Reference-Manual/">TrueType</a>.
             Instead of specifying declarative "hints", TrueType gives the font author a
-            <a href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM03/Chap3.html">complete turing-complete stack</a>
-            so that the author can control every part of grid-fitting (and conveniently avoiding Adobe's patents on hinting).
+            <a href="https://developer.apple.com/fonts/TrueType-Reference-Manual/RM03/Chap3.html">complete Turing-complete stack language</a>
+            so that the author can control every part of grid-fitting (and coincidentally avoid Adobe's patents on declarative "hints").
             For years, the wars between the Adobe-backed Type 1 and the TrueType raged on, with font foundries being
             stuck in the middle, having to provide both formats to their users. Eventually, the industry reached a compromise:
             <a href="https://www.microsoft.com/en-us/Typography/OpenTypeSpecification.aspx">OpenType</a>.
             But rather than actually decide a winner, they simply plopped both specifications into one file format: Adobe took
             Type 1 fonts, removed the encryption bits, gave them a small amount of spit polish, and released
-            <a href="http://www.adobe.com/content/dam/Adobe/en/devnet/font/pdfs/5176.CFF.pdf">CFF</a>/
+            <a href="http://www.adobe.com/content/dam/Adobe/en/devnet/font/pdfs/5176.CFF.pdf">CFF</a> /
             <a href="http://www.adobe.com/content/dam/Adobe/en/devnet/font/pdfs/5177.Type2.pdf">Type 2</a> fonts</a>,
             which were grafted into OpenType wholesale as the <a href="https://www.microsoft.com/typography/otspec/cff.htm">cff table</a>.
             TrueType, on the other hand, got shoved in as
@@ -202,8 +202,8 @@ ctx.restore();
             It's worth looking at some other alternatives. The previously mentioned METAFONT didn't use filled paths.
             Instead, Knuth, in typical Knuth fashion, rigourously defines in his paper
             <a href="http://www.math.lsa.umich.edu/~millerpd/docs/501_Winter13/Knuth79.pdf">Mathematical Typography</a>
-            the concept of a curve that is "most pleasing". You specify a number of points, and algorithm finds the
-            one correct path through these. You can stack these paths on top of each other: define such a path as a "pen",
+            the concept of a curve that is "most pleasing". You specify a number of points, and some algorithm finds the
+            one correct "most pleasing" curve through them. You can stack these paths on top of each other: define such a path as a "pen",
             and then "drag the pen" through some other path. Knuth introduced componentization and recursion to path definition.
             Knuth's thesis student, John Hobby, designed and implemented algorithms for calculating
             <a href="http://i.stanford.edu/pub/cstr/reports/cs/tr/85/1047/CS-TR-85-1047.pdf">the "most pleasing curve"</a>,
