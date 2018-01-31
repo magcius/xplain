@@ -632,7 +632,7 @@ function blendPixel(imageData, x, y, src) {
                 }
             }
             // Take the average of all subpixels.
-            coverage /= nSubpixelsY * nSubpixelsY;
+            coverage /= nSubpixelsX * nSubpixelsY;
 
             // Quick optimization: if we're fully outside the circle,
             // we don't need to compute the fill.
