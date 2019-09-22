@@ -32,7 +32,7 @@
         <h3>Recap</h3>
         <p>
             Last time, we got more intimately familiar with the technical details of the
-            <span class="definition">window</span>, one of X11's basic building blocks for building interactive user
+            <span class="definition">window</span>, one of the X11 protocol's basic building blocks for building interactive user
             interfaces. We learned that windows can be composed and nested, which allows for complex event delivery
             and simplified code on the part of the toolkit, at the expense of added latency and graphical glitches.
         </p>
@@ -44,10 +44,10 @@
         <p>
             I, in perhaps an ill-fated attempt to remain impartial, won't give my opinion on this, specifically,
             but today I want to talk about another feature commonly seen in modern user interface design, and how
-            it offers challenges with the drawing model X11 specified and expects clients to use. I am, specifically,
+            it offers challenges with the drawing model the X Window System specified and expects clients to use. I am, specifically,
             talking about alpha blending and transparency, or more specifically, "compositing". We'll take a look at
             what the
-            <a href="http://cgit.freedesktop.org/xorg/proto/compositeproto/tree/compositeproto.txt">X <span class="code-literal">COMPOSITE</span> extension</a>
+            <a href="http://cgit.freedesktop.org/xorg/proto/compositeproto/tree/compositeproto.txt"><span class="code-literal">COMPOSITE</span> extension</a>
             does, how it works, and how it can be used together with other technologies to build a modern looking
             graphics system, all while remaining complete backwards compatibility with older systems. It's quite clever!
         </p>
@@ -64,7 +64,7 @@
         <section id="window-map">
         <h3>A different direction</h3>
         <p>
-            I've long said that windows, in the X11 sense, aren't a tangible thing. They simply make their mark on
+            I've long said that windows, in the X11 protocol sense, aren't a tangible thing. They simply make their mark on
             the X server's front buffer, as a series of pixels which they own. The X server keeps track of which pixels
             each window owns, and sends them <span class="code-literal">Expose</span> events to let them know when
             to paint to these pixels.
@@ -100,7 +100,7 @@
         </p>
         <p>
             So, the first step to getting working compositing would be to have <em>some</em> way of keeping the
-            pixels that a window has drawn. This is where the X11 <span class="code-literal">COMPOSITE</span>
+            pixels that a window has drawn. This is where the <span class="code-literal">COMPOSITE</span>
             extension first comes into play.
         </p>
         </section>
@@ -149,8 +149,8 @@
             perspective is that windows that have been "redirected" draw to a thing they own, while windows that
             aren't are instead sending their drawing to some other window's backing pixmap. It's backwards! This
             very real confusion is one of the reasons that history and context are very important when trying to
-            understand X11: the legacy behaviors are embedded so deeply into the system that the engineers working
-            on it often arrive at weird definitions like these. If you've worked on X11 for a long time, it all
+            understand the X Window System: the legacy behaviors are embedded so deeply into the system that the engineers working
+            on it often arrive at weird definitions like these. If you've worked with the X Window System for a long time, it all
             seems so natural.
         </p>
         <p>
@@ -209,7 +209,7 @@
             In order to get a graphics API that supports alpha blending, we could opt to use OpenGL or fall back to
             software rendering, perhaps with some
             <a href="http://git.enlightenment.org/apps/eterm.git/tree/src/mmx_cmod.S">state-of-the-art hand-written MMX
-            code</a>, both of which are valid options, but thankfully another X11 extension can come to our rescue.
+            code</a>, both of which are valid options, but thankfully another X11 protocol extension can come to our rescue.
             The <a href="http://cgit.freedesktop.org/xorg/proto/renderproto/tree/renderproto.txt">X RENDER extension</a>
             provides a variety of advanced vector graphics for us, including matrix transforms, gradients, and, just for us,
             alpha blending! It provides this through the (confusingly) named <span class="code-literal">Composite</span>
@@ -250,7 +250,7 @@
             both backing window pixmaps from the X server and GL textures are just buffers of memory managed by your
             GPU, so we can sample from them directly. The OpenGL extension known as
             <a class="code-literal" href="https://www.opengl.org/registry/specs/EXT/texture_from_pixmap.txt">texture_from_pixmap</a>,
-            sometimes referred to as "TFP", lets you take an X11 Pixmap and convert it to an OpenGL texture. If we hook
+            sometimes referred to as "TFP", lets you take an X11 Pixmap object and convert it to an OpenGL texture. If we hook
             all the pieces up, that means that we redirect a window to its own backing pixmap, then retrieve the pixmap
             with <span class="code-literal">NameWindowPixmap</span>, then take that Pixmap and plug it into the TFP
             extension to retrieve a GL texture object that we can texture from just like it was a normal 2D texture.
@@ -303,8 +303,8 @@
         </p>
         <p>
             This, more than anything, just setting up the story for newer display servers like Wayland and Mir. These
-            projects started after X11 engineers asked themselves the very same questions, and built something better.
-            We'll look at those in due time, but for now, we have to work our way through X11.
+            projects started after X Window System engineers asked themselves the very same questions, and built something better.
+            We'll look at those in due time, but for now, we have to work our way through X Window System.
         </p>
         </section>
 
