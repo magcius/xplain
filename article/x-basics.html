@@ -247,7 +247,7 @@
             much memory. Again, for a full-screen 800x600 window, you don't want a giant alpha mask in the server's
             memory telling it that it's mostly visible, or mostly obscured. Instead, the X server stores a more compact
             version of the same thing, as a list of rectangles containing the areas where the window is visible. For
-            a 800x600 window that's not occluded, we now went from a 60kb bitmap mask to a rectangle containing four
+            an 800x600 window that's not occluded, we now went from a 60kb bitmap mask to a rectangle containing four
             32-bit numbers, for a total of 16 bytes. Quite a savings!
         </p>
         <p>
@@ -321,7 +321,7 @@
             a <span class="code-literal">background-pixel</span> attribute instead. What's with that?
         </p>
         <p>
-            You might have been wondering how it could have been efficient to keep transfering missing pixels for the
+            You might have been wondering how it could have been efficient to keep transferring missing pixels for the
             kitten images at 60 frames per second, over a network connection in the 80s. The answer is that we're not.
             Instead, when we create the window and load the image in, the code creates a
             <span class="definition">Pixmap</span>, which allows us to have memory-backed pixel storage on the server.
