@@ -171,7 +171,7 @@ function fillRectangle(imageData, x1, y1, width, height) {
         <div class="demo-canvas" data-demo="rast1-fillrect-basic"></div>
 
         <p>
-            This should be pretty straightforward, but there are a few pecularities I do want to go over.
+            This should be pretty straightforward, but there are a few peculiarities I do want to go over.
             First, it may strike some of you as odd to iterate over the "y" first. Graphics programmers
             often think about things in rows. This is a holdover from early computer graphics, and it's
             for performance reasons &mdash; if you think about the memory layout of our pixel grid, you'll
@@ -689,13 +689,13 @@ function blendPixel(imageData, x, y, src) {
         </p>
         <p>
             Also, now that we can draw shapes starting at any pixel, we have to be a bit more careful computing
-            the bounding box to help accomodate this. Note the additions of <code>Math.floor</code> and
+            the bounding box to help accommodate this. Note the additions of <code>Math.floor</code> and
             <code>Math.ceil</code> above; I sneakily put those in there, but they are required for this to work
             correctly. Otherwise, the X and Y values we pass to <code>blendImage</code> would be fractional,
             and our attempts at setting the ImageData array would fail on fractional indexes.
         </p>
         <p>
-            And last, I should mention. Super- or multisampling are not the only approaches to doing antialasing.
+            And last, I should mention. Super- or multisampling are not the only approaches to doing antialiasing.
             Another approach here is to use analytic methods to figure out how much area the shape actually covers.
             The common algorithm for this is commonly attributed to Raph Levien in the
             <a href="http://www.levien.com/libart/">libart rendering library</a>. I might do an interactive article
@@ -719,7 +719,7 @@ function blendPixel(imageData, x, y, src) {
         </p>
         <p>
             My plan is that next time, we'll expand on graphics further with fun things like linear transformations,
-            more shapes, like complex filled polygons, bezier curves, and maybe a bit of extra fun stuff with
+            more shapes, like complex filled polygons, Bezier curves, and maybe a bit of extra fun stuff with
             perspective-textured triangles. That said, these plans aren't finalized, and if you would like me to
             cover something extra, ideas are always welcome!
         </p>
