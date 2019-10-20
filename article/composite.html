@@ -212,7 +212,7 @@
             code</a>, both of which are valid options, but thankfully another X11 protocol extension can come to our rescue.
             The <a href="http://cgit.freedesktop.org/xorg/proto/renderproto/tree/renderproto.txt">X RENDER extension</a>
             provides a variety of advanced vector graphics for us, including matrix transforms, gradients, and, just for us,
-            alpha blending! It provides this through the (confusingly) named <span class="code-literal">Composite</span>
+            alpha blending! It provides this through the (confusingly named) <span class="code-literal">Composite</span>
             request, which does <span class="definition">alpha compositing</span> or blending of two images.
             Using this request to the X server instead of <span class="code-literal">CopyArea</span>, we can finally
             apply our hard-earned alpha and draw our windows semi-transparent.
@@ -231,7 +231,7 @@
         <section id="video-player">
         <h3>The intangible image</h3>
         <p>
-            I want to make you sure that you realize here that the image painted with COMPOSITE is really just whatever
+            I want to make sure that you realize here that the image painted with COMPOSITE is really just whatever
             the user wants it to be. This image doesn't actually get input: it just reacts to whatever else happens on
             screen. In order for input to make sense, however, the windows have to line up perfectly to whatever else
             is on the screen: much like in the "naive redirection" example above where the kitten just turned invisible,
