@@ -463,20 +463,20 @@ function draw(imageData) {
         </p>
         <div class="demo-canvas" data-demo="rast1-circle-overlay-fixed"></div>
         <pre><code class="javascript">function fillCircle(imageData, fillStyle, centerX, centerY, radius) {
-                var x1 = centerX - radius, y1 = centerY - radius;
-                var x2 = centerX + radius, y2 = centerY + radius;
-                for (var y = y1; y < y2; y++) {
-                    for (var x = x1; x < x2; x++) {
-                        var distX = (x - centerX<strong> + 0.5</strong>), distY = (y - centerY<strong> + 0.5</strong>);
-                        var distance = Math.sqrt(distX*distX + distY*distY);
-                        if (distance <= radius) {
-                            var rgb = fillStyle(x, y);
-                            fillPixel(imageData, x, y, rgb);
-                        }
-                    }
-                }
+    var x1 = centerX - radius, y1 = centerY - radius;
+    var x2 = centerX + radius, y2 = centerY + radius;
+    for (var y = y1; y < y2; y++) {
+        for (var x = x1; x < x2; x++) {
+            var distX = (x - centerX<strong> + 0.5</strong>), distY = (y - centerY<strong> + 0.5</strong>);
+            var distance = Math.sqrt(distX*distX + distY*distY);
+            if (distance <= radius) {
+                var rgb = fillStyle(x, y);
+                fillPixel(imageData, x, y, rgb);
             }
-            </code></pre>
+        }
+    }
+}
+</code></pre>
         <p>
             And indeed it does! By adjusting our <span class="code-literal">fillCircle</span> function to test distance
             against the pixel's <em>center</em> in the abstract space, we get something that looks a lot more circular.
