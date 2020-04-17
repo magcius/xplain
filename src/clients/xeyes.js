@@ -158,7 +158,7 @@
                 ctx.fill();
             }.bind(this));
         }
-    });
+    };
 
     exports.Xeyes = Xeyes;
 
